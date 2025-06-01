@@ -1,0 +1,6145 @@
+[
+    {
+        "id": "189",
+        "name": "189",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "桃園後站  -  經國轉運站(經武陵、龍安街、藝文特區)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65258",
+        "name": "1633",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "四湖鄉→北港→台北[經尖山]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65227",
+        "name": "1628A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "漚汪→佳里、麻豆→台北[不停中壢站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "57050",
+        "name": "L705",
+        "opType": 2,
+        "routeGroup": "大溪",
+        "description": "環西甲線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5008",
+        "name": "5008",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  中壢(經龍岡)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "51062",
+        "name": "5106B",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "霞雲里  -  大溪[繞駛復興鄉台7線區域]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "50431",
+        "name": "5043A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  觀音[繞駛觀音]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5171",
+        "name": "T517A",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "觀音(玉林路)站 - 新坡農會(繞駛至蘭亭集序)",
+        "providers": [
+            "嘉義客運",
+            "台灣真好車盟",
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "15402",
+        "name": "F903F(回程) 06:20:00 復興-霞雲(經羅浮,奎輝)",
+        "opType": 12,
+        "routeGroup": "F903",
+        "description": "下溪口台-羅浮國小",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "7062",
+        "name": "706B",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園國際機場  -  桃園火車站",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "2300",
+        "name": "230",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢區公所  -  外環藍線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5049",
+        "name": "5049",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "龍潭  -  澹園(經三角林)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "56171",
+        "name": "5617A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "關西  -  中壢[經關西高中]",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "15242",
+        "name": "7000G",
+        "opType": 1,
+        "routeGroup": "市區公車",
+        "description": "西螺－國道1號高速公路－臺北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "9070",
+        "name": "F907",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興  -  雪霧鬧",
+        "providers": [
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "53031",
+        "name": "L303A",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "棕線A(繞駛威天宮)",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "65321",
+        "name": "1842A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "松山機場→大園[經林口長庚醫院]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "15138",
+        "name": "952",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "板橋-南崁",
+        "providers": [
+            "首都客運",
+            "桃園客運(NewTaipei)"
+        ]
+    },
+    {
+        "id": "15248",
+        "name": "937A",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口(去程不繞龜山)-圓山",
+        "providers": [
+            "大都會客運"
+        ]
+    },
+    {
+        "id": "5650",
+        "name": "5650",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "新屋  -  楊梅",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "5616",
+        "name": "5616",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "龍潭  -  中壢",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "36431",
+        "name": "L602A",
+        "opType": 2,
+        "routeGroup": "新屋",
+        "description": "新屋二甲線(繞駛永安漁港、不繞動保園區)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5127",
+        "name": "T512(真好)",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "觀音站 - 桃園長庚轉運站",
+        "providers": [
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "63079",
+        "name": "1852A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "板橋→國道3號→臺中[不經三峽、苑裡]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "208",
+        "name": "208",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "捷運高鐵桃園站 - 八德 ",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "65532",
+        "name": "9001",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北市東南區→國道3號→桃園市中壢區",
+        "providers": [
+            "國光客運(innercity)",
+            "台聯客運(innercity)",
+            "中壢客運(innercity)",
+            "台聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "3200",
+        "name": "107",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  大湳(經國際路)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15362",
+        "name": "F907(去程) 16:40:00 復興-雪霧鬧",
+        "opType": 12,
+        "routeGroup": "F907",
+        "description": "復興-雪霧鬧雅渡農場",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "7061",
+        "name": "706A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園火車站  -  桃園國際機場",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "65280",
+        "name": "1619",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台中→中港路→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "15247",
+        "name": "966A",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口站(去程不繞龜山)-臺北車站(鄭州)",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "36441",
+        "name": "L605A",
+        "opType": 2,
+        "routeGroup": "新屋",
+        "description": "高鐵線(延駛長庚醫院)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5097",
+        "name": "5097",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  竹篙厝(經美華)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "57120",
+        "name": "L712",
+        "opType": 2,
+        "routeGroup": "大溪",
+        "description": "河東線假日2",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3162",
+        "name": "206A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  高鐵桃園站(繞開南大學)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65316",
+        "name": "1627",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺灣桃園國際機場→中壢服務區(機場接駁路線，不單獨售票)",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65253",
+        "name": "1635A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "四湖鄉→虎尾→台北[不停中港轉運站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "15188",
+        "name": "F902D(回程) 06:20:00 復興-上高義(經蘇樂、高義國小)",
+        "opType": 12,
+        "routeGroup": "F902",
+        "description": "上高義-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "63002",
+        "name": "1816B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園→臺北[大有路]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "5006",
+        "name": "5006",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  高山下",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "62994",
+        "name": "1961A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "大園區→臺北市[通勤線經南崁]",
+        "providers": [
+            "大有巴士(innercity)"
+        ]
+    },
+    {
+        "id": "15118",
+        "name": "822",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "五股立體停車場-林口長庚醫院",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "62993",
+        "name": "1968",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺灣桃園國際機場→三峽→中和→新店",
+        "providers": [
+            "大有巴士(innercity)"
+        ]
+    },
+    {
+        "id": "57011",
+        "name": "L701A",
+        "opType": 2,
+        "routeGroup": "大溪",
+        "description": "河東線(延駛向天坡)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15206",
+        "name": "F905C(去程) 06:10:00 復興-義興-小烏來",
+        "opType": 12,
+        "routeGroup": "F905",
+        "description": "復興-小烏來",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "2510",
+        "name": "251",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "職訓中心  -  雙榮親子館",
+        "providers": [
+            "金台通運"
+        ]
+    },
+    {
+        "id": "5110",
+        "name": "5110",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  坪林",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65325",
+        "name": "1841",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "松山機場→南崁→臺灣桃園國際機場",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "65128",
+        "name": "1840",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "松山機場→臺灣桃園國際機場",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "6551",
+        "name": "L207A",
+        "opType": 2,
+        "routeGroup": "中壢",
+        "description": "大崙紫線",
+        "providers": [
+            "勁揚通運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15186",
+        "name": "F902B(回程) 08:30:00 復興-新興",
+        "opType": 12,
+        "routeGroup": "F902",
+        "description": "新興-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "5011",
+        "name": "5011",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  中壢(經竹巷)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5026",
+        "name": "5026",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  新坡(經富源)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5021",
+        "name": "5021",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  下海湖",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "62997",
+        "name": "1960",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺灣桃園國際機場→臺北市",
+        "providers": [
+            "大有巴士(innercity)"
+        ]
+    },
+    {
+        "id": "57250",
+        "name": "L725",
+        "opType": 2,
+        "routeGroup": "龍潭",
+        "description": "烏樹林龍祥乙線",
+        "providers": [
+            "桃園客運",
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "2310",
+        "name": "231",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢區公所  -  龍岡綠線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5107",
+        "name": "5107",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  蝙蝠洞(經三民)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3220",
+        "name": "132",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  中央大學",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65340",
+        "name": "5250",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市大園區→南崁→國道1號→臺北市",
+        "providers": [
+            "亞通客運(innercity)"
+        ]
+    },
+    {
+        "id": "11894",
+        "name": "502(大溪站發車)",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "台灣好行小烏來線(大溪站發車，假日行駛)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5090",
+        "name": "5090",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  上巴陵  -  林班口(拉拉山)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5015",
+        "name": "5015",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  大園(經南崁)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65323",
+        "name": "1841B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺灣桃園國際機場→南崁→松山機場[臺茂至松山機場]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "15237",
+        "name": "7002",
+        "opType": 1,
+        "routeGroup": "市區公車",
+        "description": "四湖→西螺交流道→國道1號高速公路→三重交流道→臺北市",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "709",
+        "name": "709",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "平鎮 - 永寧轉運站",
+        "providers": [
+            "統聯客運",
+            "指南客運"
+        ]
+    },
+    {
+        "id": "3260",
+        "name": "112S",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  忠貞",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3520",
+        "name": "115A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  平東路",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5624",
+        "name": "5624",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  湖口(經楊梅)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "15207",
+        "name": "F907(去程) 15:15:00 復興-雪霧鬧",
+        "opType": 12,
+        "routeGroup": "F907",
+        "description": "復興-雪霧鬧雅渡農場",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "715",
+        "name": "715",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "八德 - 永寧轉運站(經介壽路義勇街)",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "15121",
+        "name": "-F233",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "水尾-林口國中",
+        "providers": [
+            "林口區公所"
+        ]
+    },
+    {
+        "id": "5042",
+        "name": "5042",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  觀音(經新坡)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15244",
+        "name": "5634A",
+        "opType": 1,
+        "routeGroup": "",
+        "description": "竹東→關西",
+        "providers": [
+            "捷乘客運有限公司(innercity)",
+            "新竹客運(innercity)"
+        ]
+    },
+    {
+        "id": "5617",
+        "name": "5617",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "關西  -  中壢",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "15191",
+        "name": "F902H(去程) 07:00:00 復華-三光",
+        "opType": 12,
+        "routeGroup": "F902",
+        "description": "砂崙子長老教會-三光國小正門",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "5623",
+        "name": "5623",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "楊梅  -  捷運環北站(經中壢車站)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "15153",
+        "name": "7500G",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台南→麻豆→桃園→台北",
+        "providers": [
+            "和欣客運(innercity)"
+        ]
+    },
+    {
+        "id": "56162",
+        "name": "5616B",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "龍潭  -  中壢(去程 繞駛祥安國小、捷運老街溪站)",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "15125",
+        "name": "-F611",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "大學風呂-林口長庚醫院",
+        "providers": [
+            "樹林區公所"
+        ]
+    },
+    {
+        "id": "5035",
+        "name": "5035",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  新屋(經過嶺)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "53060",
+        "name": "L306A",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "紅線A(經八股路)",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "8040",
+        "name": "L111",
+        "opType": 2,
+        "routeGroup": "桃園",
+        "description": "埔子藍線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5073",
+        "name": "5073",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  頂社",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65278",
+        "name": "1619B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台中→中港路→台北[不停竹科站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "3165",
+        "name": "206D",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  高鐵桃園站(直達車)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "6770",
+        "name": "L217",
+        "opType": 2,
+        "routeGroup": "平鎮",
+        "description": "高連紅",
+        "providers": [
+            "勁揚通運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15171",
+        "name": "-F126",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "八里分駐所-長庚醫院",
+        "providers": [
+            "八里區公所"
+        ]
+    },
+    {
+        "id": "2120",
+        "name": "212",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  龍潭",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15197",
+        "name": "F903C(去程) 06:20:00 復興-霞雲(經羅浮)",
+        "opType": 12,
+        "routeGroup": "F903",
+        "description": "霞雲里-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "65122",
+        "name": "1862A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園→高雄[經西螺]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "5043",
+        "name": "5043",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  臺玻[繞駛觀音工業區]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5084",
+        "name": "5084",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "捷運大園站  -  苗圃橋",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "824",
+        "name": "L609",
+        "opType": 2,
+        "routeGroup": "楊梅",
+        "description": "幼獅工業區線",
+        "providers": [
+            "金台通運"
+        ]
+    },
+    {
+        "id": "65279",
+        "name": "1619A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台中→中港路→台北[朝馬至台北班次、不停竹科站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5068",
+        "name": "5068",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  福山宮",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "63077",
+        "name": "1819A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北→臺灣桃園國際機場[繞駛捷運圓山站]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "5051",
+        "name": "5051",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "龍潭  -  石門山登山口",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15113",
+        "name": "937",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口-圓山",
+        "providers": [
+            "大都會客運"
+        ]
+    },
+    {
+        "id": "5120",
+        "name": "T512",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "觀音站 - 桃園長庚轉運站",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15132",
+        "name": "786區",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "華亞園區-捷運新莊站",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "65259",
+        "name": "1632",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "竹山→草屯→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "505",
+        "name": "505",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "濱海觀光公車",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2390",
+        "name": "239",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "龍潭 - 北水局",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "6580",
+        "name": "L209",
+        "opType": 2,
+        "routeGroup": "中壢",
+        "description": "內定青埔灰線",
+        "providers": [
+            "勁揚通運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3136",
+        "name": "5014A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  捷運山鼻站(延駛山腳)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "712",
+        "name": "712",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "龍潭 - 永寧轉運站",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15110",
+        "name": "橘21",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "龍壽里-新北產業園區",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "3163",
+        "name": "206B",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  高鐵桃園站(繞捷運領航站)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "50571",
+        "name": "5057A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  長庚醫院(繞體育大學)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "7071",
+        "name": "707",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  桃園棒球場",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5170",
+        "name": "T517",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "觀音(玉林路)站 - 新坡農會",
+        "providers": [
+            "嘉義客運",
+            "台灣真好車盟",
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "50961",
+        "name": "5096A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  大溪(經更寮腳)[繞駛前站]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65305",
+        "name": "1610",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "高雄→台北[經臺北交流道]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "51061",
+        "name": "5106A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "霞雲里  -  大溪[經復興—羅浮地區]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5017",
+        "name": "5017",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  竹圍(經楊厝)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5091",
+        "name": "5091",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  上巴陵  -  林班口(拉拉山)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5022",
+        "name": "5022",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  竹圍(經南崁)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5130",
+        "name": "T513",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "白玉 - 高鐵桃園站",
+        "providers": [
+            "嘉義客運",
+            "台灣真好",
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "65120",
+        "name": "1862B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園→高雄[中壢至高雄]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "51200",
+        "name": "L120",
+        "opType": 2,
+        "routeGroup": "八德",
+        "description": "綠線",
+        "providers": [
+            "亞通客運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "7221",
+        "name": "722A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "楊梅 - 捷運三重國小站",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "5671",
+        "name": "5671",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  國軍桃園總醫院(經龍潭)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "65439",
+        "name": "5116",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園→臺北長庚醫院",
+        "providers": [
+            "桃園客運(innercity)",
+            "桃園客運(innercity)"
+        ]
+    },
+    {
+        "id": "15102",
+        "name": "F907(回程) 16:30:00 復興-雪霧鬧",
+        "opType": 12,
+        "routeGroup": "F907",
+        "description": "雪霧鬧雅渡農場-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "711",
+        "name": "711",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  桃園長庚轉運站(經中正藝文特區)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5009",
+        "name": "5009",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  捷運泰山貴和站",
+        "providers": [
+            "桃園客運",
+            "三重客運"
+        ]
+    },
+    {
+        "id": "63074",
+        "name": "1630C",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北→西港[經竹塘]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "15201",
+        "name": "F905(回程) 08:30:00 復興-義興",
+        "opType": 12,
+        "routeGroup": "F905",
+        "description": "義興二-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "53191",
+        "name": "L319A",
+        "opType": 2,
+        "routeGroup": "龜山",
+        "description": "長庚醫院藍線(繞駛文青路)",
+        "providers": [
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "5086",
+        "name": "5086",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "大園  -  桃園(經五塊厝、開南大學)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65284",
+        "name": "1617A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "東勢→豐原→台北[不停麗寶樂園(月眉)站、林口站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5094",
+        "name": "5094",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  三光(沙崙子)  -  巴陵",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15183",
+        "name": "F901(去程) 08:30:00 復興-市界",
+        "opType": 12,
+        "routeGroup": "F901",
+        "description": "復興-市界",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "5060",
+        "name": "5060",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  榮民之家(經更寮腳)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65435",
+        "name": "9023A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園→國道1號→臺北市士林區[中正藝文特區發車]",
+        "providers": [
+            "臺北客運(innercity)",
+            "桃園客運(innercity)"
+        ]
+    },
+    {
+        "id": "65288",
+        "name": "1616",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "員林→台北[經蓮花池]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "63075",
+        "name": "1635C",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "西螺→虎尾→四湖鄉[於西螺站轉乘【1633】往返臺北，不單獨售票]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65309",
+        "name": "2004",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "中壢區→桃園市龜山區",
+        "providers": [
+            "汎航通運(innercity)"
+        ]
+    },
+    {
+        "id": "56161",
+        "name": "5616A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "龍潭  -  中壢(繞駛捷運老街溪站)",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "36430",
+        "name": "L602",
+        "opType": 2,
+        "routeGroup": "新屋",
+        "description": "新屋二甲線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5301",
+        "name": "5301",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  上巴陵  -  林班口(拉拉山)",
+        "providers": [
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "706",
+        "name": "706",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園火車站  -  桃園國際機場",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "5651",
+        "name": "5651",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  北高榮(經埔心)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "15203",
+        "name": "F905A(去程) 07:00:00 義盛國小區間車",
+        "opType": 12,
+        "routeGroup": "F905",
+        "description": "小烏來-義盛國小",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "1730",
+        "name": "173",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中央大學  -  高鐵桃園站",
+        "providers": [
+            "中壢客運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65067",
+        "name": "1611E",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台南→台北[經三重交流道、不停新營站、經國轉運站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "607",
+        "name": "GR",
+        "opType": 6,
+        "routeGroup": "先導公車",
+        "description": "桃園後站  -  捷運坑口站",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5038",
+        "name": "5038",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  東福園(經山東)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "63008",
+        "name": "1661A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園國際機場→宜蘭地區轉運站(不停林口站、經國轉運站)",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65263",
+        "name": "1630",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "西港→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65124",
+        "name": "1852",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "板橋→國道3號→臺中",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "50712",
+        "name": "5071B",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "頂社 - 桃園(經赤塗崎、貓尾崎)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2530",
+        "name": "253",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "雅典社區  -  埔心後火車站",
+        "providers": [
+            "金台通運"
+        ]
+    },
+    {
+        "id": "65254",
+        "name": "1635",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "四湖鄉→虎尾→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65285",
+        "name": "1617",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "東勢→豐原→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65066",
+        "name": "1617C",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "東勢→豐原→台北[不停麗寶樂園(月眉)站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "15120",
+        "name": "-F232",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口加油站-長庚醫院",
+        "providers": [
+            "林口區公所"
+        ]
+    },
+    {
+        "id": "2370",
+        "name": "237",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "龜山區公所  -  兔坑藍線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15185",
+        "name": "F902B(去程) 14:00:00 復興-新興",
+        "opType": 12,
+        "routeGroup": "F902",
+        "description": "復興-新興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "65334",
+        "name": "5203A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市蘆竹區六福路口→臺北市",
+        "providers": [
+            "國光客運(innercity)",
+            "亦捷科際(innercity)",
+            "長榮國際儲運(innercity)",
+            "亞通客運(innercity)"
+        ]
+    },
+    {
+        "id": "62995",
+        "name": "1961",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "大園區→臺北市",
+        "providers": [
+            "大有巴士(innercity)"
+        ]
+    },
+    {
+        "id": "15117",
+        "name": "786",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "華亞園區-板橋",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "168",
+        "name": "168",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "桃園後火車站  -  內壢復興宮",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "63006",
+        "name": "1861",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園→臺中",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "11920",
+        "name": "506",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "台灣好行東眼山線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3330",
+        "name": "171",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  捷運老街溪站",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2653",
+        "name": "265C",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  鶯歌火車站(繞駛鳳鳴火車站) ",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65283",
+        "name": "1617B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "東勢→豐原→台北[豐原至臺北班次，不停麗寶樂園(月眉)站、林口站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65121",
+        "name": "1862",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園→高雄",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "51150",
+        "name": "L115",
+        "opType": 2,
+        "routeGroup": "八德",
+        "description": "紅甲線",
+        "providers": [
+            "亞通客運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65277",
+        "name": "1620",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台中→中清路→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "50271",
+        "name": "5027A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  後湖[繞駛永安漁港]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "6541",
+        "name": "L206A",
+        "opType": 2,
+        "routeGroup": "中壢",
+        "description": "大崙橘線",
+        "providers": [
+            "勁揚通運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65276",
+        "name": "1620A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台中→中清路→台北[不停新竹站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "53061",
+        "name": "L306B",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "紅線B(經蘆竹)",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "7230",
+        "name": "723",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "經國轉運站-莊敬路-捷運三重國小站",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "65265",
+        "name": "1628",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "漚汪→佳里、麻豆→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65292",
+        "name": "1613A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "屏東→台北[經三重交流道]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5085",
+        "name": "5085",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大園  -  沙崙",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5057",
+        "name": "5057",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  長庚醫院",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "63007",
+        "name": "1662",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市桃園區→臺北市松山區(松山機場)",
+        "providers": [
+            "統聯客運(innercity)",
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "822",
+        "name": "L608",
+        "opType": 2,
+        "routeGroup": "楊梅",
+        "description": "永寧上田線",
+        "providers": [
+            "金台通運"
+        ]
+    },
+    {
+        "id": "43290",
+        "name": "L329",
+        "opType": 2,
+        "routeGroup": "龜山",
+        "description": "嶺頂線(經優美街)",
+        "providers": [
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "50731",
+        "name": "5073A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "頂社 - 桃園(繞山腳國中)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65324",
+        "name": "1841A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "松山機場→南崁→臺灣桃園國際機場[桃園航空貨運園區]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "9037",
+        "name": "F903F",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興-霞雲（經羅浮 、奎輝）",
+        "providers": [
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "51072",
+        "name": "5107B",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  蝙蝠洞[繞駛台7線阿姆坪地區及台7線美華地區]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "63001",
+        "name": "1816A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北→桃園[經國路]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "56501",
+        "name": "5650A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "新屋  -  楊梅(繞行新屋高中)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "9034",
+        "name": "F903(真好)",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興-霞雲",
+        "providers": [
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "65281",
+        "name": "1618A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "嘉義→台北[不停中港轉運站、林口、重陽站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5069",
+        "name": "5069",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  醒吾科技大學(經赤塗崎)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "7092",
+        "name": "709B",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "平鎮 - 永寧轉運站",
+        "providers": [
+            "統聯客運",
+            "指南客運"
+        ]
+    },
+    {
+        "id": "5674",
+        "name": "5674",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  金雞湖(經東勢)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "53270",
+        "name": "L327",
+        "opType": 2,
+        "routeGroup": "龜山",
+        "description": "坪頂線 - 林口長庚開",
+        "providers": [
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "3070",
+        "name": "307",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "蘆竹區公所  -  開南大學(經南竹路)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2350",
+        "name": "235",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "平鎮區公所  -  山子頂藍線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "62270",
+        "name": "1728",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北市→國道3號、1號→新竹市",
+        "providers": [
+            "亞聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "3284",
+        "name": "167A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢 - 內壢 - 篤行六村 - 中壢",
+        "providers": [
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "15105",
+        "name": "635",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "龍壽里-臺北",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "2650",
+        "name": "265",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  鶯歌火車站",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5121",
+        "name": "T512A",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "桃園長庚轉運站 - 高鐵桃園站",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2311",
+        "name": "231A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢區公所  -  龍岡綠線(繞興仁路)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5096",
+        "name": "5096",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  大溪(經更寮腳)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "710",
+        "name": "710",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "內柵 - 永寧轉運站",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "725",
+        "name": "725",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "龍潭 - 永寧轉運站(經中科院)",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "65310",
+        "name": "2003",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園區→桃園市龜山區",
+        "providers": [
+            "汎航通運(innercity)"
+        ]
+    },
+    {
+        "id": "15193",
+        "name": "F903(去程) 12:30:00 復興-霞雲",
+        "opType": 12,
+        "routeGroup": "F903",
+        "description": "復興-霞雲里",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "53022",
+        "name": "L302B",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "黃線B",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "6052",
+        "name": "607",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "長庚醫院 - 迴龍(經青山路)",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "5087",
+        "name": "5087",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢 - 大園(經青埔)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3030",
+        "name": "102",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  景雲新村",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "213",
+        "name": "213",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃花園飯店  -  長庚醫院",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "53021",
+        "name": "L302A",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "黃線A",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "65289",
+        "name": "1615A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "彰化→台北[不停朝馬站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "63000",
+        "name": "1816",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北→桃園",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "602",
+        "name": "BR",
+        "opType": 6,
+        "routeGroup": "先導公車",
+        "description": "桃園  -  捷運迴龍站",
+        "providers": [
+            "桃園客運",
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "50531",
+        "name": "5053A",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  龍潭(經九龍里)[繞駛國軍桃園總醫院]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15133",
+        "name": "854",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "華亞園區-泰北路",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "55070",
+        "name": "L507",
+        "opType": 2,
+        "routeGroup": "大園",
+        "description": "竹圍綠線",
+        "providers": [
+            "嘉義縣公車處",
+            "亞盛通運"
+        ]
+    },
+    {
+        "id": "15124",
+        "name": "-F250",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "太平社區-台北新都",
+        "providers": [
+            "林口區公所"
+        ]
+    },
+    {
+        "id": "65250",
+        "name": "1637",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "四湖鄉→林厝寮→西螺→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65156",
+        "name": "1821",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北→員樹林→竹東",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "3282",
+        "name": "155",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  元智大學",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5649",
+        "name": "5649",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "龍潭  -  新屋(經楊梅)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "62999",
+        "name": "5350",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北市→小人國→六福村",
+        "providers": [
+            "台聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65308",
+        "name": "1818A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北→中壢[繞駛中原大學站]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "5033",
+        "name": "5033",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  觀音(經保生)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "55020",
+        "name": "L502",
+        "opType": 2,
+        "routeGroup": "大園",
+        "description": "林口長庚藍線",
+        "providers": [
+            "嘉義縣公車處",
+            "亞盛通運"
+        ]
+    },
+    {
+        "id": "15160",
+        "name": "7500N",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台南→麻豆→新營→桃園→台北",
+        "providers": [
+            "和欣客運(innercity)"
+        ]
+    },
+    {
+        "id": "5607",
+        "name": "5607",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "湖口  -  楊梅(經二湖)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "15241",
+        "name": "7000D",
+        "opType": 1,
+        "routeGroup": "市區公車",
+        "description": "斗六－臺北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "15251",
+        "name": "712副(新北)",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "樹林俊興街-土城醫院",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "57210",
+        "name": "L721",
+        "opType": 2,
+        "routeGroup": "龍潭",
+        "description": "中興黃唐甲線",
+        "providers": [
+            "桃園客運",
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "53090",
+        "name": "L309",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "藍海線",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "6080",
+        "name": "608",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "樹林保安街  -  桃園大有路",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "15172",
+        "name": "-F655",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "鶯歌區公所-長庚醫院(總院)",
+        "providers": [
+            "鶯歌區公所"
+        ]
+    },
+    {
+        "id": "65271",
+        "name": "1623",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺灣桃園國際機場→國道1號→臺中市",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "50861",
+        "name": "5086A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "大園  -  桃園(經開南大學及捷運大園站)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15128",
+        "name": "946副",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口-內湖科技園區(經南勢街)",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "65157",
+        "name": "1820A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北→竹東[繞駛關西市區]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "3350",
+        "name": "120",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "捷運老街溪站 - 太子鎮",
+        "providers": [
+            "桃園客運",
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "1371",
+        "name": "201",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "蘆竹  -  八德",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "50863",
+        "name": "5086C",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大園  -  桃園(經五塊厝)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "6030",
+        "name": "603",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "長庚大學  -  捷運丹鳳站",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "15116",
+        "name": "橘26",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "東昇公園-捷運迴龍站",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "11892",
+        "name": "502",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "台灣好行小烏來線(假日行駛)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2201",
+        "name": "220A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園區公所  -  環狀紅線(繞駛三聖宮)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65011",
+        "name": "1661",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園國際機場→宜蘭地區轉運站",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5645",
+        "name": "5645",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  黃泥塘",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "15239",
+        "name": "7005",
+        "opType": 1,
+        "routeGroup": "市區公車",
+        "description": "民雄鄉→國道1號高速公路→臺北市",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5056",
+        "name": "5056",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  石門水庫",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5106",
+        "name": "5106",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  霞雲里(經復興、阿姆坪)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2084",
+        "name": "208D",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "捷運高鐵桃園站 - 八德",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "7020",
+        "name": "702",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  桃園長庚轉運站",
+        "providers": [
+            "桃園客運",
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "7091",
+        "name": "709A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "龍潭 - 永寧轉運站",
+        "providers": [
+            "統聯客運",
+            "指南客運"
+        ]
+    },
+    {
+        "id": "3283",
+        "name": "167",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢 - 篤行六村 - 內壢 - 中壢",
+        "providers": [
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "65123",
+        "name": "1860",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺灣桃園國際機場→臺中",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "5644",
+        "name": "5644",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  頂好社區(經山子頂工業區)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "3011",
+        "name": "1B",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  桃園(延駛榮民醫院)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15119",
+        "name": "-F231",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口加油站-長庚醫院",
+        "providers": [
+            "林口區公所"
+        ]
+    },
+    {
+        "id": "15101",
+        "name": "F907(去程) 15:00:00 復興-雪霧鬧",
+        "opType": 12,
+        "routeGroup": "F907",
+        "description": "復興-雪霧鬧雅渡農場",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "50991",
+        "name": "5099A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  阿姆坪(經懷德橋)[繞駛台7線美華地區]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5023",
+        "name": "5023",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  大園(經楊厝)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65300",
+        "name": "1611A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台南→台北[經三重交流道]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "6550",
+        "name": "L207",
+        "opType": 2,
+        "routeGroup": "中壢",
+        "description": "大崙紫線",
+        "providers": [
+            "勁揚通運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "1681",
+        "name": "168A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園後火車站  -  內壢復興宮(經龜山工業區)",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "36421",
+        "name": "L603A",
+        "opType": 2,
+        "routeGroup": "新屋",
+        "description": "新屋二乙線(繞駛永安漁港、不繞動保園區)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5109",
+        "name": "5109",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  西浪(經羅浮)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3191",
+        "name": "151",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  同安街",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "713",
+        "name": "713",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "八德 - 永寧轉運站(經建國路和平路)",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "65229",
+        "name": "1618C",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "嘉義→台北[不停大林站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "3450",
+        "name": "135",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  內壢高中",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "51073",
+        "name": "5107C",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  蝙蝠洞(經三民)[繞駛台7線阿姆坪地區]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5112",
+        "name": "5112",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  中壢(經八德)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2220",
+        "name": "222",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園區公所  -  環狀藍線(經敏盛醫院)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "51170",
+        "name": "L117",
+        "opType": 2,
+        "routeGroup": "八德",
+        "description": "藍乙線",
+        "providers": [
+            "亞通客運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65317",
+        "name": "1356",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "圓山轉運站 - 國道1號 - 南崁[經桃園市蘆竹區中正路]",
+        "providers": [
+            "葛瑪蘭客運(innercity)"
+        ]
+    },
+    {
+        "id": "9020",
+        "name": "F902",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興  -  新興",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "827",
+        "name": "L613",
+        "opType": 2,
+        "routeGroup": "楊梅",
+        "description": "觀光路線",
+        "providers": [
+            "金台通運"
+        ]
+    },
+    {
+        "id": "726",
+        "name": "726",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "八德- 高鐵桃園站(經八德轉運站) ",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "65248",
+        "name": "1639",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "布袋→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "15403",
+        "name": "F903E(回程) 15:50:00 復興-霞雲(經奎輝,復興,羅浮)",
+        "opType": 12,
+        "routeGroup": "F903",
+        "description": "下溪口台-羅浮國小",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "15250",
+        "name": "925A",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口(去程不繞龜山)-蘆洲",
+        "providers": [
+            "臺北客運"
+        ]
+    },
+    {
+        "id": "9021",
+        "name": "F902A",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興  -  新興",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15154",
+        "name": "7500H",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台南→麻豆→新營→台中→桃園→台北",
+        "providers": [
+            "和欣客運(innercity)"
+        ]
+    },
+    {
+        "id": "5105",
+        "name": "5105",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  小烏來(經三民)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5653",
+        "name": "5653",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  六福村(經車頭)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "53314",
+        "name": "L331D",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "灰線D",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "7231",
+        "name": "723A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "經國轉運站-南平路-捷運三重國小站",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "3166",
+        "name": "206E",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  高鐵桃園站(繞開南大學)(直達車)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "53190",
+        "name": "L319",
+        "opType": 2,
+        "routeGroup": "龜山",
+        "description": "長庚醫院藍線",
+        "providers": [
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "5654",
+        "name": "5654",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  新屋(經楊梅)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "8050",
+        "name": "L110",
+        "opType": 2,
+        "routeGroup": "桃園",
+        "description": "埔子紅線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "7103",
+        "name": "710A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "內柵 - 永寧轉運站(經仁和路永昌路)",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "51210",
+        "name": "L121",
+        "opType": 2,
+        "routeGroup": "八德",
+        "description": "綠線",
+        "providers": [
+            "亞通客運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3510",
+        "name": "115B",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  平東路",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "188",
+        "name": "188",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "桃園後站  -  中正藝文特區(經桃園監理站)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2200",
+        "name": "220",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園區公所  -  環狀紅線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5098",
+        "name": "5098",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  大溪(經官路缺)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "831",
+        "name": "L613A",
+        "opType": 2,
+        "routeGroup": "楊梅",
+        "description": "觀光路線",
+        "providers": [
+            "金台通運"
+        ]
+    },
+    {
+        "id": "501",
+        "name": "501",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "台灣好行大溪快線",
+        "providers": [
+            "中壢客運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2272",
+        "name": "227A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園區公所  -  中路紅線(繞龍泉六街底)",
+        "providers": [
+            "捷乘客運"
+        ]
+    },
+    {
+        "id": "65287",
+        "name": "1616B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "員林→台北[經台76線]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65256",
+        "name": "1633B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "四湖鄉→北港→台北[北港至台北班次]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "2251",
+        "name": "225A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園區公所  -  後站紅線(繞福林街)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2630",
+        "name": "263",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪 - 恩主公醫院",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5648",
+        "name": "5648",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "龍潭  -  楊梅(經縱貫路)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "5031",
+        "name": "5031",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  蚵間里福興宮(經新屋)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2380",
+        "name": "238",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "紅土厝  -  長庚醫院桃園分院",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15170",
+        "name": "7500X",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台北→桃園→新竹→新營",
+        "providers": [
+            "和欣客運(innercity)"
+        ]
+    },
+    {
+        "id": "65065",
+        "name": "1820B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北→竹東[繞駛中華科大]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "63084",
+        "name": "0968A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市蘆竹區→國道1號→圓山轉運站[經開南大學]",
+        "providers": [
+            "葛瑪蘭客運(innercity)",
+            "亞通客運(innercity)"
+        ]
+    },
+    {
+        "id": "51091",
+        "name": "5109A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  西浪(經羅浮)[繞駛霞雲里及小烏來]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2020",
+        "name": "202",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "體育大學  -  工四工業區",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "653",
+        "name": "2000",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園龜山→臺北長庚醫院",
+        "providers": [
+            "汎航通運(innercity)"
+        ]
+    },
+    {
+        "id": "15208",
+        "name": "F907(回程) 06:10:00 復興-雪霧鬧",
+        "opType": 12,
+        "routeGroup": "F907",
+        "description": "雪霧鬧雅渡農場-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "3370",
+        "name": "118",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  中壢高中",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15130",
+        "name": "898",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "樹林中正路-長庚醫院",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "15168",
+        "name": "7500V",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台南→麻豆→台中→桃園→台北",
+        "providers": [
+            "和欣客運(innercity)"
+        ]
+    },
+    {
+        "id": "51042",
+        "name": "5104B",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "溪口台 - 大溪(經復興)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "50401",
+        "name": "5040A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  觀音(經中厝、大園國中)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5099",
+        "name": "5099",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  阿姆坪(經懷德橋)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5053",
+        "name": "5053",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  龍潭(經九龍里)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65437",
+        "name": "9005",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市西北區→國道1號→臺北市東南區",
+        "providers": [
+            "桃園客運(innercity)",
+            "三重客運(innercity)",
+            "三重客運(innercity)"
+        ]
+    },
+    {
+        "id": "2321",
+        "name": "232A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢區公所  -  龍岡棕線(繞興仁路)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "36530",
+        "name": "L718",
+        "opType": 2,
+        "routeGroup": "龍潭",
+        "description": "水仙社區乙線",
+        "providers": [
+            "桃園客運",
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "51101",
+        "name": "5110A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  坪林[繞駛大溪國中]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65433",
+        "name": "9025A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "中壢→國道1號→臺北市松山區[繞駛中央大學]",
+        "providers": [
+            "臺北客運(innercity)",
+            "桃園客運(innercity)"
+        ]
+    },
+    {
+        "id": "36410",
+        "name": "L601",
+        "opType": 2,
+        "routeGroup": "新屋",
+        "description": "新屋一線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65230",
+        "name": "1618B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台北→嘉義[直達車，不停林口、中港轉運站、大林站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "15106",
+        "name": "藍37",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "龍壽里-捷運板橋站",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "50501",
+        "name": "5050A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "石門水庫  -  龍潭(經中正路)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "18110",
+        "name": "181A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中原大學–高鐵桃園站",
+        "providers": [
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "5027",
+        "name": "5027",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  後湖",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "51190",
+        "name": "L119",
+        "opType": 2,
+        "routeGroup": "八德",
+        "description": "紫線",
+        "providers": [
+            "亞通客運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65391",
+        "name": "5634",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "竹東→中壢(經關西)",
+        "providers": [
+            "新竹客運(innercity)",
+            "捷乘客運有限公司(innercity)"
+        ]
+    },
+    {
+        "id": "65068",
+        "name": "2001",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北車站→桃園龜山",
+        "providers": [
+            "汎航通運(innercity)"
+        ]
+    },
+    {
+        "id": "15360",
+        "name": "F902C(去程) 14:00:00 復興-卡拉",
+        "opType": 12,
+        "routeGroup": "F902",
+        "description": "復興-卡拉部落路口",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "15151",
+        "name": "7500E",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台南→新營→桃園→台北",
+        "providers": [
+            "和欣客運(innercity)"
+        ]
+    },
+    {
+        "id": "9071",
+        "name": "F907A",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興  -  雪霧鬧",
+        "providers": [
+            "台灣真好",
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "5652",
+        "name": "5652",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "楊梅  -  東流里",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "3096",
+        "name": "309",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "銘傳大學 - 蘆竹區公所",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3380",
+        "name": "119",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  聯新國際醫院",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65304",
+        "name": "1610B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "高雄→台北[經三重交流道，不停岡山站、經國轉運站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5032",
+        "name": "5032",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  觀音(經石磊)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "53311",
+        "name": "L331A",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "灰線A",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "5077",
+        "name": "5077",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  大園(經柴梳崙)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15100",
+        "name": "F907(去程) 05:00:00 復興-雪霧鬧",
+        "opType": 12,
+        "routeGroup": "F907",
+        "description": "復興-雪霧鬧雅渡農場",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "15135",
+        "name": "966",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口站-臺北車站(鄭州)",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "15192",
+        "name": "F902H(回程) 17:00:00 復華-三光",
+        "opType": 12,
+        "routeGroup": "F902",
+        "description": "三光國小正門-砂崙子長老教會",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "2620",
+        "name": "262",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "捷運迴龍站 - 銘傳大學",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15109",
+        "name": "936",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口-捷運圓山站",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "5647",
+        "name": "5647",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "龍潭  -  埔心",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "5672",
+        "name": "5672",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  國軍桃園總醫院(經黃泥塘)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "15373",
+        "name": "F907(回程) 17:50:00 復興-雪霧鬧",
+        "opType": 12,
+        "routeGroup": "F907",
+        "description": "雪霧鬧雅渡農場-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "6070",
+        "name": "GR2",
+        "opType": 6,
+        "routeGroup": "先導公車",
+        "description": "桃園  -  八德",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5030",
+        "name": "5030",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  下北湖",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3401",
+        "name": "117A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  寶慶路(繞駛中埔一街及南平路)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65286",
+        "name": "1616C",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "員林→台北[經台76線、不停中港轉運站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "62996",
+        "name": "1962",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺灣桃園國際機場→板橋",
+        "providers": [
+            "大有巴士(innercity)"
+        ]
+    },
+    {
+        "id": "65127",
+        "name": "1843",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "南港轉運站→桃園國際機場",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "5000",
+        "name": "5000",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  至善高中(經大溪)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "57220",
+        "name": "L722",
+        "opType": 2,
+        "routeGroup": "龍潭",
+        "description": "中興黃唐乙線",
+        "providers": [
+            "桃園客運",
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "15252",
+        "name": "1819B",
+        "opType": 1,
+        "routeGroup": "",
+        "description": "臺北→南崁→臺灣桃園國際機場",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "51180",
+        "name": "L118",
+        "opType": 2,
+        "routeGroup": "八德",
+        "description": "紫線",
+        "providers": [
+            "亞通客運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "9072",
+        "name": "F907B",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興  -  雪霧鬧  -  復興",
+        "providers": [
+            "台灣真好",
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "15127",
+        "name": "946",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口-內湖科技園區",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "3180",
+        "name": "113",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  幸福社區",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65125",
+        "name": "1851",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "板橋→臺中",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "5010",
+        "name": "5010",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  中壢(經仁美、八德)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15112",
+        "name": "925",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口-蘆洲",
+        "providers": [
+            "臺北客運"
+        ]
+    },
+    {
+        "id": "62998",
+        "name": "9069A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市大有特區→國道1號→捷運南京復興站",
+        "providers": [
+            "指南客運(innercity)",
+            "中壢客運(innercity)",
+            "指南客運(innercity)"
+        ]
+    },
+    {
+        "id": "65531",
+        "name": "9009",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市西北區→國道3號→臺北市東南區",
+        "providers": [
+            "中壢客運(innercity)",
+            "指南客運(innercity)",
+            "指南客運(innercity)"
+        ]
+    },
+    {
+        "id": "5082",
+        "name": "5082",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  大園(經雙溪口)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "6540",
+        "name": "L206",
+        "opType": 2,
+        "routeGroup": "中壢",
+        "description": "大崙橘線",
+        "providers": [
+            "勁揚通運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65158",
+        "name": "1820",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北→竹東",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "5055",
+        "name": "5055",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  石門水庫(經山子頂)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3460",
+        "name": "109",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  新興高中",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "51160",
+        "name": "L116",
+        "opType": 2,
+        "routeGroup": "八德",
+        "description": "藍線",
+        "providers": [
+            "亞通客運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "53020",
+        "name": "L302",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "黃線",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "15134",
+        "name": "712(新北)",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "樹林俊興街-捷運亞東醫院站",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "15189",
+        "name": "F902G(去程) 06:00:00 砂崙子-蘇樂",
+        "opType": 12,
+        "routeGroup": "F902",
+        "description": "砂崙子長老教會-蘇樂",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "15234",
+        "name": "F903D(去程) 13:30:00 復興-霞雲(經奎輝里、羅浮)",
+        "opType": 12,
+        "routeGroup": "F903",
+        "description": "霞雲文健站-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "65339",
+        "name": "5250A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市大園區→南崁→國道1號→臺北市[經奉化路、南福街]",
+        "providers": [
+            "亞通客運(innercity)"
+        ]
+    },
+    {
+        "id": "65264",
+        "name": "1629",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "苓子寮→學甲→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "3120",
+        "name": "139",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  新庄廟(繞駛大興路)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "53170",
+        "name": "L317",
+        "opType": 2,
+        "routeGroup": "龜山",
+        "description": "長庚醫院紅線(行駛桃園分院及養生村)",
+        "providers": [
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "133",
+        "name": "133",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  中央大學",
+        "providers": [
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "65436",
+        "name": "9023",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園→國道1號→臺北市士林區",
+        "providers": [
+            "臺北客運(innercity)",
+            "桃園客運(innercity)"
+        ]
+    },
+    {
+        "id": "5162",
+        "name": "T516B",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "觀音行政園區 - 草漯",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15136",
+        "name": "967",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "體育大學行政教學大樓-捷運市政府站",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "15196",
+        "name": "F903B(去程) 18:30:00 復興-霞雲(經下溪口台)",
+        "opType": 12,
+        "routeGroup": "F903",
+        "description": "復興-霞雲里",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "15122",
+        "name": "-F235",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "台北新都-瑞平國小",
+        "providers": [
+            "林口區公所"
+        ]
+    },
+    {
+        "id": "53091",
+        "name": "L309A",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "藍海線A",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "5071",
+        "name": "5071",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  醒吾科技大學(經外社)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3551",
+        "name": "301A",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "龜山  -  楊梅",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15501",
+        "name": "F903E(回程) 15:00:00 復興-霞雲(經奎輝,復興,羅浮)",
+        "opType": 12,
+        "routeGroup": "F903",
+        "description": "下溪口台-羅浮國小",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "36510",
+        "name": "L716",
+        "opType": 2,
+        "routeGroup": "龍潭",
+        "description": "龍潭科學園區線",
+        "providers": [
+            "桃園客運",
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "53171",
+        "name": "L317A",
+        "opType": 2,
+        "routeGroup": "龜山",
+        "description": "長庚醫院紅線(繞駛文青路)",
+        "providers": [
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "50572",
+        "name": "5057B",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  長庚醫院(繞長庚養生村)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3010",
+        "name": "1",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  桃園",
+        "providers": [
+            "桃園客運",
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "50573",
+        "name": "5057C",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  長庚醫院(繞大埔、長庚養生村)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5059",
+        "name": "5059",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  桃園機場(經南崁)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3480",
+        "name": "111",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  南勢",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "7011",
+        "name": "701A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "國軍桃園總醫院  -  中壢",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3221",
+        "name": "172",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中央大學  -  高鐵桃園站(經領航南路)",
+        "providers": [
+            "中壢客運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "6780",
+        "name": "L218",
+        "opType": 2,
+        "routeGroup": "平鎮",
+        "description": "高連藍",
+        "providers": [
+            "勁揚通運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "112",
+        "name": "112N",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  忠貞",
+        "providers": [
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "65322",
+        "name": "1842",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "松山機場→大園",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "2280",
+        "name": "228",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園區公所  -  中路藍線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "122",
+        "name": "122",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  鄉界",
+        "providers": [
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "3400",
+        "name": "117",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  寶慶路",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15235",
+        "name": "7001",
+        "opType": 1,
+        "routeGroup": "市區公車",
+        "description": "北港鎮→斗南交流道→國道1號高速公路→三重交流道→臺北市",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "56511",
+        "name": "5651A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  北高榮(經埔心)[繞駛比佛利]",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "9010",
+        "name": "F901",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興  -  市界",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5025",
+        "name": "5025",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  新屋(經藍埔)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "227",
+        "name": "227",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園區公所  -  中路紅線",
+        "providers": [
+            "捷乘客運"
+        ]
+    },
+    {
+        "id": "302",
+        "name": "302",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  高鐵桃園站(經大竹)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "6760",
+        "name": "L215",
+        "opType": 2,
+        "routeGroup": "平鎮",
+        "description": "平南紅",
+        "providers": [
+            "桃園客運",
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "5083",
+        "name": "5083",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "捷運大園站  -  潮音",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3072",
+        "name": "307A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "蘆竹區公所  -  桃園醫院(延駛桃園醫院)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15104",
+        "name": "636",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "樹林中正路-捷運中山站",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "53092",
+        "name": "L309B",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "藍海線B",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "6910",
+        "name": "L112",
+        "opType": 2,
+        "routeGroup": "桃園",
+        "description": "府前線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3550",
+        "name": "301",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  楊梅",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3300",
+        "name": "169",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  華勛社區",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "63078",
+        "name": "1860A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺灣桃園國際機場→臺中[縮駛至朝馬]",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "3090",
+        "name": "125",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  三聖宮",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3080",
+        "name": "105",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  大有路",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65298",
+        "name": "1611D",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台北→台南[經三重交流道、不停經國轉運站、中港轉運站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "2521",
+        "name": "252A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "楊梅行政園區  -  光裕北街(繞駛怡仁醫院)",
+        "providers": [
+            "金台通運"
+        ]
+    },
+    {
+        "id": "5018",
+        "name": "5018",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  水尾(經蘆竹)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "7072",
+        "name": "707B",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園市政府-桃園棒球場(經春日路)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5019",
+        "name": "5019",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  沙崙(經蘆竹)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15107",
+        "name": "858",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "東昇公園-華亞園區",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "65012",
+        "name": "1618D",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台北→嘉義[不停林口站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "130",
+        "name": "130",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  榮民之家",
+        "providers": [
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "53110",
+        "name": "L311",
+        "opType": 2,
+        "routeGroup": "龜山",
+        "description": "龜山藍線",
+        "providers": [
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "2610",
+        "name": "261",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園火車站 - 銘傳大學",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "36520",
+        "name": "L717",
+        "opType": 2,
+        "routeGroup": "龍潭",
+        "description": "水仙社區甲線",
+        "providers": [
+            "桃園客運",
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "9036",
+        "name": "F903E",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興-霞雲（經奎輝、復興、羅浮）",
+        "providers": [
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "15405",
+        "name": "2004A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市龜山區→中壢區[延駛桃園長庚醫院]",
+        "providers": [
+            "汎航通運(innercity)"
+        ]
+    },
+    {
+        "id": "50221",
+        "name": "5022A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  竹圍(經南崁)[繞駛捷運坑口站]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65262",
+        "name": "1630A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "西港→台北[不停中港轉運站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "7010",
+        "name": "701",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "國軍桃園總醫院  -  桃園長庚轉運站",
+        "providers": [
+            "桃園客運",
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "3082",
+        "name": "105B",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  大有路(繞駛國稅局)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "717",
+        "name": "717",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "龍岡圓環 - 永寧轉運站",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "2081",
+        "name": "208A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "捷運高鐵桃園站 - 八德",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "57270",
+        "name": "L727",
+        "opType": 2,
+        "routeGroup": "龍潭",
+        "description": "高原甲線",
+        "providers": [
+            "桃園客運",
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "5150",
+        "name": "T515",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "埔頂 - 高鐵桃園站",
+        "providers": [
+            "台灣真好車盟",
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "5101",
+        "name": "5101",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  鶯歌(經中新)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "63076",
+        "name": "1628B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台北→麻豆、佳里→漚汪[延駛苓子寮、學甲]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "15137",
+        "name": "967直",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "體育大學行政教學大樓-捷運市政府站",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "53250",
+        "name": "L325",
+        "opType": 2,
+        "routeGroup": "龜山",
+        "description": "中坑線",
+        "providers": [
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "53260",
+        "name": "L326",
+        "opType": 2,
+        "routeGroup": "龜山",
+        "description": "坪頂線 - 長庚國小開",
+        "providers": [
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "7220",
+        "name": "722",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "楊梅 - 捷運三重國小站",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "3281",
+        "name": "156",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  內壢家樂福",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15111",
+        "name": "920",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口-捷運府中站",
+        "providers": [
+            "臺北客運"
+        ]
+    },
+    {
+        "id": "65290",
+        "name": "1615",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "彰化→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5044",
+        "name": "5044",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  龍潭(經十一份)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15361",
+        "name": "F902C(回程) 08:30:00 復興-卡拉",
+        "opType": 12,
+        "routeGroup": "F902",
+        "description": "卡拉部落路口-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "5081",
+        "name": "5081",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  大園(經下洽溪)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "63083",
+        "name": "0968",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市蘆竹區→國道1號→圓山轉運站",
+        "providers": [
+            "葛瑪蘭客運(innercity)",
+            "亞通客運(innercity)"
+        ]
+    },
+    {
+        "id": "15194",
+        "name": "F903(回程) 10:00:00 復興-霞雲",
+        "opType": 12,
+        "routeGroup": "F903",
+        "description": "霞雲文健站-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "2230",
+        "name": "223",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園區公所  -  環狀藍線(經南平路)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65301",
+        "name": "1611",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台南→台北[經臺北交流道]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65293",
+        "name": "1613",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "屏東→台北[經臺北交流道]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "51130",
+        "name": "L113",
+        "opType": 2,
+        "routeGroup": "八德",
+        "description": "紅線",
+        "providers": [
+            "亞通客運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "6060",
+        "name": "606",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大坪頂循環線",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "9018",
+        "name": "F901A",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興  -  市界(不繞嘎色鬧)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "9050",
+        "name": "F905",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興  -  義興",
+        "providers": [
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "9035",
+        "name": "F903A(真好)",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興-霞雲（經綠光森林）",
+        "providers": [
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "53313",
+        "name": "L331C",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "灰線C",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "5014",
+        "name": "5014",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  捷運山鼻站",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65255",
+        "name": "1633C",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "四湖鄉→北港→台北[北港至台北班次，不停中港轉運站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "2360",
+        "name": "236",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "龜山區公所  -  兔坑紅線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5028",
+        "name": "5028",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "新屋  -  下北湖",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65231",
+        "name": "1212",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市龜山區→國道1號→三重區",
+        "providers": [
+            "三重客運(innercity)"
+        ]
+    },
+    {
+        "id": "56231",
+        "name": "5623A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "楊梅  -  中壢",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "2330",
+        "name": "233",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "平鎮區公所  -  山子頂紅線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15249",
+        "name": "920A",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口(去程不繞龜山)-捷運府中站",
+        "providers": [
+            "臺北客運"
+        ]
+    },
+    {
+        "id": "53030",
+        "name": "L303",
+        "opType": 2,
+        "routeGroup": "蘆竹",
+        "description": "棕線",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "15233",
+        "name": "F905A(回程) 16:40:00 義盛國小區間車",
+        "opType": 12,
+        "routeGroup": "F905",
+        "description": "義興二-義興二",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "63073",
+        "name": "1618E",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "嘉義→台北[直達車，不停大林站、中港轉運站、林口、重陽站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "15131",
+        "name": "-F657",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "昌福國小-長庚總院",
+        "providers": [
+            "鶯歌區公所"
+        ]
+    },
+    {
+        "id": "708",
+        "name": "708",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "長庚醫院 - 南崁",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "65275",
+        "name": "1620B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台中→中清路→台北[不停新竹站、林口站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "65017",
+        "name": "2022",
+        "opType": 1,
+        "routeGroup": "市區公車",
+        "description": "中壢區→臺北市",
+        "providers": [
+            "中興大業巴士(innercity)"
+        ]
+    },
+    {
+        "id": "3291",
+        "name": "116",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  自立新村",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5041",
+        "name": "5041",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  觀音(經白玉)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "1060",
+        "name": "106",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  南崁",
+        "providers": [
+            "指南客運"
+        ]
+    },
+    {
+        "id": "63009",
+        "name": "1667",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北市→國道3號→臺中市",
+        "providers": [
+            "三重客運",
+            "統聯客運(innercity)",
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5040",
+        "name": "5040",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  觀音(經中厝)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2290",
+        "name": "229",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢區公所  -  外環紅線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65302",
+        "name": "1610D",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "高雄→台北[經三重交流道，不停楠梓站、岡山站、中港轉運站、經國轉運站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "53100",
+        "name": "L310",
+        "opType": 2,
+        "routeGroup": "龜山",
+        "description": "龜山紅線",
+        "providers": [
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "902",
+        "name": "F902B(真好)",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興-新興",
+        "providers": [
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "503",
+        "name": "503",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "台灣好行石門水庫線(假日行駛)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5065",
+        "name": "5065",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  體育大學(經大埔、中正運動公園)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65319",
+        "name": "9069",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市大有特區→國道1號→南港展覽館",
+        "providers": [
+            "指南客運(innercity)",
+            "指南客運(innercity)",
+            "中壢客運(innercity)"
+        ]
+    },
+    {
+        "id": "65306",
+        "name": "1610A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "高雄→台北[經三重交流道]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "825",
+        "name": "L611",
+        "opType": 2,
+        "routeGroup": "楊梅",
+        "description": "富岡員本線",
+        "providers": [
+            "金台通運"
+        ]
+    },
+    {
+        "id": "3301",
+        "name": "169A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  華勛社區(延駛內壢火車站)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65119",
+        "name": "1863",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "中壢→臺中",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "6750",
+        "name": "L216",
+        "opType": 2,
+        "routeGroup": "平鎮",
+        "description": "平南藍",
+        "providers": [
+            "桃園客運",
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "15178",
+        "name": "1968A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "新店→中和→三峽→臺灣桃園國際機場[不下三鶯交流道]",
+        "providers": [
+            "大有巴士(innercity)"
+        ]
+    },
+    {
+        "id": "65326",
+        "name": "1818",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北→中壢",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "57280",
+        "name": "L728",
+        "opType": 2,
+        "routeGroup": "龍潭",
+        "description": "高原乙線",
+        "providers": [
+            "桃園客運",
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "5039",
+        "name": "5039",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  中壢(經觀音、永安)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65257",
+        "name": "1633A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "四湖鄉→北港→台北[經宜梧村]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5016",
+        "name": "5016",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  竹圍(經山腳)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3081",
+        "name": "105A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  大有路(繞駛大業路)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65299",
+        "name": "1611C",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台南→台北[經三重交流道、不停新營站、中港轉運站、經國轉運站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "15195",
+        "name": "F903A(去程) 08:00:00 復興-霞雲(經綠光森林)",
+        "opType": 12,
+        "routeGroup": "F903",
+        "description": "復興-霞雲里",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "5078",
+        "name": "5078",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  陳康國小(經萬能科技大學)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "828",
+        "name": "L615",
+        "opType": 2,
+        "routeGroup": "楊梅",
+        "description": "楊梅上湖線",
+        "providers": [
+            "金台通運"
+        ]
+    },
+    {
+        "id": "55060",
+        "name": "L506",
+        "opType": 2,
+        "routeGroup": "大園",
+        "description": "捷運接駁線",
+        "providers": [
+            "嘉義縣公車處",
+            "亞盛通運"
+        ]
+    },
+    {
+        "id": "15198",
+        "name": "F903D(去程) 15:50:00 F903D 復興-霞雲 (經奎輝里、羅浮)",
+        "opType": 12,
+        "routeGroup": "F903",
+        "description": "霞雲文健站-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "36420",
+        "name": "L603",
+        "opType": 2,
+        "routeGroup": "新屋",
+        "description": "新屋二乙線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3192",
+        "name": "152",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  同安街",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15374",
+        "name": "F903A(去程) 08:30:00 復興-霞雲(經綠光森林)",
+        "opType": 12,
+        "routeGroup": "F903",
+        "description": "復興-霞雲里",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "2520",
+        "name": "252",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "楊梅行政園區  -  光裕北街",
+        "providers": [
+            "金台通運"
+        ]
+    },
+    {
+        "id": "15126",
+        "name": "945",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口-松山機場",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "5061",
+        "name": "5061",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  建國十九村(經大竹)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "901",
+        "name": "F901(真好)",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "復興-市界",
+        "providers": [
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "15149",
+        "name": "7500",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺南市→國道1號→臺北市(經三重交流道)",
+        "providers": [
+            "和欣客運(innercity)"
+        ]
+    },
+    {
+        "id": "50711",
+        "name": "5071A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園 - 頂社(經貓尾崎、赤塗崎)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "9060",
+        "name": "F906",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "三民  -  東眼山(經蝙蝠洞)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5089",
+        "name": "5089",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  桃園機場(經大園)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15114",
+        "name": "948",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口-新北板橋公車站",
+        "providers": [
+            "臺北客運"
+        ]
+    },
+    {
+        "id": "2210",
+        "name": "221",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園區公所  -  環狀紅線(經寶山街)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65434",
+        "name": "9025",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "中壢→國道1號→臺北市松山區",
+        "providers": [
+            "臺北客運(innercity)",
+            "桃園客運(innercity)",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15199",
+        "name": "F905(去程) 15:40:00 復興-義興",
+        "opType": 12,
+        "routeGroup": "F905",
+        "description": "復興-義興二",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "5160",
+        "name": "T516",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "觀音行政區 - 草漯",
+        "providers": [
+            "嘉義客運",
+            "台灣真好",
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "15200",
+        "name": "F905(回程) 05:30:00 復興-義興",
+        "opType": 12,
+        "routeGroup": "F905",
+        "description": "義興二-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "65327",
+        "name": "1803",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "基隆→中壢",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "65291",
+        "name": "1613B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "屏東  -  台北[經三重交流道，不停楠梓站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5118",
+        "name": "5118",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  下內定(經萬能科技大學)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15155",
+        "name": "7500I",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "新營→桃園→台北",
+        "providers": [
+            "和欣客運(innercity)"
+        ]
+    },
+    {
+        "id": "15190",
+        "name": "F902G(回程) 18:45:00 砂崙子-蘇樂",
+        "opType": 12,
+        "routeGroup": "F902",
+        "description": "蘇樂-砂崙子長老教會",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "2121",
+        "name": "212A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  龍潭(繞駛僑愛、埔頂、國軍醫院)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "55080",
+        "name": "L508",
+        "opType": 2,
+        "routeGroup": "大園",
+        "description": "捷運大園站  -  富文宮",
+        "providers": [
+            "嘉義縣公車處",
+            "亞盛通運"
+        ]
+    },
+    {
+        "id": "15165",
+        "name": "7500S",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "台南→桃園→台北",
+        "providers": [
+            "和欣客運(innercity)"
+        ]
+    },
+    {
+        "id": "15202",
+        "name": "F905(回程) 18:30:00 復興-義興",
+        "opType": 12,
+        "routeGroup": "F905",
+        "description": "義興二-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "826",
+        "name": "L612",
+        "opType": 2,
+        "routeGroup": "楊梅",
+        "description": "富岡上湖線",
+        "providers": [
+            "金台通運"
+        ]
+    },
+    {
+        "id": "65249",
+        "name": "1638",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "東石→朴子→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "57060",
+        "name": "L706",
+        "opType": 2,
+        "routeGroup": "大溪",
+        "description": "環西乙線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "56232",
+        "name": "5623B",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "楊梅  -  捷運環北站(經中豐路)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "65338",
+        "name": "5250B",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北市→國道1號→南崁→南竹中正北路口[經奉化路、南福街]",
+        "providers": [
+            "亞通客運(innercity)"
+        ]
+    },
+    {
+        "id": "36460",
+        "name": "L617",
+        "opType": 2,
+        "routeGroup": "新屋",
+        "description": "東明大坡線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3440",
+        "name": "157",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  八德  -  新興高中",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15872",
+        "name": "F901(回程) 12:00:00 復興-市界",
+        "opType": 12,
+        "routeGroup": "F901",
+        "description": "市界-復興",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "65208",
+        "name": "1819",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺北→臺灣桃園國際機場",
+        "providers": [
+            "國光客運(innercity)"
+        ]
+    },
+    {
+        "id": "56163",
+        "name": "5616C",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "龍潭 - 中壢 ( 返程 繞駛祥安國小、捷運老街溪站)",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "5050",
+        "name": "5050",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  石門水庫(經員樹林)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3021",
+        "name": "302A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "高鐵桃園站  -  蘆竹區公所",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "6560",
+        "name": "L208",
+        "opType": 2,
+        "routeGroup": "中壢",
+        "description": "內環黃線",
+        "providers": [
+            "勁揚通運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "606",
+        "name": "601",
+        "opType": 6,
+        "routeGroup": "市區公車",
+        "description": "內壢  -  捷運迴龍站",
+        "providers": [
+            "桃園客運",
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "716",
+        "name": "716",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "八德轉運站 - 永寧轉運站",
+        "providers": [
+            "統聯客運"
+        ]
+    },
+    {
+        "id": "2250",
+        "name": "225",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園區公所  -  後站紅線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65408",
+        "name": "5620",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "新竹→中壢(經關西)",
+        "providers": [
+            "新竹客運(innercity)"
+        ]
+    },
+    {
+        "id": "3164",
+        "name": "206C",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  高鐵桃園站(繞捷運領航站、開南大學)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "57010",
+        "name": "L701",
+        "opType": 2,
+        "routeGroup": "大溪",
+        "description": "河東線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65315",
+        "name": "1356A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "圓山轉運站 - 國道1號 - 南崁[經桃園市蘆竹區中正路]",
+        "providers": [
+            "葛瑪蘭客運(innercity)"
+        ]
+    },
+    {
+        "id": "51071",
+        "name": "5107A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "蝙蝠洞  -  大溪(經三民)[繞駛台7線阿姆坪地區及大溪高中]",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "50811",
+        "name": "5081A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  大園(經下洽溪)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5161",
+        "name": "T516A",
+        "opType": 10,
+        "routeGroup": "市區公車",
+        "description": "觀音(玉林路)站 - 草漯(延駛至高鐵桃園站)",
+        "providers": [
+            "嘉義客運",
+            "台灣真好車盟",
+            "台灣真好"
+        ]
+    },
+    {
+        "id": "3020",
+        "name": "1A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  中壢",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "2320",
+        "name": "232",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢區公所  -  龍岡棕線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65226",
+        "name": "9005A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "桃園市西北區→國道1號→臺北市東南區(繞駛永安路)",
+        "providers": [
+            "桃園客運(innercity)",
+            "三重客運(innercity)"
+        ]
+    },
+    {
+        "id": "170",
+        "name": "170",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  高鐵桃園站",
+        "providers": [
+            "中壢客運"
+        ]
+    },
+    {
+        "id": "2260",
+        "name": "226",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園區公所  -  後站藍線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5048",
+        "name": "5048",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "龍潭  -  石門水庫(經十一份)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15187",
+        "name": "F902D(去程) 16:00:00 復興-上高義(經蘇樂、高義國小)",
+        "opType": 12,
+        "routeGroup": "F902",
+        "description": "復興-上高義",
+        "providers": [
+            "台灣真好車盟"
+        ]
+    },
+    {
+        "id": "36440",
+        "name": "L605",
+        "opType": 2,
+        "routeGroup": "新屋",
+        "description": "高鐵線",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65251",
+        "name": "1636",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "四湖鄉→西螺→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "5020",
+        "name": "5020",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  下福",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15123",
+        "name": "-F237",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "出水坑-林口加油站",
+        "providers": [
+            "林口區公所"
+        ]
+    },
+    {
+        "id": "6710",
+        "name": "L211",
+        "opType": 2,
+        "routeGroup": "平鎮",
+        "description": "東勢藍",
+        "providers": [
+            "勁揚通運",
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "50871",
+        "name": "5087A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "中壢 - 大園(經青埔、大園國際高中)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3060",
+        "name": "103",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  八德轉運站",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5646",
+        "name": "5646",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "中壢  -  龍潭(經隘寮頂)",
+        "providers": [
+            "亞通客運",
+            "新竹客運"
+        ]
+    },
+    {
+        "id": "703",
+        "name": "703",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "竹圍  -  中壢",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "65228",
+        "name": "1623A",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "臺灣桃園國際機場→國道1號→臺中市[機場至朝馬]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "3160",
+        "name": "206",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  高鐵桃園站",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "65303",
+        "name": "1610C",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "高雄→台北[經三重交流道，不停岡山站、中港轉運站、經國轉運站]",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "55180",
+        "name": "L518",
+        "opType": 2,
+        "routeGroup": "大園",
+        "description": "竹圍棕線",
+        "providers": [
+            "嘉義縣公車處",
+            "亞盛通運"
+        ]
+    },
+    {
+        "id": "3420",
+        "name": "101",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  果菜市場",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5093",
+        "name": "5093",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  羅浮  -  巴陵",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "57230",
+        "name": "L723",
+        "opType": 2,
+        "routeGroup": "龍潭",
+        "description": "烏樹林龍祥甲線",
+        "providers": [
+            "桃園客運",
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "51041",
+        "name": "5104A",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  羅浮口(經復興、繞霞雲里及小烏來)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "7081",
+        "name": "708A",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "長庚醫院 - 捷運山鼻站",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "65282",
+        "name": "1618",
+        "opType": 1,
+        "routeGroup": "公總路線",
+        "description": "嘉義→台北",
+        "providers": [
+            "統聯客運(innercity)"
+        ]
+    },
+    {
+        "id": "53180",
+        "name": "L318",
+        "opType": 2,
+        "routeGroup": "龜山",
+        "description": "長庚醫院紅線(未行駛桃園分院及養生村)",
+        "providers": [
+            "勁揚通運"
+        ]
+    },
+    {
+        "id": "5104",
+        "name": "5104",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "大溪  -  羅浮口(經復興)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "15246",
+        "name": "936A",
+        "opType": 3,
+        "routeGroup": "市區公車",
+        "description": "林口(去程不繞龜山)-捷運圓山站",
+        "providers": [
+            "三重客運"
+        ]
+    },
+    {
+        "id": "50402",
+        "name": "5040B",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  觀音(經中厝、開南大學)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "3110",
+        "name": "137",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  銘傳大學",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "5063",
+        "name": "5063",
+        "opType": 0,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  醒吾科技大學(經長庚醫院)",
+        "providers": [
+            "桃園客運"
+        ]
+    },
+    {
+        "id": "1291",
+        "name": "129",
+        "opType": 7,
+        "routeGroup": "市區公車",
+        "description": "桃園  -  大竹",
+        "providers": [
+            "亞通客運"
+        ]
+    },
+    {
+        "id": "6720",
+        "name": "L210",
+        "opType": 2,
+        "routeGroup": "平鎮",
+        "description": "東勢紅",
+        "providers": [
+            "勁揚通運",
+            "桃園客運"
+        ]
+    }
+]

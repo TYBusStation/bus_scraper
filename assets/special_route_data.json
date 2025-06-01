@@ -1,0 +1,42 @@
+[
+  {
+    "id": "1999",
+    "name": "調度專用路線",
+    "description": "調度專用路線",
+    "opType": 0,
+    "routeGroup": "市區公車",
+    "providers": [
+      "桃園客運"
+    ]
+  },
+  {
+    "id": "2500",
+    "name": "2500",
+    "description": "亞通專用調度路線",
+    "opType": 0,
+    "routeGroup": "市區公車",
+    "providers": [
+      "亞通客運"
+    ]
+  },
+  {
+    "id": "2600",
+    "name": "2600",
+    "description": "統聯專用調度路線",
+    "opType": 0,
+    "routeGroup": "市區公車",
+    "providers": [
+      "統聯客運"
+    ]
+  },
+  {
+    "id": "727",
+    "name": "727",
+    "description": "桃園巨蛋 - 永寧轉運站",
+    "opType": 7,
+    "routeGroup": "市區公車",
+    "providers": [
+      "亞通客運"
+    ]
+  }
+]
