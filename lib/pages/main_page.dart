@@ -1,3 +1,4 @@
+import 'package:bus_scraper/pages/company_page.dart';
 import 'package:flutter/material.dart';
 
 import 'cars_page.dart';
@@ -23,7 +24,8 @@ class _MainPageState extends State<MainPage> {
       body: switch (selectedIndex) {
         0 => const HomePage(),
         1 => const CarsPage(),
-        2 => const SettingsPage(),
+        2 => const CompanyDataViewerPage(),
+        3 => const SettingsPage(),
         _ => throw UnsupportedError('Invalid index: $selectedIndex'),
       },
       bottomNavigationBar: NavigationBar(
@@ -39,6 +41,11 @@ class _MainPageState extends State<MainPage> {
             icon: Icon(Icons.directions_bus_outlined),
             selectedIcon: Icon(Icons.directions_bus),
             label: '車輛',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.business_outlined),
+            selectedIcon: Icon(Icons.business),
+            label: '公司資料',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

@@ -1,4 +1,4 @@
-name: Build and Deploy Flutter Web to GitHub Pages
+name: Build and Deploy Flutter (Web & Android) # 更新 Workflow 名稱以反映其功能
 
 # 何時觸發 Workflow
 on:
@@ -11,7 +11,7 @@ on:
 # Workflow 運行的作業 (jobs)
 jobs:
   build_and_deploy:
-    name: Build and Deploy
+    name: Build and Deploy (Web & Android) # 更新作業名稱
     runs-on: ubuntu-latest # 使用最新的 Ubuntu 運行器
 
     steps:
@@ -27,7 +27,7 @@ jobs:
           channel: 'stable' # 或者 'beta', 'dev', 'master'，建議使用 stable
           # flutter-version: '3.x.x' # 可選：指定特定的 Flutter 版本
 
-      # 步驟 3: (可選) 獲取 Flutter 依賴包
+      # 步驟 3: 獲取 Flutter 依賴包
       - name: Get Flutter dependencies
         run: flutter pub get
 
@@ -36,29 +36,69 @@ jobs:
       #   run: flutter test
 
       # 步驟 5: 建置 Flutter Web 應用
-      # 預設情況下，Flutter Web 應用會建置到專案根目錄下的 build/web 資料夾
-      # --base-href 是重要的，如果您的 GitHub Pages 網址是 <username>.github.io/<repository-name>/
-      # 則 base-href 應該是 /<repository-name>/
-      # 如果您的 GitHub Pages 網址是 <username>.github.io (用戶/組織站點)，則不需要 --base-href 或者設為 /
       - name: Build Flutter Web
         run: flutter build web --release --base-href /${{ github.event.repository.name }}/
-        # 如果是部署到用戶/組織根站點 (例如 <username>.github.io)，則使用:
-        # run: flutter build web --release --base-href /
-        # 或者直接:
-        # run: flutter build web --release
+        # 注意：如果您的倉庫名稱在 GitHub 上是 'MyRepo'，但 GitHub Pages 的路徑是 'myrepo' (全小寫)
+        # 您可能需要手動將 `${{ github.event.repository.name }}` 轉換為小寫或直接硬編碼正確的路徑。
+        # 例如: --base-href /myreponame/
+        # 一個更可靠的方法是使用 GITHUB_REPOSITORY 環境變數並提取倉庫名稱部分：
+        # run: |
+        #   REPO_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d'/' -f2)
+        #   flutter build web --release --base-href "/$REPO_NAME/"
+        # 這裡為了簡化，暫時保留原樣，但請留意此潛在問題。
 
-      # 步驟 6: 部署到 GitHub Pages
-      # 使用 peaceiris/actions-gh-pages 這個流行的社群 Action 來部署
-      # 它會將 build/web 資料夾的內容推送到 gh-pages 分支 (或其他指定分支)
-      - name: Deploy to GitHub Pages
+      # 步驟 6: 部署到 GitHub Pages (Web 應用)
+      - name: Deploy Web to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }} # GitHub 自動提供的 token，用於授權推送到倉庫
-          publish_dir: ./build/web # 指定要部署的資料夾
+          publish_dir: ./build/web # 指定要部署的資料夾 (Web 建置產物)
           publish_branch: gh-pages # 指定要推送到哪個分支 (GitHub Pages 會從此分支提供服務)
           # user_name: 'github-actions[bot]' # 可選：自定義 commit 的用戶名
           # user_email: 'github-actions[bot]@users.noreply.github.com' # 可選：自定義 commit 的用戶郵箱
           # commit_message: 'Deploy Flutter Web to GitHub Pages' # 可選：自定義 commit 訊息
-          # cname: your-custom-domain.com # 可選：如果您使用自訂域名
-          # force_orphan: true # 可選：創建一個乾淨的、沒有歷史記錄的分支 (對於 gh-pages 常用)
-          # keep_files: false # 可選：在部署前是否保留目標分支上的現有文件，設為 false 會清除舊文件
+          # force_orphan: true # 強烈建議用於 gh-pages 分支，以保持其乾淨
+
+      # --- 新增：建置 Android APK 並上傳 Artifact ---
+
+      # 步驟 7: 設定 Java (JDK) 環境 - Android 建置需要
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4 # 使用較新版本的 action
+        with:
+          java-version: '17' # Flutter/Android Gradle Plugin 通常需要較新的 JDK 版本
+          distribution: 'temurin' # Temurin (前身 AdoptOpenJDK) 是一個可靠的 JDK 發行版
+          cache: 'gradle' # 快取 Gradle 相關檔案以加速後續建置
+
+      # 步驟 8: (可選) 清理 Flutter 專案 (有助於避免某些建置問題)
+      # 如果在獲取依賴後進行了大量更改，或者遇到奇怪的建置錯誤，可以取消註解此步驟
+      # - name: Clean Flutter project (before APK build)
+      #   run: flutter clean
+      # - name: Get Flutter dependencies again (if cleaned)
+      #   run: flutter pub get
+
+      # 步驟 9: 建置 Flutter Android APK (Release 版本)
+      - name: Build Flutter Android APK (Release)
+        run: flutter build apk --release
+        # 注意：這將生成一個未簽名的 Release APK。
+        # 如果您需要簽名的 APK (例如用於發布到商店)，您需要在專案中配置簽名，
+        # 或者在此步驟中使用 -- chìa-khóa-mật-khẩu, --chìa-khóa-bí-danh, --kho-khóa 等參數，
+        # 並將簽名檔案和密碼安全地存儲在 GitHub Secrets 中。
+        # 例如 (概念性，需要您設定好 secrets 和 keystore 檔案):
+        # run: |
+        #   echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+        #   flutter build apk --release \
+        #     --keystore-password "${{ secrets.KEYSTORE_PASSWORD }}" \
+        #     --key-alias "${{ secrets.KEY_ALIAS }}" \
+        #     --key-password "${{ secrets.KEY_PASSWORD }}" \
+        #     --build-name=1.0.0 \ # 您的應用版本名稱
+        #     --build-number=1     # 您的應用建置號
+
+      # 步驟 10: 上傳 Android APK 作為 Artifact
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4 # 使用較新版本的 action
+        with:
+          name: android-apk-release # Artifact 的名稱，在 GitHub Actions 頁面會顯示此名稱
+          path: build/app/outputs/flutter-apk/app-release.apk # 指定要上傳的 APK 檔案路徑
+          if-no-files-found: error # 如果找不到檔案，則讓 Workflow 失敗
+          retention-days: 7 # (可選) Artifact 保留天數，預設 90 天
+      # --- 結束新增部分 ---

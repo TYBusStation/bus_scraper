@@ -1,31 +1,38 @@
 import 'dart:convert';
 
-import 'package:bus_scraper/storage/local_storage.dart';
-import 'package:bus_scraper/storage/storage.dart';
+import 'package:bus_scraper/storage/local_storage.dart'; // Assuming LocalStorage is used by StorageHelper or elsewhere
+import 'package:bus_scraper/storage/storage.dart'; // For StorageHelper
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import 'data/bus_route.dart';
-import 'data/car.dart';
+import 'data/bus_route.dart'; // Your BusRoute model
+import 'data/car.dart'; // Your Car model
 
 class Static {
+  // --- Constants ---
   static DateFormat dateFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
 
-  static final LocalStorage localStorage = LocalStorage();
-  static final Dio dio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 5),
-      sendTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 5)));
+  // TODO: Verify the purpose of this RegExp.
+  // If it's to check if a string consists ONLY of alphanumeric characters:
+  static RegExp letterNumber = RegExp(r"[^a-zA-Z0-9]");
 
-  static const String api = "http://myster.ddns.net:25566";
+  // If it's to check if a string CONTAINS an alphanumeric character:
+  // static RegExp letterNumber = RegExp(r"[a-zA-Z0-9]");
+  // The original RegExp(r"^a-zA-Z0-9") was incorrect as it matched a literal string.
 
-  // static const String api = "http://192.168.1.159:25566";
+  // API Endpoints - Consider moving to a config file or environment variables for flexibility
+  static const String apiBaseUrl = "https://myster.freeddns.org:25566";
 
-//   static const String api = "http://localhost:8000";
-//  static const String api = "http://192.168.1.207:8000";
+  // static const String apiBaseUrl =
+  //     "http://192.168.1.159:25567"; // Active API base URL
+  // static const String apiBaseUrl = "http://localhost:8000";
+  // static const String apiBaseUrl = "http://192.168.1.207:8000";
 
-  static const String GRAPHQL_QUERY = """
+  static const String _allCarTypesEndpoint = "/all_car_types";
+  static const String _graphqlApiUrl = "https://ebus.tycg.gov.tw/ebus/graphql";
+
+  static const String _graphqlQueryRoutes = """
 query QUERY_ROUTES(\$lang: String!) {
   routes(lang: \$lang) {
     edges {
@@ -48,157 +55,232 @@ query QUERY_ROUTES(\$lang: String!) {
 }
 """;
 
+  // --- Dio Instance ---
+  // Initialize Dio with base options and headers
+  static final Dio dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 10), // Increased timeout slightly
+    sendTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
+    headers: {
+      "Content-Type": "application/json",
+      // Add other common headers if needed, e.g., "Accept": "application/json"
+    },
+  ));
+
+  // --- Local Storage ---
+  // Assuming LocalStorage is used somewhere, keeping it if necessary.
+  // If not used directly in Static, it might belong elsewhere or only be used by StorageHelper.
+  static final LocalStorage localStorage = LocalStorage();
+
+  // --- Static Data (late final) ---
+  // These will be initialized by the init() method.
   static late final List<BusRoute> opRouteData;
   static late final List<BusRoute> specialRouteData;
-  static late final List<BusRoute> routeData;
+  static late final List<BusRoute>
+      routeData; // Combined opRouteData and specialRouteData
   static late final List<Car> carData;
 
-  static Future<void> staticInit() async {
+  // --- Initialization ---
+  /// Initializes static data by fetching from APIs and local assets.
+  /// This method should be called once at app startup.
+  static Future<void> init() async {
+    _log("Static initialization started.");
+
+    // Initialize storage helper (if it has its own async setup)
     await StorageHelper.init();
-    dio.options.headers = {
-      "Content-Type": "application/json",
-    };
-    specialRouteData = await loadRoutesFromJsonAsset("special_route_data.json");
+
+    // Load special routes from local assets first, as it's reliable and fast.
+    specialRouteData =
+        await _loadRoutesFromJsonAsset("special_route_data.json");
+
+    // Fetch operational routes and car data concurrently.
     try {
-      final response =
-          await dio.post("https://ebus.tycg.gov.tw/ebus/graphql", data: {
-        "operationName": "QUERY_ROUTES",
-        "variables": {
-          "lang": "zh",
+      final results = await Future.wait([
+        _fetchOpRoutesFromServer(),
+        _fetchCarDataFromServer(),
+      ]);
+
+      opRouteData = results[0] as List<BusRoute>;
+      carData = results[1] as List<Car>;
+    } catch (e) {
+      // If Future.wait throws (e.g., one of the futures rejects and it's not caught inside them),
+      // we ensure a graceful fallback.
+      _log(
+          "Error during parallel data fetching: $e. Attempting individual fallbacks.");
+      opRouteData = await _loadRoutesFromJsonAsset(
+          "op_route_data.json"); // Fallback for opRouteData
+      carData = []; // Fallback for carData
+    }
+
+    // Combine operational and special routes.
+    // Using a spread operator for a new list to ensure immutability of originals if needed.
+    routeData = [...opRouteData, ...specialRouteData];
+
+    _log("Static initialization complete.");
+    _log("Operational routes loaded: ${opRouteData.length}");
+    _log("Special routes loaded: ${specialRouteData.length}");
+    _log("Total combined routes: ${routeData.length}");
+    _log("Car data loaded: ${carData.length}");
+  }
+
+  // --- Private Helper Methods ---
+
+  /// Logs a message with a timestamp and class context.
+  static void _log(String message) {
+    print("[${DateTime.now().toIso8601String()}] [Static] $message");
+  }
+
+  /// Fetches operational bus routes from the GraphQL API.
+  /// Falls back to a local asset if the API request fails.
+  static Future<List<BusRoute>> _fetchOpRoutesFromServer() async {
+    _log("Fetching operational routes from API: $_graphqlApiUrl");
+    try {
+      final response = await dio.post(
+        _graphqlApiUrl,
+        data: {
+          "operationName": "QUERY_ROUTES",
+          "variables": {"lang": "zh"},
+          "query": _graphqlQueryRoutes,
         },
-        "query": GRAPHQL_QUERY,
-      });
-      if (response.statusCode == 200) {
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
         final responseData = response.data;
-        // 根據 GraphQL 的回傳結構，我們需要深入到 'data' -> 'routes' -> 'edges'
-        if (responseData != null &&
-            responseData['data'] != null &&
-            responseData['data']['routes'] != null) {
-          final List<dynamic> routeEdges =
-              responseData['data']['routes']['edges'] as List<dynamic>? ?? [];
-          // 解析 routes 並賦值給 late final 變數
-          // 確保 routes 只被賦值一次
+        // Defensive parsing of GraphQL structure
+        final routesNode = responseData['data']?['routes'];
+        if (routesNode != null && routesNode['edges'] is List) {
+          final List<dynamic> routeEdges = routesNode['edges'];
           if (routeEdges.isNotEmpty) {
             List<BusRoute> processedRoutes = [];
             for (var edge in routeEdges) {
-              if (edge is! Map<String, dynamic> ||
-                  !edge.containsKey('node') ||
-                  edge['node'] is! Map<String, dynamic>) {
-                print("[${DateTime.now()}] 警告: 跳過格式錯誤的邊緣: $edge");
-                continue;
-              }
+              if (edge is Map<String, dynamic> &&
+                  edge['node'] is Map<String, dynamic>) {
+                Map<String, dynamic> routeInfo =
+                    Map<String, dynamic>.from(edge['node']);
 
-              Map<String, dynamic> routeInfo =
-                  Map<String, dynamic>.from(edge['node']); // 創建可修改的副本
-
-              // 處理提供者資訊：提取 name，確保它始終是一個列表
-              List<String> providerNames = [];
-              if (routeInfo.containsKey('providers') &&
-                  routeInfo['providers'] is Map<String, dynamic> &&
-                  routeInfo['providers'].containsKey('edges') &&
-                  routeInfo['providers']['edges'] is List) {
-                final List<dynamic> providerEdges =
-                    routeInfo['providers']['edges'];
-                for (var pEdge in providerEdges) {
-                  if (pEdge is Map<String, dynamic> &&
-                      pEdge.containsKey('node') &&
-                      pEdge['node'] is Map<String, dynamic> &&
-                      pEdge['node'].containsKey('name') &&
-                      pEdge['node']['name'] is String) {
-                    providerNames.add(pEdge['node']['name']);
+                // Standardize provider information to a list of names
+                List<String> providerNames = [];
+                final providersData = routeInfo['providers'];
+                if (providersData is Map<String, dynamic> &&
+                    providersData['edges'] is List) {
+                  for (var pEdge in providersData['edges']) {
+                    if (pEdge is Map<String, dynamic> &&
+                        pEdge['node'] is Map<String, dynamic> &&
+                        pEdge['node']['name'] is String) {
+                      providerNames.add(pEdge['node']['name']);
+                    }
                   }
                 }
+                routeInfo['providers'] =
+                    providerNames; // Replace original providers structure
+
+                processedRoutes.add(BusRoute.fromJson(routeInfo));
+              } else {
+                _log(
+                    "Warning: Skipping malformed operational route edge: $edge");
               }
-              // Python 腳本將處理後的 providers 列表直接賦值回 routeInfo['providers']
-              // Dart 中，我們直接將這個名稱列表用於創建 Route 物件
-              routeInfo['providers'] =
-                  providerNames; // 更新 routeInfo 中的 providers 欄位 (雖然 Route.fromProcessedNode 會直接用)
-
-              processedRoutes.add(BusRoute.fromJson(routeInfo));
             }
-
-            print("[${DateTime.now()}] 成功獲取並處理了 ${processedRoutes.length} 條路線");
-            opRouteData = processedRoutes;
+            _log(
+                "Successfully fetched and processed ${processedRoutes.length} operational routes from API.");
+            return processedRoutes;
           } else {
-            print('API 回傳成功，但路線列表為空');
-            opRouteData = await loadRoutesFromJsonAsset("op_route_data.json");
+            _log("API returned success, but operational route list is empty.");
           }
         } else {
-          print('API 回傳成功，但資料結構不符合預期: $responseData');
-          opRouteData = await loadRoutesFromJsonAsset("op_route_data.json");
+          _log(
+              "API returned success, but data structure for routes is unexpected: $responseData");
         }
       } else {
-        print('請求失敗，狀態碼: ${response.statusCode}');
-        print('錯誤訊息: ${response.statusMessage}');
-        print('回應內容: ${response.data}');
-        opRouteData = await loadRoutesFromJsonAsset("op_route_data.json");
+        _log(
+            "Failed to fetch operational routes. Status: ${response.statusCode}, Message: ${response.statusMessage}, Data: ${response.data}");
       }
-    } catch (e) {
-      print('解析資料或發生其他未預期錯誤: $e');
-      opRouteData = await loadRoutesFromJsonAsset("op_route_data.json");
+    } on DioException catch (e) {
+      _log(
+          "DioError fetching operational routes: ${e.message}${e.response != null ? " - Response: ${e.response?.data}" : ""}");
+    } catch (e, stackTrace) {
+      _log(
+          "Unexpected error fetching or parsing operational routes: $e\nStackTrace: $stackTrace");
     }
 
-    routeData = opRouteData + specialRouteData;
-    await staticInit2();
+    _log(
+        "Falling back to local asset for operational routes (op_route_data.json).");
+    return _loadRoutesFromJsonAsset("op_route_data.json");
   }
 
-  static Future<void> staticInit2() async {
+  /// Fetches car data from the API.
+  /// Falls back to an empty list if the API request fails.
+  static Future<List<Car>> _fetchCarDataFromServer() async {
+    const String url = "$apiBaseUrl$_allCarTypesEndpoint";
+    _log("Fetching car data from API: $url");
     try {
-      final response = await dio.getUri(
-        Uri.parse("$api/all_car_types"),
-      );
-      if (response.statusCode == 200) {
-        final responseData = response.data;
-        // 根據 GraphQL 的回傳結構，我們需要深入到 'data' -> 'routes' -> 'edges'
-        if (responseData != null) {
-          final List<dynamic> cars = responseData as List<dynamic>? ?? [];
-          // 解析 routes 並賦值給 late final 變數
-          // 確保 routes 只被賦值一次
-          if (cars.isNotEmpty) {
+      final response = await dio.getUri(Uri.parse(url));
+
+      if (response.statusCode == 200 && response.data != null) {
+        if (response.data is List) {
+          final List<dynamic> carsJson = response.data;
+          if (carsJson.isNotEmpty) {
             List<Car> processedCars = [];
-            for (var carJson in cars) {
+            for (var carJson in carsJson) {
               if (carJson is Map<String, dynamic>) {
                 processedCars.add(Car.fromJson(carJson));
+              } else {
+                _log("Warning: Skipping malformed car data item: $carJson");
               }
             }
-            carData = processedCars;
+            _log(
+                "Successfully fetched and processed ${processedCars.length} cars from API.");
+            return processedCars;
           } else {
-            print('API 回傳成功，但路線列表為空');
-            carData = [];
+            _log("API returned success, but car list is empty.");
+            return []; // Return empty list if API response is an empty list
           }
         } else {
-          print('API 回傳成功，但資料結構不符合預期: $responseData');
-          carData = [];
+          _log(
+              "API returned success, but car data structure is unexpected (expected a List): ${response.data}");
         }
       } else {
-        print('請求失敗，狀態碼: ${response.statusCode}');
-        print('錯誤訊息: ${response.statusMessage}');
-        print('回應內容: ${response.data}');
-        carData = [];
+        _log(
+            "Failed to fetch car data. Status: ${response.statusCode}, Message: ${response.statusMessage}, Data: ${response.data}");
       }
-    } catch (e) {
-      print('解析資料或發生其他未預期錯誤: $e');
-      carData = [];
+    } on DioException catch (e) {
+      _log("DioError fetching car data: ${e.message}" +
+          (e.response != null ? " - Response: ${e.response?.data}" : ""));
+    } catch (e, stackTrace) {
+      _log(
+          "Unexpected error fetching or parsing car data: $e\nStackTrace: $stackTrace");
     }
+
+    _log(
+        "Failed to fetch car data from API. Returning empty list as fallback.");
+    return []; // Fallback to an empty list
   }
 
-  static Future<List<BusRoute>> loadRoutesFromJsonAsset(String fileName) async {
-    final List<BusRoute> routeData = [];
+  /// Loads and parses bus routes from a JSON file in the assets folder.
+  /// Returns an empty list on error to ensure fallbacks are safe.
+  static Future<List<BusRoute>> _loadRoutesFromJsonAsset(
+      String fileName) async {
+    _log("Loading routes from asset: assets/$fileName");
     try {
-      // 1. 從 assets 載入 JSON 字串
       final String jsonString = await rootBundle.loadString("assets/$fileName");
-
-      // 2. 解析 JSON 字串為 Map<String, dynamic>
-      // 假設你的 JSON 根結構直接就是 GraphQL 回應的樣子，
+      // Assuming the root of the JSON asset is a list of route objects
       final List<dynamic> jsonData = jsonDecode(jsonString);
 
-      for (Map<String, dynamic> route in jsonData) {
-        routeData.add(BusRoute.fromJson(route));
+      List<BusRoute> assetRoutes = [];
+      for (var routeJson in jsonData) {
+        if (routeJson is Map<String, dynamic>) {
+          assetRoutes.add(BusRoute.fromJson(routeJson));
+        } else {
+          _log(
+              "Warning: Skipping malformed route data item in asset $fileName: $routeJson");
+        }
       }
-    } catch (e) {
-      print('從 assets 載入或解析 JSON 時發生錯誤: $e');
-      rethrow; // 重新拋出錯誤，讓調用者處理
+      _log(
+          "Successfully loaded ${assetRoutes.length} routes from asset: $fileName");
+      return assetRoutes;
+    } catch (e, stackTrace) {
+      _log(
+          "Error loading or parsing routes from asset $fileName: $e\nStackTrace: $stackTrace");
+      return []; // Return empty list on error to make fallbacks safer
     }
-    return routeData;
   }
 }

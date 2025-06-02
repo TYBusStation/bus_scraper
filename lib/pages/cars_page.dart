@@ -1,4 +1,4 @@
-import 'package:bus_scraper/widgets/map_btn.dart';
+import 'package:bus_scraper/widgets/history_btn.dart';
 import 'package:flutter/material.dart';
 
 import '../data/car.dart';
@@ -20,10 +20,12 @@ class _CarsPageState extends State<CarsPage> {
 
   void modifyCars() {
     setState(() => cars = Static.carData
-        .where((car) => textEditingController.text
+        .where((car) => car.plate
+            .replaceAll(Static.letterNumber, "")
             .toUpperCase()
-            .split(' ')
-            .every((element) => car.plate.contains(element)))
+            .contains(textEditingController.text
+                .replaceAll(Static.letterNumber, "")
+                .toUpperCase()))
         .toList()
       ..sort((a, b) => a.plate.compareTo(b.plate)));
     if (scrollController.hasClients) {
@@ -149,7 +151,7 @@ class _CarsPageState extends State<CarsPage> {
                         fontSize: 16,
                       ),
                     ),
-                    trailing: MapBtn(
+                    trailing: HistoryBtn(
                       plate: cars[index].plate,
                     ),
                   ),

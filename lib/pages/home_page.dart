@@ -19,11 +19,24 @@ class _HomePageState extends State<HomePage> {
   late List<BusRoute> routes;
 
   void modifyRoutes() {
+    String text = textEditingController.text
+        .replaceAll(Static.letterNumber, "")
+        .toUpperCase();
+    print(textEditingController.text.replaceAll(Static.letterNumber, ""));
     setState(() => routes = Static.routeData
-        .where((route) => textEditingController.text.split(' ').every(
-            (element) =>
-                route.name.contains(element) ||
-                route.description.contains(element)))
+        .where((route) =>
+            route.name
+                .replaceAll(Static.letterNumber, "")
+                .toUpperCase()
+                .contains(text) ||
+            route.description
+                .replaceAll(Static.letterNumber, "")
+                .toUpperCase()
+                .contains(text) ||
+            route.id
+                .replaceAll(Static.letterNumber, "")
+                .toUpperCase()
+                .contains(text))
         .toList()
       ..sort((a, b) {
         if (a.name.startsWith(RegExp(r'[^0-9]')) ||
