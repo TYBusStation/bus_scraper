@@ -2,7 +2,7 @@ import 'package:bus_scraper/pages/company_page.dart';
 import 'package:flutter/material.dart';
 
 import 'cars_page.dart';
-import 'home_page.dart';
+import 'route_page.dart';
 import 'settings_page.dart';
 
 class MainPage extends StatefulWidget {
@@ -22,7 +22,7 @@ class _MainPageState extends State<MainPage> {
         title: const Text("BusScraper"),
       ),
       body: switch (selectedIndex) {
-        0 => const HomePage(),
+        0 => const RoutePage(),
         1 => const CarsPage(),
         2 => const CompanyDataViewerPage(),
         3 => const SettingsPage(),

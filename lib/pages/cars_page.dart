@@ -126,7 +126,7 @@ class _CarsPageState extends State<CarsPage> {
                             size: 100, color: themeData.colorScheme.primary),
                         const SizedBox(height: 10),
                         const Text(
-                          "找不到符合的路線",
+                          "找不到符合的車牌\n或車牌尚未被記錄",
                           style: TextStyle(
                             fontSize: 20,
                           ),

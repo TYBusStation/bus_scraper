@@ -22,14 +22,13 @@ class Static {
   // The original RegExp(r"^a-zA-Z0-9") was incorrect as it matched a literal string.
 
   // API Endpoints - Consider moving to a config file or environment variables for flexibility
-  static const String apiBaseUrl = "https://myster.freeddns.org:25566";
+  // static const String apiBaseUrl = "https://myster.freeddns.org:25566";
 
-  // static const String apiBaseUrl =
-  //     "http://192.168.1.159:25567"; // Active API base URL
+  static const String apiBaseUrl =
+      "http://192.168.1.159:25567"; // Active API base URL
   // static const String apiBaseUrl = "http://localhost:8000";
   // static const String apiBaseUrl = "http://192.168.1.207:8000";
 
-  static const String _allCarTypesEndpoint = "/all_car_types";
   static const String _graphqlApiUrl = "https://ebus.tycg.gov.tw/ebus/graphql";
 
   static const String _graphqlQueryRoutes = """
@@ -58,9 +57,9 @@ query QUERY_ROUTES(\$lang: String!) {
   // --- Dio Instance ---
   // Initialize Dio with base options and headers
   static final Dio dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 10), // Increased timeout slightly
-    sendTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
+    connectTimeout: const Duration(seconds: 5), // Increased timeout slightly
+    sendTimeout: const Duration(seconds: 5),
+    receiveTimeout: const Duration(seconds: 5),
     headers: {
       "Content-Type": "application/json",
       // Add other common headers if needed, e.g., "Accept": "application/json"
@@ -210,7 +209,7 @@ query QUERY_ROUTES(\$lang: String!) {
   /// Fetches car data from the API.
   /// Falls back to an empty list if the API request fails.
   static Future<List<Car>> _fetchCarDataFromServer() async {
-    const String url = "$apiBaseUrl$_allCarTypesEndpoint";
+    const String url = "$apiBaseUrl/all_car_types";
     _log("Fetching car data from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
@@ -282,5 +281,186 @@ query QUERY_ROUTES(\$lang: String!) {
           "Error loading or parsing routes from asset $fileName: $e\nStackTrace: $stackTrace");
       return []; // Return empty list on error to make fallbacks safer
     }
+  }
+
+  // Helper function to parse route strings into structured data
+  static Map<String, dynamic> _parseRoute(String route) {
+    String type = 'UNKNOWN';
+    int? baseNum;
+    String? baseStr;
+    String suffixAlpha = '';
+    String suffixNumeric = ''; // For things like GR2
+    String suffixParenthesis = '';
+    bool isSpecialTGood = false;
+
+    RegExpMatch? match;
+
+    // 1. T routes (highest precedence for parsing specific T patterns)
+    if (route.startsWith('T')) {
+      type = 'T';
+      // Special T...(真好) case
+      match = RegExp(r'^T(\d+)\(真好\)$').firstMatch(route);
+      if (match != null) {
+        baseNum = int.tryParse(match.group(1)!);
+        isSpecialTGood = true;
+        suffixParenthesis =
+            '(真好)'; // Store for completeness, though bool is key
+      } else {
+        // General T routes: T<num>[letters][(text)]
+        match = RegExp(r'^T(\d+)([A-Z]*)(\(.*\))?$').firstMatch(route);
+        if (match != null) {
+          baseNum = int.tryParse(match.group(1)!);
+          suffixAlpha = match.group(2) ?? '';
+          suffixParenthesis = match.group(3) ?? '';
+        } else {
+          // Fallback if T route doesn't match T<num> pattern (e.g. "T" or "TALPHA")
+          // Treat as an ALPHA type for sorting purposes if it's not a standard T<num> format
+          type = 'ALPHA'; // Reclassify
+          baseStr = route; // The whole string is the base
+        }
+      }
+    }
+    // 2. Numeric-first routes: <num>[letters][(text)]
+    else if (RegExp(r'^\d').hasMatch(route)) {
+      type = 'NUMERIC';
+      match = RegExp(r'^(\d+)([A-ZN-S]*)(\(.*\))?$')
+          .firstMatch(route); // Allow N,S in suffixAlpha
+      if (match != null) {
+        baseNum = int.tryParse(match.group(1)!);
+        suffixAlpha = match.group(2) ?? '';
+        suffixParenthesis = match.group(3) ?? '';
+      } else {
+        // Fallback for pure numbers if regex fails (should ideally be caught by above)
+        baseNum = int.tryParse(route);
+        if (baseNum == null) {
+          // If it starts with a digit but isn't parsable as typical route
+          type = 'ALPHA'; // Reclassify as a generic string
+          baseStr = route;
+        }
+      }
+    }
+    // 3. Alpha-first routes: <letters>[digits][letters][(text)] (e.g. BR, GR, GR2, GR2A)
+    else {
+      type = 'ALPHA';
+      match = RegExp(r'^([A-Z]+)(\d*)([A-Z]*)(\(.*\))?$').firstMatch(route);
+      if (match != null) {
+        baseStr = match.group(1)!;
+        suffixNumeric = match.group(2) ?? '';
+        suffixAlpha = match.group(3) ?? '';
+        suffixParenthesis = match.group(4) ?? '';
+      } else {
+        // Purely alphabetical or unrecognised pattern
+        baseStr = route;
+      }
+    }
+
+    return {
+      'original': route,
+      'type': type,
+      'baseNum': baseNum, // Numeric part for NUMERIC and T types
+      'baseStr': baseStr, // Alphabetic part for ALPHA type (BR, GR)
+      'suffixAlpha': suffixAlpha, // A, B, N, S
+      'suffixNumeric': suffixNumeric, // For GR2
+      'suffixParenthesis': suffixParenthesis, // (大溪站發車), (真好)
+      'isSpecialTGood': isSpecialTGood, // For T...(真好)
+    };
+  }
+
+  static int compareRoutes(String a, String b) {
+    if (a == b) return 0;
+
+    var pa = _parseRoute(a);
+    var pb = _parseRoute(b);
+
+    // Order of types: NUMERIC < ALPHA < T
+    int typeOrder(String type) {
+      if (type == 'NUMERIC') return 1;
+      if (type == 'ALPHA') return 2;
+      if (type == 'T') return 3;
+      return 4; // UNKNOWN or fallback
+    }
+
+    int typeComparison = typeOrder(pa['type']).compareTo(typeOrder(pb['type']));
+    if (typeComparison != 0) return typeComparison;
+
+    // --- Within the same type ---
+
+    if (pa['type'] == 'NUMERIC') {
+      int baseNumComparison =
+          (pa['baseNum'] ?? 0).compareTo(pb['baseNum'] ?? 0);
+      if (baseNumComparison != 0) return baseNumComparison;
+
+      // Suffix Alpha: "" < "A" < "B" ... < "N" < "S"
+      int suffixAlphaComparison =
+          (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
+      if (suffixAlphaComparison != 0) return suffixAlphaComparison;
+
+      // Suffix Parenthesis: "" (no paren) < "(...)" (paren)
+      // Then lexicographical for parenthesized content if both have it.
+      String paParen = pa['suffixParenthesis'] as String;
+      String pbParen = pb['suffixParenthesis'] as String;
+      if (paParen.isEmpty && pbParen.isNotEmpty) return -1;
+      if (paParen.isNotEmpty && pbParen.isEmpty) return 1;
+      return paParen.compareTo(pbParen); // If both empty or both non-empty
+    } else if (pa['type'] == 'ALPHA') {
+      // BR, GR, etc.
+      int baseStrComparison =
+          (pa['baseStr'] ?? '').compareTo(pb['baseStr'] ?? '');
+      if (baseStrComparison != 0) return baseStrComparison;
+
+      // Suffix Numeric (for GR vs GR2)
+      // Treat empty suffixNumeric as 0 for comparison if baseStr is same
+      int paSuffixNumVal = (pa['suffixNumeric'] as String).isEmpty
+          ? 0
+          : int.parse(pa['suffixNumeric'] as String);
+      int pbSuffixNumVal = (pb['suffixNumeric'] as String).isEmpty
+          ? 0
+          : int.parse(pb['suffixNumeric'] as String);
+      int suffixNumComparison = paSuffixNumVal.compareTo(pbSuffixNumVal);
+      if (suffixNumComparison != 0) return suffixNumComparison;
+
+      // Suffix Alpha (e.g., for a hypothetical GR2A vs GR2B)
+      int suffixAlphaComparison =
+          (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
+      if (suffixAlphaComparison != 0) return suffixAlphaComparison;
+
+      // Suffix Parenthesis
+      String paParen = pa['suffixParenthesis'] as String;
+      String pbParen = pb['suffixParenthesis'] as String;
+      if (paParen.isEmpty && pbParen.isNotEmpty) return -1;
+      if (paParen.isNotEmpty && pbParen.isEmpty) return 1;
+      return paParen.compareTo(pbParen);
+    } else if (pa['type'] == 'T') {
+      int baseNumComparison =
+          (pa['baseNum'] ?? 0).compareTo(pb['baseNum'] ?? 0);
+      if (baseNumComparison != 0) return baseNumComparison;
+
+      // Special T(真好) rule: (真好) comes before others for the same base number
+      bool paIsSpecial = pa['isSpecialTGood'] as bool;
+      bool pbIsSpecial = pb['isSpecialTGood'] as bool;
+      if (paIsSpecial != pbIsSpecial) {
+        return paIsSpecial ? -1 : 1; // Special comes first
+      }
+
+      // Suffix Alpha: "" < "A" < "B"
+      int suffixAlphaComparison =
+          (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
+      if (suffixAlphaComparison != 0) return suffixAlphaComparison;
+
+      // Suffix Parenthesis (for non-真好 cases, as 真好 already handled)
+      // "" (no paren) < "(...)"
+      String paParen = pa['suffixParenthesis'] as String;
+      String pbParen = pb['suffixParenthesis'] as String;
+      // If one of them was special good, it would have been handled above or they are both special good.
+      // If both special good and same base number and same suffix alpha, they are effectively equivalent here.
+      if (paIsSpecial && pbIsSpecial) return 0;
+
+      if (paParen.isEmpty && pbParen.isNotEmpty) return -1;
+      if (paParen.isNotEmpty && pbParen.isEmpty) return 1;
+      return paParen.compareTo(pbParen);
+    }
+
+    // Fallback: should ideally be covered by original string comparison if all parsed parts are equal
+    return a.compareTo(b);
   }
 }

@@ -5,51 +5,31 @@ import 'package:flutter/material.dart';
 import '../static.dart';
 import '../widgets/theme_provider.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class RoutePage extends StatefulWidget {
+  const RoutePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<RoutePage> createState() => _RoutePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _RoutePageState extends State<RoutePage> {
   final TextEditingController textEditingController = TextEditingController();
   final ScrollController scrollController =
       ScrollController(keepScrollOffset: false);
   late List<BusRoute> routes;
 
   void modifyRoutes() {
-    String text = textEditingController.text
-        .replaceAll(Static.letterNumber, "")
-        .toUpperCase();
     print(textEditingController.text.replaceAll(Static.letterNumber, ""));
     setState(() => routes = Static.routeData
-        .where((route) =>
-            route.name
-                .replaceAll(Static.letterNumber, "")
-                .toUpperCase()
-                .contains(text) ||
-            route.description
-                .replaceAll(Static.letterNumber, "")
-                .toUpperCase()
-                .contains(text) ||
-            route.id
-                .replaceAll(Static.letterNumber, "")
-                .toUpperCase()
-                .contains(text))
+        .where((route) => textEditingController.text
+            .toUpperCase()
+            .split(" ")
+            .every((token) =>
+                route.name.toUpperCase().contains(token) ||
+                route.description.toUpperCase().contains(token) ||
+                route.id.toUpperCase().contains(token)))
         .toList()
-      ..sort((a, b) {
-        if (a.name.startsWith(RegExp(r'[^0-9]')) ||
-            b.name.startsWith(RegExp(r'[^0-9]'))) {
-          return a.name.compareTo(b.name);
-        }
-        String aNum = a.name.replaceAll(RegExp(r'[^0-9]'), '');
-        String bNum = b.name.replaceAll(RegExp(r'[^0-9]'), '');
-        if (aNum == bNum) {
-          return a.name.compareTo(b.name);
-        }
-        return aNum.compareTo(bNum);
-      }));
+      ..sort((a, b) => Static.compareRoutes(a.name, b.name)));
     if (scrollController.hasClients) {
       scrollController.jumpTo(0);
     }

@@ -62,10 +62,10 @@ jobs:
       # --- 新增：建置 Android APK 並上傳 Artifact ---
 
       # 步驟 7: 設定 Java (JDK) 環境 - Android 建置需要
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4 # 使用較新版本的 action
         with:
-          java-version: '17' # Flutter/Android Gradle Plugin 通常需要較新的 JDK 版本
+          java-version: '21' # Flutter/Android Gradle Plugin 通常需要較新的 JDK 版本
           distribution: 'temurin' # Temurin (前身 AdoptOpenJDK) 是一個可靠的 JDK 發行版
           cache: 'gradle' # 快取 Gradle 相關檔案以加速後續建置
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../static.dart';
+// 假設 HistoryPage 會放在同一個資料夾或你可以正確 import 的地方
+import '../pages/history_page.dart';
 
 class HistoryBtn extends StatelessWidget {
   final String plate;
@@ -11,8 +11,14 @@ class HistoryBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FilledButton(
-      onPressed: () async => await launchUrl(Uri.parse(
-          "${Static.apiBaseUrl}/bus_data/$plate?start_time=${Static.dateFormat.format(DateTime.now().subtract(const Duration(hours: 1)))}&end_time=${Static.dateFormat.format(DateTime.now())}")),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HistoryPage(plate: plate),
+          ),
+        );
+      },
       style: FilledButton.styleFrom(padding: const EdgeInsets.all(10)),
       child: const Text('歷史位置', style: TextStyle(fontSize: 16)),
     );
