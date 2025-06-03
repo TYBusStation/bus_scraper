@@ -7409,10 +7409,10 @@ case 2:return A.P(o.at(-1),r)}})
 return A.R($async$aij,r)},
 aii(){var s=0,r=A.S(t.ty),q,p=2,o=[],n,m,l,k,j,i,h,g,f,e,d,c,b
 var $async$aii=A.T(function(a,a0){if(a===1){o.push(a0)
-s=p}while(true)switch(s){case 0:A.ck("["+new A.bl(Date.now(),0,!1).cT()+"] [Static] Fetching car data from API: http://192.168.1.159:25567/all_car_types")
+s=p}while(true)switch(s){case 0:A.ck("["+new A.bl(Date.now(),0,!1).cT()+"] [Static] Fetching car data from API: https://myster.freeddns.org:25566/all_car_types")
 p=4
 s=7
-return A.Z($.xH().Ka(A.fn("http://192.168.1.159:25567/all_car_types",0,null),t.z),$async$aii)
+return A.Z($.xH().Ka(A.fn("https://myster.freeddns.org:25566/all_car_types",0,null),t.z),$async$aii)
 case 7:n=a0
 if(n.c===200&&n.a!=null)if(t.j.b(n.a)){m=n.a
 g=t.sN
@@ -41779,7 +41779,7 @@ s=1
 break}m.T(new A.amK(m))
 p=4
 s=7
-return A.Z($.xH().Bz(0,"http://192.168.1.159:25567/companies",t.z),$async$xd)
+return A.Z($.xH().Bz(0,"https://myster.freeddns.org:25566/companies",t.z),$async$xd)
 case 7:l=b
 if(l.c===200&&t.j.b(l.a)){i.n(0,"companies_list",l.a)
 A.ck("\u516c\u53f8\u5217\u8868\u5f9e API \u7372\u53d6\u4e26\u5feb\u53d6\u3002")
@@ -41818,7 +41818,7 @@ A.ck("\u6642\u9593\u6233 for "+m.e.b+"/"+A.k(m.w)+" \u5f9e\u5feb\u53d6\u8f09\u51
 s=1
 break}m.T(new A.amU(m))
 p=4
-k="http://192.168.1.159:25567/company_data/timestamps/"+m.e.b+"/"+A.k(m.w)
+k="https://myster.freeddns.org:25566/company_data/timestamps/"+m.e.b+"/"+A.k(m.w)
 s=7
 return A.Z($.xH().Bz(0,k,t.z),$async$t9)
 case 7:j=b
@@ -41864,7 +41864,7 @@ A.ck("\u8cc7\u6599 for "+m.e.b+"/"+A.k(m.w)+"/"+l+" (\u8cc7\u6599\u96c6 "+a+") \
 s=1
 break}m.T(new A.amP(m,a))
 p=4
-j="http://192.168.1.159:25567/company_data/file/"+m.e.b+"/"+A.k(m.w)+"/"+l
+j="https://myster.freeddns.org:25566/company_data/file/"+m.e.b+"/"+A.k(m.w)+"/"+l
 s=7
 return A.Z($.xH().Bz(0,j,t.z),$async$xe)
 case 7:i=c
@@ -42382,7 +42382,7 @@ break}n.T(new A.apZ(n))
 p=4
 m=$.aBL().o7(n.w)
 l=$.aBL().o7(n.x)
-k=A.fn("http://192.168.1.159:25567/bus_data/"+n.a.c+"?start_time="+A.k(m)+"&end_time="+A.k(l),0,null)
+k=A.fn("https://myster.freeddns.org:25566/bus_data/"+n.a.c+"?start_time="+A.k(m)+"&end_time="+A.k(l),0,null)
 A.rY().$1("Fetching URL: "+A.k(k))
 s=7
 return A.Z($.xH().Ka(k,t.z),$async$xf)
