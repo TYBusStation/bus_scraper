@@ -1,6 +1,6 @@
 import 'package:bus_scraper/data/bus_route.dart';
-import 'package:bus_scraper/widgets/ebus_btn.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../static.dart';
 import '../widgets/theme_provider.dart';
@@ -153,8 +153,13 @@ class _RoutePageState extends State<RoutePage> {
                         fontSize: 16,
                       ),
                     ),
-                    trailing: EbusBtn(
-                      id: routes[index].id,
+                    trailing: FilledButton(
+                      onPressed: () async => await launchUrl(Uri.parse(
+                          "https://ebus.tycg.gov.tw/ebus/driving-map/${routes[index].id}")),
+                      style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.all(10)),
+                      child:
+                          const Text('公車動態網', style: TextStyle(fontSize: 16)),
                     ),
                   ),
                   separatorBuilder: (context, index) =>

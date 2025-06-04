@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // 引入 intl
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/bus_point.dart';
@@ -27,7 +26,6 @@ class _HistoryPageState extends State<HistoryPage> {
   DateTime _selectedEndTime = DateTime.now();
 
   // 用於在按鈕上顯示的日期時間格式
-  final DateFormat _displayDateTimeFormat = DateFormat('yyyy-MM-dd HH:mm');
 
   @override
   void initState() {
@@ -187,17 +185,6 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
-  Future<void> _openMap(
-      String plate, BusPoint dataPoint, String routeStr) async {
-    // final Uri geoUri = Uri(
-    //     scheme: 'geo',
-    //     path:
-    //         '${dataPoint.lat},${dataPoint.lon}&q=${dataPoint.lat},${dataPoint.lon}($plate)');
-    final Uri geoUri = Uri.parse(
-        "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}($plate | $routeStr)");
-    await launchUrl(geoUri);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -217,7 +204,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       child: OutlinedButton.icon(
                         icon: const Icon(Icons.calendar_today),
                         label: Text(
-                            '起: ${_displayDateTimeFormat.format(_selectedStartTime)}'),
+                            '起: ${Static.displayDateFormatNoSec.format(_selectedStartTime)}'),
                         onPressed: () => _pickDateTime(context, true),
                       ),
                     ),
@@ -226,7 +213,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       child: OutlinedButton.icon(
                         icon: const Icon(Icons.calendar_today),
                         label: Text(
-                            '迄: ${_displayDateTimeFormat.format(_selectedEndTime)}'),
+                            '迄: ${Static.displayDateFormatNoSec.format(_selectedEndTime)}'),
                         onPressed: () => _pickDateTime(context, false),
                       ),
                     ),
@@ -309,17 +296,30 @@ class _HistoryPageState extends State<HistoryPage> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('經度: ${dataPoint.lon.toStringAsFixed(6)}'),
-                Text('緯度: ${dataPoint.lat.toStringAsFixed(6)}'),
+                Text(
+                    '座標: ${dataPoint.lon.toStringAsFixed(6)}, ${dataPoint.lat.toStringAsFixed(6)}'),
                 Text(
                     '狀態: ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 路線: $routeStr | 方向: ${dataPoint.goBack == 0 ? "去程" : "返程"}'),
               ],
             ),
-            trailing: IconButton(
-              icon: const Icon(Icons.map_outlined, color: Colors.blueAccent),
-              tooltip: '在地圖上查看',
-              onPressed: () => _openMap(widget.plate, dataPoint, routeStr),
-            ),
+            trailing: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.end,
+                runAlignment: WrapAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.map_sharp, color: Colors.blueAccent),
+                    tooltip: '在 Google Map 上查看',
+                    onPressed: () async => await launchUrl(Uri.parse(
+                        "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${widget.plate} | $routeStr)")),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.map_outlined,
+                        color: Colors.blueAccent),
+                    tooltip: '在其他地圖上查看',
+                    onPressed: () async => await launchUrl(Uri.parse(
+                        "geo:${dataPoint.lat},${dataPoint.lon}?q=${dataPoint.lat},${dataPoint.lon}(${widget.plate} | $routeStr)")),
+                  )
+                ]),
             isThreeLine: true,
             // 調整為 false 如果內容不夠三行
             contentPadding:

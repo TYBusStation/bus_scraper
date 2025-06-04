@@ -11,7 +11,10 @@ import 'data/car.dart'; // Your Car model
 
 class Static {
   // --- Constants ---
-  static DateFormat dateFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
+  static final DateFormat dateFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
+  static final DateFormat displayDateFormatNoSec =
+      DateFormat('yyyy-MM-dd HH:mm');
+  static final DateFormat displayDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
   // TODO: Verify the purpose of this RegExp.
   // If it's to check if a string consists ONLY of alphanumeric characters:
@@ -22,10 +25,10 @@ class Static {
   // The original RegExp(r"^a-zA-Z0-9") was incorrect as it matched a literal string.
 
   // API Endpoints - Consider moving to a config file or environment variables for flexibility
-  // static const String apiBaseUrl = "https://myster.freeddns.org:25566";
+  static const String apiBaseUrl = "https://myster.freeddns.org:25566";
 
-  static const String apiBaseUrl =
-      "http://192.168.1.159:25567"; // Active API base URL
+  // static const String apiBaseUrl =
+  //     "http://192.168.1.159:25567"; // Active API base URL
   // static const String apiBaseUrl = "http://localhost:8000";
   // static const String apiBaseUrl = "http://192.168.1.207:8000";
 

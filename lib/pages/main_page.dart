@@ -45,7 +45,7 @@ class _MainPageState extends State<MainPage> {
           NavigationDestination(
             icon: Icon(Icons.business_outlined),
             selectedIcon: Icon(Icons.business),
-            label: '公司資料',
+            label: '公司',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

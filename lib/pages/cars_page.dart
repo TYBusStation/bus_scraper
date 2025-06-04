@@ -1,9 +1,9 @@
-import 'package:bus_scraper/widgets/history_btn.dart';
 import 'package:flutter/material.dart';
 
 import '../data/car.dart';
 import '../static.dart';
 import '../widgets/theme_provider.dart';
+import 'history_page.dart';
 
 class CarsPage extends StatefulWidget {
   const CarsPage({super.key});
@@ -151,8 +151,19 @@ class _CarsPageState extends State<CarsPage> {
                         fontSize: 16,
                       ),
                     ),
-                    trailing: HistoryBtn(
-                      plate: cars[index].plate,
+                    trailing: FilledButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                HistoryPage(plate: cars[index].plate),
+                          ),
+                        );
+                      },
+                      style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.all(10)),
+                      child: const Text('歷史位置', style: TextStyle(fontSize: 16)),
                     ),
                   ),
                   separatorBuilder: (context, index) =>
