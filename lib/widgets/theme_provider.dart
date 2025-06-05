@@ -5,7 +5,7 @@ import '../static.dart';
 import '../storage/app_theme.dart';
 
 class ThemeProvider extends StatefulWidget {
-  final Widget Function(BuildContext context, ThemeData themeData) builder;
+  final Widget Function(ThemeData themeData) builder;
 
   const ThemeProvider({super.key, required this.builder});
 
@@ -50,7 +50,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
             ),
           );
 
-          return widget.builder(context, themeData);
+          return widget.builder(themeData);
         }));
   }
 }

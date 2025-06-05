@@ -16,7 +16,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ThemeProvider(
-      builder: (context, themeData) => MaterialApp(
+      builder: (themeData) => MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'BusScraper',
         theme: themeData,

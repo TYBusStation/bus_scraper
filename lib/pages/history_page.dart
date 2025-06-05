@@ -292,14 +292,15 @@ class _HistoryPageState extends State<HistoryPage> {
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 5.0),
           child: ListTile(
-            title: Text('時間: ${dataPoint.dataTime}'),
+            title: Text(
+                '時間: ${Static.displayDateFormat.format(dataPoint.dataTime)}'),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                     '座標: ${dataPoint.lon.toStringAsFixed(6)}, ${dataPoint.lat.toStringAsFixed(6)}'),
                 Text(
-                    '狀態: ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 路線: $routeStr | 方向: ${dataPoint.goBack == 0 ? "去程" : "返程"}'),
+                    '狀態: ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 路線: $routeStr | 方向: ${dataPoint.goBack == 1 ? "去程" : "返程"}'),
               ],
             ),
             trailing: Wrap(

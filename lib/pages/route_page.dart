@@ -51,7 +51,7 @@ class _RoutePageState extends State<RoutePage> {
   @override
   Widget build(BuildContext context) {
     return ThemeProvider(
-      builder: (BuildContext context, ThemeData themeData) => Column(
+      builder: (ThemeData themeData) => Column(
         children: [
           Container(
             decoration: BoxDecoration(

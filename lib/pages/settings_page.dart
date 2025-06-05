@@ -18,7 +18,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return ThemeProvider(
-      builder: (BuildContext context, ThemeData themeData) => ListView(
+      builder: (ThemeData themeData) => ListView(
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),

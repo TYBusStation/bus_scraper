@@ -25,12 +25,7 @@ class Static {
   // The original RegExp(r"^a-zA-Z0-9") was incorrect as it matched a literal string.
 
   // API Endpoints - Consider moving to a config file or environment variables for flexibility
-  static const String apiBaseUrl = "https://myster.freeddns.org:25566";
-
-  // static const String apiBaseUrl =
-  //     "http://192.168.1.159:25567"; // Active API base URL
-  // static const String apiBaseUrl = "http://localhost:8000";
-  // static const String apiBaseUrl = "http://192.168.1.207:8000";
+  static String apiBaseUrl = "https://myster.freeddns.org:25566";
 
   static const String _graphqlApiUrl = "https://ebus.tycg.gov.tw/ebus/graphql";
 
@@ -86,7 +81,7 @@ query QUERY_ROUTES(\$lang: String!) {
   /// Initializes static data by fetching from APIs and local assets.
   /// This method should be called once at app startup.
   static Future<void> init() async {
-    _log("Static initialization started.");
+    log("Static initialization started.");
 
     // Initialize storage helper (if it has its own async setup)
     await StorageHelper.init();
@@ -96,6 +91,9 @@ query QUERY_ROUTES(\$lang: String!) {
         await _loadRoutesFromJsonAsset("special_route_data.json");
 
     // Fetch operational routes and car data concurrently.
+
+    await _testApi();
+
     try {
       final results = await Future.wait([
         _fetchOpRoutesFromServer(),
@@ -107,8 +105,7 @@ query QUERY_ROUTES(\$lang: String!) {
     } catch (e) {
       // If Future.wait throws (e.g., one of the futures rejects and it's not caught inside them),
       // we ensure a graceful fallback.
-      _log(
-          "Error during parallel data fetching: $e. Attempting individual fallbacks.");
+      log("Error during parallel data fetching: $e. Attempting individual fallbacks.");
       opRouteData = await _loadRoutesFromJsonAsset(
           "op_route_data.json"); // Fallback for opRouteData
       carData = []; // Fallback for carData
@@ -118,24 +115,33 @@ query QUERY_ROUTES(\$lang: String!) {
     // Using a spread operator for a new list to ensure immutability of originals if needed.
     routeData = [...opRouteData, ...specialRouteData];
 
-    _log("Static initialization complete.");
-    _log("Operational routes loaded: ${opRouteData.length}");
-    _log("Special routes loaded: ${specialRouteData.length}");
-    _log("Total combined routes: ${routeData.length}");
-    _log("Car data loaded: ${carData.length}");
+    log("Static initialization complete.");
+    log("Operational routes loaded: ${opRouteData.length}");
+    log("Special routes loaded: ${specialRouteData.length}");
+    log("Total combined routes: ${routeData.length}");
+    log("Car data loaded: ${carData.length}");
+  }
+
+  static Future<void> _testApi() async {
+    try {
+      await dio.getUri(Uri.parse(apiBaseUrl));
+    } on DioException catch (e) {
+      log("DioError: $e.Changing apiBaseUrl.");
+      apiBaseUrl = "http://192.168.1.159:25567";
+    }
   }
 
   // --- Private Helper Methods ---
 
   /// Logs a message with a timestamp and class context.
-  static void _log(String message) {
+  static void log(String message) {
     print("[${DateTime.now().toIso8601String()}] [Static] $message");
   }
 
   /// Fetches operational bus routes from the GraphQL API.
   /// Falls back to a local asset if the API request fails.
   static Future<List<BusRoute>> _fetchOpRoutesFromServer() async {
-    _log("Fetching operational routes from API: $_graphqlApiUrl");
+    log("Fetching operational routes from API: $_graphqlApiUrl");
     try {
       final response = await dio.post(
         _graphqlApiUrl,
@@ -178,42 +184,35 @@ query QUERY_ROUTES(\$lang: String!) {
 
                 processedRoutes.add(BusRoute.fromJson(routeInfo));
               } else {
-                _log(
-                    "Warning: Skipping malformed operational route edge: $edge");
+                log("Warning: Skipping malformed operational route edge: $edge");
               }
             }
-            _log(
-                "Successfully fetched and processed ${processedRoutes.length} operational routes from API.");
+            log("Successfully fetched and processed ${processedRoutes.length} operational routes from API.");
             return processedRoutes;
           } else {
-            _log("API returned success, but operational route list is empty.");
+            log("API returned success, but operational route list is empty.");
           }
         } else {
-          _log(
-              "API returned success, but data structure for routes is unexpected: $responseData");
+          log("API returned success, but data structure for routes is unexpected: $responseData");
         }
       } else {
-        _log(
-            "Failed to fetch operational routes. Status: ${response.statusCode}, Message: ${response.statusMessage}, Data: ${response.data}");
+        log("Failed to fetch operational routes. Status: ${response.statusCode}, Message: ${response.statusMessage}, Data: ${response.data}");
       }
     } on DioException catch (e) {
-      _log(
-          "DioError fetching operational routes: ${e.message}${e.response != null ? " - Response: ${e.response?.data}" : ""}");
+      log("DioError fetching operational routes: ${e.message}${e.response != null ? " - Response: ${e.response?.data}" : ""}");
     } catch (e, stackTrace) {
-      _log(
-          "Unexpected error fetching or parsing operational routes: $e\nStackTrace: $stackTrace");
+      log("Unexpected error fetching or parsing operational routes: $e\nStackTrace: $stackTrace");
     }
 
-    _log(
-        "Falling back to local asset for operational routes (op_route_data.json).");
+    log("Falling back to local asset for operational routes (op_route_data.json).");
     return _loadRoutesFromJsonAsset("op_route_data.json");
   }
 
   /// Fetches car data from the API.
   /// Falls back to an empty list if the API request fails.
   static Future<List<Car>> _fetchCarDataFromServer() async {
-    const String url = "$apiBaseUrl/all_car_types";
-    _log("Fetching car data from API: $url");
+    final String url = "$apiBaseUrl/all_car_types";
+    log("Fetching car data from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
 
@@ -226,34 +225,29 @@ query QUERY_ROUTES(\$lang: String!) {
               if (carJson is Map<String, dynamic>) {
                 processedCars.add(Car.fromJson(carJson));
               } else {
-                _log("Warning: Skipping malformed car data item: $carJson");
+                log("Warning: Skipping malformed car data item: $carJson");
               }
             }
-            _log(
-                "Successfully fetched and processed ${processedCars.length} cars from API.");
+            log("Successfully fetched and processed ${processedCars.length} cars from API.");
             return processedCars;
           } else {
-            _log("API returned success, but car list is empty.");
+            log("API returned success, but car list is empty.");
             return []; // Return empty list if API response is an empty list
           }
         } else {
-          _log(
-              "API returned success, but car data structure is unexpected (expected a List): ${response.data}");
+          log("API returned success, but car data structure is unexpected (expected a List): ${response.data}");
         }
       } else {
-        _log(
-            "Failed to fetch car data. Status: ${response.statusCode}, Message: ${response.statusMessage}, Data: ${response.data}");
+        log("Failed to fetch car data. Status: ${response.statusCode}, Message: ${response.statusMessage}, Data: ${response.data}");
       }
     } on DioException catch (e) {
-      _log("DioError fetching car data: ${e.message}" +
+      log("DioError fetching car data: ${e.message}" +
           (e.response != null ? " - Response: ${e.response?.data}" : ""));
     } catch (e, stackTrace) {
-      _log(
-          "Unexpected error fetching or parsing car data: $e\nStackTrace: $stackTrace");
+      log("Unexpected error fetching or parsing car data: $e\nStackTrace: $stackTrace");
     }
 
-    _log(
-        "Failed to fetch car data from API. Returning empty list as fallback.");
+    log("Failed to fetch car data from API. Returning empty list as fallback.");
     return []; // Fallback to an empty list
   }
 
@@ -261,7 +255,7 @@ query QUERY_ROUTES(\$lang: String!) {
   /// Returns an empty list on error to ensure fallbacks are safe.
   static Future<List<BusRoute>> _loadRoutesFromJsonAsset(
       String fileName) async {
-    _log("Loading routes from asset: assets/$fileName");
+    log("Loading routes from asset: assets/$fileName");
     try {
       final String jsonString = await rootBundle.loadString("assets/$fileName");
       // Assuming the root of the JSON asset is a list of route objects
@@ -272,16 +266,13 @@ query QUERY_ROUTES(\$lang: String!) {
         if (routeJson is Map<String, dynamic>) {
           assetRoutes.add(BusRoute.fromJson(routeJson));
         } else {
-          _log(
-              "Warning: Skipping malformed route data item in asset $fileName: $routeJson");
+          log("Warning: Skipping malformed route data item in asset $fileName: $routeJson");
         }
       }
-      _log(
-          "Successfully loaded ${assetRoutes.length} routes from asset: $fileName");
+      log("Successfully loaded ${assetRoutes.length} routes from asset: $fileName");
       return assetRoutes;
     } catch (e, stackTrace) {
-      _log(
-          "Error loading or parsing routes from asset $fileName: $e\nStackTrace: $stackTrace");
+      log("Error loading or parsing routes from asset $fileName: $e\nStackTrace: $stackTrace");
       return []; // Return empty list on error to make fallbacks safer
     }
   }

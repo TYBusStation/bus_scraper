@@ -1,5 +1,3 @@
-import 'dart:convert'; // 用於 JsonEncoder
-
 import 'package:collection/collection.dart'; // 用於 deepEq (深度相等比較)
 import 'package:flutter/material.dart';
 
@@ -7,14 +5,14 @@ import '../data/company.dart'; // 公司資料模型 (假設仍然需要用於�
 import '../static.dart'; // 靜態資源，例如 API URL 和 dio 實例
 import '../widgets/theme_provider.dart'; // 主題提供者
 
-class CompanyDataViewerPage extends StatefulWidget {
-  const CompanyDataViewerPage({super.key});
+class CompanyPage extends StatefulWidget {
+  const CompanyPage({super.key});
 
   @override
-  State<CompanyDataViewerPage> createState() => _CompanyDataViewerPageState();
+  State<CompanyPage> createState() => _CompanyPageState();
 }
 
-class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
+class _CompanyPageState extends State<CompanyPage> {
   // --- 狀態變數 ---
   List<Company> _companies = [];
   Company? _selectedCompany;
@@ -112,7 +110,7 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
         _isLoadingCompanies = false;
         _error = null;
       });
-      print("公司列表從快取載入。");
+      Static.log("公司列表從快取載入。");
       return;
     }
 
@@ -128,7 +126,7 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
       final response = await Static.dio.get('${Static.apiBaseUrl}/companies');
       if (response.statusCode == 200 && response.data is List) {
         _cache[_companiesCacheKey] = response.data;
-        print("公司列表從 API 獲取並快取。");
+        Static.log("公司列表從 API 獲取並快取。");
         setState(() {
           _companies = (response.data as List)
               .map((companyJson) => Company.fromJson(companyJson))
@@ -182,7 +180,7 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
         _error = null;
         _clearTimestampsSelection();
       });
-      print("資料集 for ${_selectedCompany!.code}/$_selectedDataType 從快取載入。");
+      Static.log("資料集 for ${_selectedCompany!.code}/$_selectedDataType 從快取載入。");
       return;
     }
 
@@ -198,7 +196,7 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
       final response = await Static.dio.get(url);
       if (response.statusCode == 200 && response.data is List) {
         _cache[cacheKey] = response.data;
-        print(
+        Static.log(
             "資料集 for ${_selectedCompany!.code}/$_selectedDataType 從 API 獲取並快取。");
         setState(() {
           _timestamps = List<String>.from(response.data);
@@ -269,7 +267,7 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
         _error = null;
         _applyFilter();
       });
-      print(
+      Static.log(
           "資料 for ${_selectedCompany!.code}/$_selectedDataType/$selectedTimestamp (資料集 $target) 從快取載入。");
       return;
     }
@@ -295,7 +293,7 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
         // 假設 API 對於這種類型總是返回 List<dynamic>，其中元素是 String
         if (response.data is List) {
           _cache[cacheKey] = response.data;
-          print(
+          Static.log(
               "資料 for ${_selectedCompany!.code}/$_selectedDataType/$selectedTimestamp (資料集 $target) 從 API 獲取並快取。");
           setState(() {
             if (target == 1) {
@@ -532,25 +530,14 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
       // 主要處理 List<String>
       content = _buildListDisplay(themeData, data);
     } else {
-      // 如果 data 不是 List (例如，API 返回錯誤或非預期格式)，則嘗試 JSON 顯示
-      try {
-        content = SingleChildScrollView(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(const JsonEncoder.withIndent('  ').convert(data),
-                style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    color: themeData.textTheme.bodyMedium?.color)));
-      } catch (e) {
-        content = Center(
-            child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text("無法顯示資料 (非預期格式): $e",
-              textAlign: TextAlign.center,
-              style: themeData.textTheme.bodySmall
-                  ?.copyWith(color: themeData.colorScheme.error)),
-        ));
-      }
+      content = Center(
+          child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Text("無法顯示資料",
+            textAlign: TextAlign.center,
+            style: themeData.textTheme.bodySmall
+                ?.copyWith(color: themeData.colorScheme.error)),
+      ));
     }
 
     return Card(
@@ -657,6 +644,7 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
           child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: Text('請選擇兩個資料集以進行比較。',
+            textAlign: TextAlign.center,
             style: themeData.textTheme.bodySmall
                 ?.copyWith(color: placeholderColor)),
       ));
@@ -676,6 +664,7 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
             (_filteredData1 != null && _filteredData2 != null)
                 ? '正在準備比較結果或無明顯差異...'
                 : '比較結果將顯示於此。',
+            textAlign: TextAlign.center,
             style: themeData.textTheme.bodySmall
                 ?.copyWith(color: placeholderColor)),
       ));
@@ -698,6 +687,7 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
             child: Padding(
           padding: const EdgeInsets.all(4.0),
           child: Text('兩個資料集之間沒有差異。',
+              textAlign: TextAlign.center,
               style: themeData.textTheme.bodyMedium
                   ?.copyWith(color: colorScheme.primary)),
         ));
@@ -705,20 +695,24 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
         List<Widget> diffWidgets = [];
         if (added.isNotEmpty) {
           diffWidgets.add(Text('新增的$dataTypeDisplayName (僅於資料集2):',
+              textAlign: TextAlign.center,
               style: themeData.textTheme.labelLarge
                   ?.copyWith(color: colorScheme.tertiary)));
-          added.forEach((item) =>
-              diffWidgets.add(_buildDiffItemCard(themeData, item, '新增')));
+          for (var item in added) {
+            diffWidgets.add(_buildDiffItemCard(themeData, item, '新增'));
+          }
           diffWidgets.add(const SizedBox(height: 4));
         }
         if (removed.isNotEmpty) {
           diffWidgets.add(
             Text('移除的$dataTypeDisplayName (僅於資料集1):',
+                textAlign: TextAlign.center,
                 style: themeData.textTheme.labelLarge
                     ?.copyWith(color: colorScheme.error)),
           );
-          removed.forEach((item) =>
-              diffWidgets.add(_buildDiffItemCard(themeData, item, '移除')));
+          for (var item in removed) {
+            diffWidgets.add(_buildDiffItemCard(themeData, item, '移除'));
+          }
           diffWidgets.add(const SizedBox(height: 4));
         }
         // "modified" 部分已移除
@@ -740,7 +734,7 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
   @override
   Widget build(BuildContext context) {
     return ThemeProvider(
-      builder: (BuildContext context, ThemeData themeData) {
+      builder: (ThemeData themeData) {
         final bool canSelectTimestamps =
             _selectedCompany != null && _selectedDataType != null;
         final colorScheme = themeData.colorScheme;
@@ -875,6 +869,7 @@ class _CompanyDataViewerPageState extends State<CompanyDataViewerPage> {
                                     size: 18, color: colorScheme.primary),
                                 const SizedBox(width: 4),
                                 Text("差異比對",
+                                    textAlign: TextAlign.center,
                                     style: themeData.textTheme.titleSmall
                                         ?.copyWith(
                                             fontWeight: FontWeight.w600)),

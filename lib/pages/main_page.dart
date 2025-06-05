@@ -2,6 +2,7 @@ import 'package:bus_scraper/pages/company_page.dart';
 import 'package:flutter/material.dart';
 
 import 'cars_page.dart';
+import 'info_page.dart';
 import 'route_page.dart';
 import 'settings_page.dart';
 
@@ -22,16 +23,22 @@ class _MainPageState extends State<MainPage> {
         title: const Text("BusScraper"),
       ),
       body: switch (selectedIndex) {
-        0 => const RoutePage(),
-        1 => const CarsPage(),
-        2 => const CompanyDataViewerPage(),
-        3 => const SettingsPage(),
+        0 => const InfoPage(),
+        1 => const RoutePage(),
+        2 => const CarsPage(),
+        3 => const CompanyPage(),
+        4 => const SettingsPage(),
         _ => throw UnsupportedError('Invalid index: $selectedIndex'),
       },
       bottomNavigationBar: NavigationBar(
         onDestinationSelected: (index) => setState(() => selectedIndex = index),
         selectedIndex: selectedIndex,
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.info_outline),
+            selectedIcon: Icon(Icons.info),
+            label: '資訊',
+          ),
           NavigationDestination(
             icon: Icon(Icons.route_outlined),
             selectedIcon: Icon(Icons.route),
