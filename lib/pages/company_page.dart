@@ -734,7 +734,7 @@ class _CompanyPageState extends State<CompanyPage> {
   @override
   Widget build(BuildContext context) {
     return ThemeProvider(
-      builder: (ThemeData themeData) {
+      builder: (BuildContext context, ThemeData themeData) {
         final bool canSelectTimestamps =
             _selectedCompany != null && _selectedDataType != null;
         final colorScheme = themeData.colorScheme;

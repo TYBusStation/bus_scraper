@@ -5,7 +5,7 @@ import '../static.dart';
 import '../storage/app_theme.dart';
 
 class ThemeProvider extends StatefulWidget {
-  final Widget Function(ThemeData themeData) builder;
+  final Widget Function(BuildContext context, ThemeData themeData) builder;
 
   const ThemeProvider({super.key, required this.builder});
 
@@ -50,7 +50,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
             ),
           );
 
-          return widget.builder(themeData);
+          return widget.builder(context, themeData);
         }));
   }
 }
@@ -64,6 +64,7 @@ class ThemeChangeNotifier extends ChangeNotifier implements ReassembleHandler {
 
   void setTheme(AppTheme theme) {
     _theme = theme;
+    Static.localStorage.appTheme = theme;
     notifyListeners();
   }
 

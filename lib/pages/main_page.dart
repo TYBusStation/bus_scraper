@@ -1,4 +1,5 @@
 import 'package:bus_scraper/pages/company_page.dart';
+import 'package:bus_scraper/pages/favorite_page.dart';
 import 'package:flutter/material.dart';
 
 import 'cars_page.dart';
@@ -26,8 +27,9 @@ class _MainPageState extends State<MainPage> {
         0 => const InfoPage(),
         1 => const RoutePage(),
         2 => const CarsPage(),
-        3 => const CompanyPage(),
-        4 => const SettingsPage(),
+        3 => const FavoritesPage(),
+        4 => const CompanyPage(),
+        5 => const SettingsPage(),
         _ => throw UnsupportedError('Invalid index: $selectedIndex'),
       },
       bottomNavigationBar: NavigationBar(
@@ -48,6 +50,11 @@ class _MainPageState extends State<MainPage> {
             icon: Icon(Icons.directions_bus_outlined),
             selectedIcon: Icon(Icons.directions_bus),
             label: '車輛',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.star_outline),
+            selectedIcon: Icon(Icons.star),
+            label: '收藏',
           ),
           NavigationDestination(
             icon: Icon(Icons.business_outlined),

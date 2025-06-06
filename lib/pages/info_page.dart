@@ -10,7 +10,8 @@ class InfoPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ThemeProvider(
-      builder: (ThemeData themeData) => SingleChildScrollView(
+      builder: (BuildContext context, ThemeData themeData) =>
+          SingleChildScrollView(
         // 確保內容在較小螢幕上可以滾動
         padding: const EdgeInsets.all(20.0), // 設定整體內邊距
         child: Center(
@@ -29,7 +30,7 @@ class InfoPage extends StatelessWidget {
                 Text(
                   "如有任何問題或建議\n請聯繫作者",
                   style: themeData.textTheme.headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold, fontSize: 36),
+                      ?.copyWith(fontWeight: FontWeight.bold, fontSize: 32),
                   textAlign: TextAlign.center, // 文字置中對齊
                 ),
                 const SizedBox(height: 30), // 標題與卡片間的間距
@@ -84,6 +85,13 @@ class InfoPage extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 30), // 標題與卡片間的間距
+                Text(
+                  "資料皆為爬蟲爬取\n並儲存於自架伺服器\n\n歡迎分享此網站",
+                  style:
+                      themeData.textTheme.headlineSmall?.copyWith(fontSize: 20),
+                  textAlign: TextAlign.center, // 文字置中對齊
+                ),
                 const SizedBox(height: 20), // 底部間距
               ],
             ),
@@ -117,15 +125,5 @@ final List<ContactItem> contactItems = [
     title: "Instagram",
     icon: FontAwesomeIcons.instagram,
     url: "https://www.instagram.com/__myster___/",
-  ),
-  ContactItem(
-    title: "Facebook",
-    icon: FontAwesomeIcons.facebook,
-    url: "https://www.facebook.com/profile.php?id=100021672037831",
-  ),
-  ContactItem(
-    title: "Email",
-    icon: FontAwesomeIcons.envelope, // 或者 Icons.email
-    url: "mailto:jackychiu0101@gmail.com",
   ),
 ];

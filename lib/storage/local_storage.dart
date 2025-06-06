@@ -13,5 +13,13 @@ class LocalStorage {
       Color(StorageHelper.get<int>('accent_color', 0xFFD0BCFF));
 
   set accentColor(Color? value) =>
-      StorageHelper.set<int?>('accent_color', value?.value);
+      StorageHelper.set<int?>('accent_color', value?.toARGB32());
+
+  List<String> get favoritePlates {
+    return StorageHelper.get('favorite_plates', []).cast<String>();
+  }
+
+  set favoritePlates(List<String> plates) {
+    StorageHelper.set<List<String>>('favorite_plates', plates);
+  }
 }

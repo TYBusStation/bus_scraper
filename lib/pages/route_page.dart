@@ -3,172 +3,70 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../static.dart';
+import '../widgets/searchable_list.dart'; // 導入新的通用元件
 import '../widgets/theme_provider.dart';
 
-class RoutePage extends StatefulWidget {
+// RoutePage 現在是一個 StatelessWidget，因為所有狀態都由 SearchableListPage 管理
+class RoutePage extends StatelessWidget {
   const RoutePage({super.key});
 
   @override
-  State<RoutePage> createState() => _RoutePageState();
-}
-
-class _RoutePageState extends State<RoutePage> {
-  final TextEditingController textEditingController = TextEditingController();
-  final ScrollController scrollController =
-      ScrollController(keepScrollOffset: false);
-  late List<BusRoute> routes;
-
-  void modifyRoutes() {
-    print(textEditingController.text.replaceAll(Static.letterNumber, ""));
-    setState(() => routes = Static.routeData
-        .where((route) => textEditingController.text
+  Widget build(BuildContext context) {
+    // 直接返回配置好的 SearchableListPage
+    return SearchableList<BusRoute>(
+      // 1. 提供完整的路線資料
+      allItems: Static.routeData,
+      // 2. 設定搜尋框的提示文字 (優化了提示，使其更符合搜尋邏輯)
+      searchHintText: "搜尋路線名稱、描述或編號",
+      // 3. 定義過濾條件
+      filterCondition: (route, text) {
+        // 使用者輸入的每個關鍵字 (以空格分隔) 都必須在路線的某個屬性中找到
+        return text
             .toUpperCase()
             .split(" ")
+            .where((token) => token.isNotEmpty) // 避免因多餘空格產生空字串
             .every((token) =>
                 route.name.toUpperCase().contains(token) ||
                 route.description.toUpperCase().contains(token) ||
-                route.id.toUpperCase().contains(token)))
-        .toList()
-      ..sort((a, b) => Static.compareRoutes(a.name, b.name)));
-    if (scrollController.hasClients) {
-      scrollController.jumpTo(0);
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    modifyRoutes();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    textEditingController.dispose();
-    scrollController.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ThemeProvider(
-      builder: (ThemeData themeData) => Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: themeData.colorScheme.secondaryContainer,
-              borderRadius: BorderRadius.circular(25),
-            ),
-            margin: const EdgeInsets.all(10),
-            padding: const EdgeInsets.only(left: 10, right: 5),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.search,
-                  color: routes.isEmpty
-                      ? themeData.colorScheme.error
-                      : themeData.colorScheme.primary,
-                ),
-                Expanded(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.only(left: 5, right: 5, bottom: 5),
-                    child: TextField(
-                      onChanged: (text) => modifyRoutes(),
-                      style: TextStyle(
-                          color: routes.isEmpty
-                              ? themeData.colorScheme.error
-                              : themeData.colorScheme.onSurface),
-                      cursorColor: routes.isEmpty
-                          ? themeData.colorScheme.error
-                          : themeData.unselectedWidgetColor,
-                      controller: textEditingController,
-                      decoration: InputDecoration(
-                        hintText: "搜尋路線名稱",
-                        isDense: true,
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                              color: routes.isEmpty
-                                  ? themeData.colorScheme.error
-                                  : themeData.unselectedWidgetColor),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                              color: routes.isEmpty
-                                  ? themeData.colorScheme.error
-                                  : themeData.colorScheme.primary),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  tooltip: "清除搜尋",
-                  icon: const Icon(Icons.clear),
-                  color: themeData.colorScheme.primary,
-                  onPressed: () {
-                    if (textEditingController.text.isEmpty) {
-                      return;
-                    }
-                    textEditingController.clear();
-                    modifyRoutes();
-                  },
-                ),
-              ],
-            ),
+                route.id.toUpperCase().contains(token));
+      },
+      // 4. 定義如何排序
+      sortCallback: (a, b) => Static.compareRoutes(a.name, b.name),
+      // 5. 定義如何建立每個列表項
+      itemBuilder: (context, route) {
+        return ListTile(
+          title: Text(
+            route.name,
+            style: const TextStyle(fontSize: 18),
           ),
-          Expanded(
-            child: Builder(
-              builder: (context) {
-                if (routes.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search_off,
-                            size: 100, color: themeData.colorScheme.primary),
-                        const SizedBox(height: 10),
-                        const Text(
-                          "找不到符合的路線",
-                          style: TextStyle(
-                            fontSize: 20,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                return ListView.separated(
-                  controller: scrollController,
-                  itemCount: routes.length,
-                  itemBuilder: (context, index) => ListTile(
-                    title: Text(
-                      routes[index].name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                      ),
-                    ),
-                    subtitle: Text(
-                      "${routes[index].description}\n編號：${routes[index].id}",
-                      style: const TextStyle(
-                        fontSize: 16,
-                      ),
-                    ),
-                    trailing: FilledButton(
-                      onPressed: () async => await launchUrl(Uri.parse(
-                          "https://ebus.tycg.gov.tw/ebus/driving-map/${routes[index].id}")),
-                      style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.all(10)),
-                      child:
-                          const Text('公車動態網', style: TextStyle(fontSize: 16)),
-                    ),
-                  ),
-                  separatorBuilder: (context, index) =>
-                      const Divider(height: 5),
-                );
-              },
-            ),
+          subtitle: Text(
+            "${route.description}\n編號：${route.id}",
+            style: const TextStyle(fontSize: 16),
           ),
-        ],
+          trailing: FilledButton(
+            onPressed: () async => await launchUrl(Uri.parse(
+                "https://ebus.tycg.gov.tw/ebus/driving-map/${route.id}")),
+            style: FilledButton.styleFrom(padding: const EdgeInsets.all(10)),
+            child: const Text('公車動態網', style: TextStyle(fontSize: 16)),
+          ),
+        );
+      },
+      // 6. 提供搜尋不到結果時的顯示內容
+      emptyStateWidget: ThemeProvider(
+        builder: (BuildContext context, ThemeData themeData) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.search_off,
+                  size: 100, color: themeData.colorScheme.primary),
+              const SizedBox(height: 10),
+              const Text(
+                "找不到符合的路線",
+                style: TextStyle(fontSize: 20),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

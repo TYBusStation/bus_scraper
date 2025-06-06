@@ -1,8 +1,8 @@
-// lib/pages/cars_page.dart
+// lib/pages/favorites_page.dart
 
 import 'package:bus_scraper/widgets/favorite_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // 導入 provider
+import 'package:provider/provider.dart';
 
 import '../data/car.dart';
 import '../static.dart';
@@ -10,17 +10,48 @@ import '../widgets/favorite_button.dart';
 import '../widgets/searchable_list.dart';
 import 'history_page.dart';
 
-class CarsPage extends StatelessWidget {
-  const CarsPage({super.key});
+class FavoritesPage extends StatelessWidget {
+  const FavoritesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // *** 修改點 1: 使用 Consumer 包裹，以便在收藏狀態改變時自動重繪圖示 ***
+    // 同樣使用 Consumer 來監聽收藏狀態的變化
     return Consumer<FavoritesNotifier>(
       builder: (context, notifier, child) {
+        // --- 核心邏輯：從所有車輛中篩選出被收藏的車輛 ---
+        final List<Car> favoriteCars = Static.carData
+            .where((car) => notifier.isFavorite(car.plate))
+            .toList();
+
+        // 如果收藏列表是空的，直接顯示一個提示畫面
+        if (favoriteCars.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.star_border,
+                    size: 100, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(height: 10),
+                const Text(
+                  "尚未收藏任何車輛",
+                  style: TextStyle(fontSize: 20),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "請至「車輛」頁面點擊星星圖示加入收藏",
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
+        // 如果有收藏的車輛，則使用 SearchableList 顯示它們
         return SearchableList<Car>(
-          allItems: Static.carData,
-          searchHintText: "搜尋車牌",
+          // 資料來源是篩選過的 favoriteCars
+          allItems: favoriteCars,
+          searchHintText: "在收藏中搜尋車牌",
           filterCondition: (car, text) {
             final cleanPlate =
                 car.plate.replaceAll(Static.letterNumber, "").toUpperCase();
@@ -30,11 +61,9 @@ class CarsPage extends StatelessWidget {
           },
           sortCallback: (a, b) => a.plate.compareTo(b.plate),
           itemBuilder: (context, car) {
-            // 從 notifier 檢查當前車輛是否已被收藏
+            // 這裡的 isFavorite 永遠是 true，但為了程式碼一致性還是保留
             final bool isFavorite = notifier.isFavorite(car.plate);
-
             return ListTile(
-              // *** 修改點 2: 在標題前加入收藏按鈕 ***
               leading: FavoriteButton(
                 plate: car.plate,
                 notifier: notifier,
@@ -62,8 +91,7 @@ class CarsPage extends StatelessWidget {
               ),
             );
           },
-          // emptyStateWidget 保持不變，但這裡的 ThemeProvider 其實可以移除
-          // 因為主題已經由 main.dart 的全局 ThemeProvider 提供了
+          // 當在收藏中搜尋不到結果時的提示
           emptyStateWidget: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -72,7 +100,7 @@ class CarsPage extends StatelessWidget {
                     size: 100, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 10),
                 const Text(
-                  "找不到符合的車牌\n或車牌尚未被記錄",
+                  "在您的收藏中找不到符合的車牌",
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 20),
                 ),
