@@ -4,6 +4,8 @@ part 'bus_point.g.dart';
 
 @JsonSerializable()
 class BusPoint {
+  @JsonKey(name: "driver_id")
+  final String driverId;
   @JsonKey(name: "route_id")
   final String routeId;
   @JsonKey(name: "go_back")
@@ -17,13 +19,15 @@ class BusPoint {
   @JsonKey(name: "data_time")
   final DateTime dataTime;
 
-  BusPoint(
-      {required this.routeId,
-      required this.goBack,
-      required this.lat,
-      required this.lon,
-      required this.dutyStatus,
-      required this.dataTime});
+  BusPoint({
+    required this.driverId,
+    required this.routeId,
+    required this.goBack,
+    required this.lat,
+    required this.lon,
+    required this.dutyStatus,
+    required this.dataTime,
+  });
 
   factory BusPoint.fromJson(Map<String, dynamic> json) =>
       _$BusPointFromJson(json);

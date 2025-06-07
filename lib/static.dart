@@ -36,16 +36,9 @@ query QUERY_ROUTES(\$lang: String!) {
       node {
         id
         name
-        opType
-        routeGroup
         description
-        providers {
-          edges {
-            node {
-              name
-            }
-          }
-        }
+        departure
+        destination
       }
     }
   }
@@ -166,21 +159,21 @@ query QUERY_ROUTES(\$lang: String!) {
                 Map<String, dynamic> routeInfo =
                     Map<String, dynamic>.from(edge['node']);
 
-                // Standardize provider information to a list of names
-                List<String> providerNames = [];
-                final providersData = routeInfo['providers'];
-                if (providersData is Map<String, dynamic> &&
-                    providersData['edges'] is List) {
-                  for (var pEdge in providersData['edges']) {
-                    if (pEdge is Map<String, dynamic> &&
-                        pEdge['node'] is Map<String, dynamic> &&
-                        pEdge['node']['name'] is String) {
-                      providerNames.add(pEdge['node']['name']);
-                    }
-                  }
-                }
-                routeInfo['providers'] =
-                    providerNames; // Replace original providers structure
+                // // Standardize provider information to a list of names
+                // List<String> providerNames = [];
+                // final providersData = routeInfo['providers'];
+                // if (providersData is Map<String, dynamic> &&
+                //     providersData['edges'] is List) {
+                //   for (var pEdge in providersData['edges']) {
+                //     if (pEdge is Map<String, dynamic> &&
+                //         pEdge['node'] is Map<String, dynamic> &&
+                //         pEdge['node']['name'] is String) {
+                //       providerNames.add(pEdge['node']['name']);
+                //     }
+                //   }
+                // }
+                // routeInfo['providers'] =
+                //     providerNames; // Replace original providers structure
 
                 processedRoutes.add(BusRoute.fromJson(routeInfo));
               } else {

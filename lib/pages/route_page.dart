@@ -40,7 +40,7 @@ class RoutePage extends StatelessWidget {
             style: const TextStyle(fontSize: 18),
           ),
           subtitle: Text(
-            "${route.description}\n編號：${route.id}",
+            "${route.description}\n起：${route.departure} 終：${route.destination}\n路線編號：${route.id}",
             style: const TextStyle(fontSize: 16),
           ),
           trailing: FilledButton(

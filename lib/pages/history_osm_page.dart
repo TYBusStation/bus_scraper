@@ -30,6 +30,9 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
   List<Marker> _markers = []; // 標記點列表
   LatLngBounds? _bounds; // 地圖視野邊界，用於自動縮放
 
+  // (新功能) 狀態變數：用於控制衛星圖層的透明度，初始值為 0.3
+  double _satelliteOpacity = 0.3;
+
   // 用於分段著色的顏色列表，當顏色用完時會循環使用
   final List<Color> _segmentColors = const [
     Colors.red,
@@ -59,32 +62,43 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
     if (widget.points.isEmpty) return; // 如果沒有軌跡點，直接返回
 
     // --- 步驟 1: 計算所有點的整體地理邊界，用於地圖初始縮放 ---
-    // 只有在點位多於一個時，計算邊界才有意義
     if (widget.points.length > 1) {
       final allLatLngPoints =
           widget.points.map((p) => LatLng(p.lat, p.lon)).toList();
       _bounds = LatLngBounds.fromPoints(allLatLngPoints);
     }
 
-    // --- 後續數據準備邏輯不變 ---
+    // --- 步驟 2: 處理軌跡線與標記點 ---
     final List<Polyline> segmentedPolylines = [];
     final List<Marker> allMarkers = [];
+
     if (widget.points.length > 1) {
       int colorIndex = 0;
+      // 初始化第一個線段的起點
       List<LatLng> currentSegmentPoints = [
         LatLng(widget.points.first.lat, widget.points.first.lon)
       ];
+
+      // 遍歷所有點，從第二個點開始
       for (int i = 1; i < widget.points.length; i++) {
         final currentPoint = widget.points[i];
         final previousPoint = widget.points[i - 1];
         final segmentColor = _segmentColors[colorIndex % _segmentColors.length];
+
+        // 為前一個點創建軌跡標記
         allMarkers.add(_createTrackPointMarker(previousPoint, segmentColor));
+
         final timeDifference =
             currentPoint.dataTime.difference(previousPoint.dataTime);
-        bool isSegmentEnd = (currentPoint.routeId != previousPoint.routeId ||
+
+        // 判斷是否為一個新線段的開始
+        // 條件：路線ID改變、去返程改變、或時間差大於等於5分鐘
+        bool isNewSegment = (currentPoint.routeId != previousPoint.routeId ||
             currentPoint.goBack != previousPoint.goBack ||
-            timeDifference.inMinutes >= 5);
-        if (isSegmentEnd) {
+            timeDifference.inMinutes >= 10);
+
+        if (isNewSegment) {
+          // 如果是新線段，則將目前收集到的點繪製成一條 Polyline
           segmentedPolylines.add(
             Polyline(
               points: List.from(currentSegmentPoints),
@@ -92,11 +106,18 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
               strokeWidth: 3,
             ),
           );
+          // 換下一個顏色
           colorIndex++;
-          currentSegmentPoints = [LatLng(previousPoint.lat, previousPoint.lon)];
+          // (核心修改) 建立一個新的線段列表，並只包含「目前點」。
+          // 這樣就不會將「目前點」與「前一個點」連接起來，實現了斷開連線的效果。
+          currentSegmentPoints = [LatLng(currentPoint.lat, currentPoint.lon)];
+        } else {
+          // 如果仍在同一個線段，則將目前點加入到線段列表中
+          currentSegmentPoints.add(LatLng(currentPoint.lat, currentPoint.lon));
         }
-        currentSegmentPoints.add(LatLng(currentPoint.lat, currentPoint.lon));
       }
+
+      // 迴圈結束後，處理最後一段未被繪製的線段
       final lastSegmentColor =
           _segmentColors[colorIndex % _segmentColors.length];
       if (currentSegmentPoints.length > 1) {
@@ -108,6 +129,7 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
           ),
         );
       }
+      // 為軌跡的最後一個點添加標記
       allMarkers
           .add(_createTrackPointMarker(widget.points.last, lastSegmentColor));
     } else if (widget.points.isNotEmpty) {
@@ -130,7 +152,7 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
     }
     _polylines = segmentedPolylines;
 
-    // *** 核心修改點: 只有在點位數量大於 1 時，才繪製起點和終點的特殊標記 ***
+    // --- 步驟 3: 繪製起點和終點的特殊標記 ---
     if (widget.points.length > 1) {
       final BusPoint startPoint = widget.points.first;
       allMarkers.add(_createStartEndMarker(startPoint, isStart: true));
@@ -193,8 +215,8 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
     final colorScheme = theme.colorScheme;
 
     // (程式碼健壯性修正) 安全地查找路線名稱，如果找不到則返回'未知路線'
-    final routeStr =
-        Static.routeData.firstWhere((route) => route.id == point.routeId).name;
+    final route =
+        Static.routeData.firstWhere((route) => route.id == point.routeId);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -208,22 +230,29 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '時間: ${Static.displayDateFormat.format(point.dataTime.toLocal())}',
+                    '時間：${Static.displayDateFormat.format(point.dataTime)}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text('路線: $routeStr',
-                      style: TextStyle(color: colorScheme.onSurface)),
-                  Text('方向: ${point.goBack == 1 ? "去程" : "返程"}',
-                      style: TextStyle(color: colorScheme.onSurface)),
-                  Text('狀態: ${point.dutyStatus == 0 ? "營運" : "非營運"}',
-                      style: TextStyle(color: colorScheme.onSurface)),
                   Text(
-                      '座標: ${point.lat.toStringAsFixed(5)}, ${point.lon.toStringAsFixed(5)}',
-                      style: TextStyle(color: colorScheme.onSurface)),
+                    '座標：${point.lon.toStringAsFixed(6)}, ${point.lat.toStringAsFixed(6)}',
+                    style: TextStyle(color: colorScheme.onSurface),
+                  ),
+                  Text(
+                    '狀態：${point.dutyStatus == 0 ? "營運" : "非營運"}',
+                    style: TextStyle(color: colorScheme.onSurface),
+                  ),
+                  Text(
+                    '路線 / 編號：${route.name} / ${route.id}',
+                    style: TextStyle(color: colorScheme.onSurface),
+                  ),
+                  Text(
+                    '方向：${point.goBack == 1 ? "去程" : "返程"} | 往：${point.goBack == 1 ? route.destination : route.departure}',
+                    style: TextStyle(color: colorScheme.onSurface),
+                  ),
                 ],
               ),
             ),
@@ -255,7 +284,7 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
     // 如果沒有點位數據，顯示一個提示，避免後續出錯
     if (widget.points.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: Text('${widget.plate} 軌跡地圖 (OSM)')),
+        appBar: AppBar(title: Text('${widget.plate} 軌跡地圖')),
         body: const Center(child: Text('沒有可顯示的點位數據。')),
       );
     }
@@ -272,64 +301,121 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
           appBar: AppBar(
             title: Text('${widget.plate} 軌跡地圖'),
           ),
-          body: FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter:
-                  LatLng(widget.points.first.lat, widget.points.first.lon),
-              initialZoom: (widget.points.length == 1) ? 17.0 : 12.0,
-              initialCameraFit: (widget.points.length > 1 && _bounds != null)
-                  ? CameraFit.bounds(
-                      bounds: _bounds!,
-                      padding: const EdgeInsets.all(50.0),
-                    )
-                  : null,
-            ),
+          // (新功能) 使用 Stack 來疊放地圖和 UI 控制項 (如滑桿)
+          body: Stack(
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'me.myster.bus_scraper',
-              ),
-              Opacity(
-                opacity: 0.3,
-                child: TileLayer(
-                  urlTemplate:
-                      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                  userAgentPackageName: 'me.myster.bus_scraper',
+              FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter:
+                      LatLng(widget.points.first.lat, widget.points.first.lon),
+                  initialZoom: (widget.points.length == 1) ? 17.0 : 12.0,
+                  initialCameraFit:
+                      (widget.points.length > 1 && _bounds != null)
+                          ? CameraFit.bounds(
+                              bounds: _bounds!,
+                              padding: const EdgeInsets.all(50.0),
+                            )
+                          : null,
                 ),
-              ),
-              Align(
-                // 1. 將整個橫條對齊到螢幕底部
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  // 2. 設置背景顏色和透明度
-                  color: Colors.black.withValues(alpha: 0.5),
-                  // 3. 讓 Container 寬度填滿螢幕
-                  width: double.infinity,
-                  // 4. 使用 SafeArea 確保內容不會被系統 UI (如底部的 Home Bar) 遮擋
-                  child: SafeArea(
-                    top: false, // 我們只關心底部的安全區域
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 4, horizontal: 4),
-                      // 5. 放置你的歸屬文字
-                      child: Text(
-                        'Esri, Maxar, Earthstar Geographics, and the GIS User Community',
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 12),
-                        // 6. 控制文字在橫條內的對齊方式
-                        textAlign: TextAlign.center, // 可選：.start, .end
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'me.myster.bus_scraper',
+                  ),
+                  // (新功能) 將衛星圖層包裹在 Opacity 元件中，
+                  // 並使用 _satelliteOpacity 狀態變數來控制其透明度
+                  Opacity(
+                    opacity: _satelliteOpacity,
+                    child: TileLayer(
+                      urlTemplate:
+                          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                      userAgentPackageName: 'me.myster.bus_scraper',
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      width: double.infinity,
+                      child: SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 4, horizontal: 4),
+                          child: Text(
+                            'Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 12),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                       ),
                     ),
                   ),
+                  PolylineLayer(
+                    polylines: _polylines,
+                  ),
+                  MarkerLayer(
+                    markers: _markers,
+                  ),
+                ],
+              ),
+              // (新功能) 衛星雲圖透明度控制滑桿
+              Positioned(
+                // 將控制項放在右下角，並向上偏移一些距離以避免與 FAB 重疊
+                top: 10,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.only(top: 10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer
+                        .withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.satellite_alt_outlined,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                      // 使用 RotatedBox 將滑桿變為垂直方向，節省水平空間
+                      RotatedBox(
+                        quarterTurns: 3, // 旋轉 270 度
+                        child: Slider(
+                          padding: const EdgeInsetsGeometry.all(10),
+                          activeColor:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                          inactiveColor:
+                              Theme.of(context).colorScheme.onSurfaceVariant,
+                          value: _satelliteOpacity,
+                          min: 0.0,
+                          // 完全透明
+                          max: 1.0,
+                          // 完全不透明
+                          onChanged: (newValue) {
+                            // 當滑桿值改變時，更新狀態變數
+                            setState(() {
+                              _satelliteOpacity = newValue;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              PolylineLayer(
-                polylines: _polylines,
-              ),
-              MarkerLayer(
-                markers: _markers,
               ),
             ],
           ),

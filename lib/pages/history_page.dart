@@ -311,7 +311,7 @@ class _HistoryPageState extends State<HistoryPage> {
           const SizedBox(height: 12),
           // 查詢按鈕
           FilledButton.icon(
-            icon: const Icon(Icons.search),
+            icon: const Icon(Icons.explore_outlined),
             label: const Text('查詢歷史軌跡'),
             onPressed: _isLoading ? null : _fetchHistory, // 加載中時禁用
             style: FilledButton.styleFrom(
@@ -448,21 +448,35 @@ class _HistoryPageState extends State<HistoryPage> {
       itemBuilder: (context, index) {
         final dataPoint = _filteredHistoryData[index];
         // 根據 routeId 找到對應的路線名稱
-        final routeStr = Static.routeData
-            .firstWhere((route) => route.id == dataPoint.routeId)
-            .name;
+        final route = Static.routeData
+            .firstWhere((route) => route.id == dataPoint.routeId);
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
         return Card(
+          color: colorScheme.surfaceContainerHighest,
           margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 5.0),
           child: ListTile(
             title: Text(
-                '時間: ${Static.displayDateFormat.format(dataPoint.dataTime)}'),
+                '時間：${Static.displayDateFormat.format(dataPoint.dataTime)}'),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                    '座標: ${dataPoint.lon.toStringAsFixed(6)}, ${dataPoint.lat.toStringAsFixed(6)}'),
+                  '座標：${dataPoint.lon.toStringAsFixed(6)}, ${dataPoint.lat.toStringAsFixed(6)}',
+                  style: TextStyle(color: colorScheme.onSurface),
+                ),
                 Text(
-                    '狀態: ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 路線: $routeStr | 方向: ${dataPoint.goBack == 1 ? "去程" : "返程"}'),
+                  '狀態：${dataPoint.dutyStatus == 0 ? "營運" : "非營運"}',
+                  style: TextStyle(color: colorScheme.onSurface),
+                ),
+                Text(
+                  '路線 / 編號：${route.name} / ${route.id}',
+                  style: TextStyle(color: colorScheme.onSurface),
+                ),
+                Text(
+                  '方向：${dataPoint.goBack == 1 ? "去程" : "返程"} | 往：${dataPoint.goBack == 1 ? route.destination : route.departure}',
+                  style: TextStyle(color: colorScheme.onSurface),
+                ),
               ],
             ),
             trailing: Wrap(
@@ -474,7 +488,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   icon: const Icon(Icons.map_sharp, color: Colors.blueAccent),
                   tooltip: '在 Google Map 上查看',
                   onPressed: () async => await launchUrl(Uri.parse(
-                      "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${widget.plate} | $routeStr)")),
+                      "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${route.name} | ${dataPoint.goBack == 1 ? "去程" : "返程"} | 往：${dataPoint.goBack == 1 ? route.destination : route.departure} | ${Static.displayDateFormat.format(dataPoint.dataTime)})")),
                 ),
                 // 按鈕 2: 開啟 App 內部的地圖頁面，只顯示這一個點
                 IconButton(
@@ -489,7 +503,7 @@ class _HistoryPageState extends State<HistoryPage> {
                           plate: widget.plate,
                           // 關鍵：傳遞一個只包含當前點的列表，以便地圖只顯示此單點
                           points: [dataPoint],
-                          routeName: routeStr,
+                          routeName: route.name,
                         ),
                       ),
                     );

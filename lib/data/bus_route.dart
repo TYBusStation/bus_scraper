@@ -10,20 +10,17 @@ class BusRoute {
   final String name;
   @JsonKey(name: "description")
   final String description;
-  @JsonKey(name: "opType")
-  final int opType;
-  @JsonKey(name: "routeGroup")
-  final String routeGroup;
-  @JsonKey(name: "providers")
-  final List<String> providers;
+  @JsonKey(name: "departure")
+  final String departure;
+  @JsonKey(name: "destination")
+  final String destination;
 
   BusRoute({
     required this.id,
     required this.name,
     required this.description,
-    required this.opType,
-    required this.routeGroup,
-    required this.providers,
+    required this.departure,
+    required this.destination,
   });
 
   factory BusRoute.fromJson(Map<String, dynamic> json) =>
