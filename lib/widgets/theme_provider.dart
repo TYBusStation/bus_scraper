@@ -48,6 +48,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
               selectedLabelStyle: TextStyle(fontSize: 24),
               unselectedLabelStyle: TextStyle(fontSize: 24),
             ),
+            fontFamily: 'GenKiGothic2TW',
           );
 
           return widget.builder(context, themeData);

@@ -21,13 +21,13 @@ class Car {
 
 enum Type {
   @JsonValue("city_s")
-  CITY_S("city_s(表義待查)"),
+  CITY_S("直樑"),
   @JsonValue("ev")
-  EV("電動車"),
+  EV("電動"),
   @JsonValue("lfv")
   LFV("低地板"),
   @JsonValue("no_s")
-  NO_S("no_s(表義待查)");
+  NO_S("直樑");
 
   final String chinese;
 

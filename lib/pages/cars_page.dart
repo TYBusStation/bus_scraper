@@ -1,8 +1,6 @@
-// lib/pages/cars_page.dart
-
 import 'package:bus_scraper/widgets/favorite_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // 導入 provider
+import 'package:provider/provider.dart';
 
 import '../data/car.dart';
 import '../static.dart';
@@ -15,7 +13,11 @@ class CarsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // *** 修改點 1: 使用 Consumer 包裹，以便在收藏狀態改變時自動重繪圖示 ***
+    // 獲取當前主題
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+
     return Consumer<FavoritesNotifier>(
       builder: (context, notifier, child) {
         return SearchableList<Car>(
@@ -29,52 +31,67 @@ class CarsPage extends StatelessWidget {
             return cleanPlate.contains(cleanText);
           },
           sortCallback: (a, b) => a.plate.compareTo(b.plate),
-          itemBuilder: (context, car) {
-            // 從 notifier 檢查當前車輛是否已被收藏
-            final bool isFavorite = notifier.isFavorite(car.plate);
 
-            return ListTile(
-              // *** 修改點 2: 在標題前加入收藏按鈕 ***
-              leading: FavoriteButton(
-                plate: car.plate,
-                notifier: notifier,
-              ),
-              title: Text(
-                car.plate,
-                style: const TextStyle(fontSize: 18),
-              ),
-              subtitle: Text(
-                car.type.chinese,
-                style: const TextStyle(fontSize: 16),
-              ),
-              trailing: FilledButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => HistoryPage(plate: car.plate),
-                    ),
-                  );
+          // 5. 定義如何建立每個列表項 (美化核心)
+          itemBuilder: (context, car) {
+            // 使用 Card 包裹 ListTile，增加視覺間隔和陰影
+            return Card(
+              elevation: 2,
+              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: ListTile(
+                // 收藏按鈕，維持原樣
+                leading: FavoriteButton(
+                  plate: car.plate,
+                  notifier: notifier,
+                ),
+                // 車牌，使用主題的標題樣式
+                title: Text(
+                  car.plate,
+                  style: textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                // 車輛類型，使用主題的副標題樣式
+                subtitle: Text(
+                  car.type.chinese,
+                  style: textTheme.bodyLarge,
+                ),
+                trailing: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HistoryPage(plate: car.plate),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.history, size: 20),
+                  label: const Text('歷史紀錄'),
+                  style: FilledButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+                // 增加點擊時的波紋效果
+                onTap: () {
+                  // 這裡可以留空，讓 ListTile 捕捉點擊事件並顯示波紋效果
+                  // 或許未來可以做成點擊整個項目就跳轉到歷史頁面
                 },
-                style:
-                    FilledButton.styleFrom(padding: const EdgeInsets.all(10)),
-                child: const Text('歷史位置', style: TextStyle(fontSize: 16)),
               ),
             );
           },
-          // emptyStateWidget 保持不變，但這裡的 ThemeProvider 其實可以移除
-          // 因為主題已經由 main.dart 的全局 ThemeProvider 提供了
+
+          // 6. 空狀態顯示 (移除不必要的 ThemeProvider)
           emptyStateWidget: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.search_off,
-                    size: 100, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 10),
-                const Text(
+                    size: 100, color: colorScheme.primary.withOpacity(0.7)),
+                const SizedBox(height: 16),
+                Text(
                   "找不到符合的車牌\n或車牌尚未被記錄",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20),
+                  style: textTheme.headlineSmall,
                 ),
               ],
             ),

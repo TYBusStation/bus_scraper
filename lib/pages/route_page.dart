@@ -3,69 +3,135 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../static.dart';
-import '../widgets/searchable_list.dart'; // 導入新的通用元件
-import '../widgets/theme_provider.dart';
+import '../widgets/searchable_list.dart';
 
-// RoutePage 現在是一個 StatelessWidget，因為所有狀態都由 SearchableListPage 管理
 class RoutePage extends StatelessWidget {
   const RoutePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 直接返回配置好的 SearchableListPage
+    // 獲取當前主題以便在整個 build 方法中使用
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+
     return SearchableList<BusRoute>(
-      // 1. 提供完整的路線資料
       allItems: Static.routeData,
-      // 2. 設定搜尋框的提示文字 (優化了提示，使其更符合搜尋邏輯)
       searchHintText: "搜尋路線名稱、描述或編號",
-      // 3. 定義過濾條件
       filterCondition: (route, text) {
-        // 使用者輸入的每個關鍵字 (以空格分隔) 都必須在路線的某個屬性中找到
         return text
             .toUpperCase()
             .split(" ")
-            .where((token) => token.isNotEmpty) // 避免因多餘空格產生空字串
-            .every((token) =>
-                route.name.toUpperCase().contains(token) ||
-                route.description.toUpperCase().contains(token) ||
-                route.id.toUpperCase().contains(token));
+            .where((token) => token.isNotEmpty)
+            .every((token) => [
+                  route.id,
+                  route.name,
+                  route.description,
+                  route.departure,
+                  route.destination,
+                ].any((str) => str.toUpperCase().contains(token)));
       },
-      // 4. 定義如何排序
       sortCallback: (a, b) => Static.compareRoutes(a.name, b.name),
-      // 5. 定義如何建立每個列表項
+
+      // 5. 定義如何建立每個列表項 (美化核心)
       itemBuilder: (context, route) {
-        return ListTile(
-          title: Text(
-            route.name,
-            style: const TextStyle(fontSize: 18),
-          ),
-          subtitle: Text(
-            "${route.description}\n起：${route.departure} 終：${route.destination}\n路線編號：${route.id}",
-            style: const TextStyle(fontSize: 16),
-          ),
-          trailing: FilledButton(
-            onPressed: () async => await launchUrl(Uri.parse(
-                "https://ebus.tycg.gov.tw/ebus/driving-map/${route.id}")),
-            style: FilledButton.styleFrom(padding: const EdgeInsets.all(10)),
-            child: const Text('公車動態網', style: TextStyle(fontSize: 16)),
+        // 使用 Card 來提升視覺層次感
+        return Card(
+          elevation: 2, // 輕微的陰影
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 路線名稱，使用較大的標題樣式
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // 使用 Chip 顯示路線編號，更美觀
+                    Text(
+                      route.name,
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    // 使用帶有圖示的按鈕，更直觀
+                    FilledButton.icon(
+                      onPressed: () async => await launchUrl(Uri.parse(
+                          "https://ebus.tycg.gov.tw/ebus/driving-map/${route.id}")),
+                      icon: const Icon(Icons.map_outlined),
+                      label: const Text('公車動態'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+
+                // 起站與終站，使用 Row 和 Icon 視覺化呈現
+                Row(
+                  children: [
+                    const Icon(Icons.departure_board,
+                        size: 20, color: Colors.green),
+                    const SizedBox(width: 8),
+                    // 使用 Flexible 避免文字過長導致排版錯誤
+                    Flexible(
+                      child: Text(
+                        route.departure,
+                        style: textTheme.bodyLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Icon(Icons.arrow_forward, size: 18),
+                    ),
+                    const Icon(Icons.flag, size: 20, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        route.destination,
+                        style: textTheme.bodyLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  route.description,
+                  style: textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                Text(
+                  '編號：${route.id}',
+                  style: textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
-      // 6. 提供搜尋不到結果時的顯示內容
-      emptyStateWidget: ThemeProvider(
-        builder: (BuildContext context, ThemeData themeData) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.search_off,
-                  size: 100, color: themeData.colorScheme.primary),
-              const SizedBox(height: 10),
-              const Text(
-                "找不到符合的路線",
-                style: TextStyle(fontSize: 20),
-              ),
-            ],
-          ),
+
+      // 6. 提供搜尋不到結果時的顯示內容 (移除不必要的 ThemeProvider)
+      emptyStateWidget: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off,
+                size: 100, color: colorScheme.primary.withOpacity(0.7)),
+            const SizedBox(height: 16),
+            Text(
+              "找不到符合的路線",
+              style: textTheme.headlineSmall,
+            ),
+          ],
         ),
       ),
     );

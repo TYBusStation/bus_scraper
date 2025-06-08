@@ -1,3 +1,5 @@
+// lib/pages/history_osm_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -7,33 +9,25 @@ import '../static.dart';
 
 class HistoryOsmPage extends StatefulWidget {
   final String plate;
-  final String routeName;
   final List<BusPoint> points;
 
-  const HistoryOsmPage({
-    super.key,
-    required this.plate,
-    required this.routeName,
-    required this.points,
-  });
+  const HistoryOsmPage({super.key, required this.plate, required this.points});
 
   @override
   State<HistoryOsmPage> createState() => _HistoryOsmPageState();
 }
 
 class _HistoryOsmPageState extends State<HistoryOsmPage> {
-  // 地圖控制器，用於手動操作地圖（例如重新置中）
+  // ... (所有狀態變數和 initState, _prepareMapData, Marker 創建方法等都保持不變) ...
   final MapController _mapController = MapController();
-
-  // 狀態變數，用於儲存地圖上要顯示的元素
-  List<Polyline> _polylines = []; // 軌跡線段列表
-  List<Marker> _markers = []; // 標記點列表
-  LatLngBounds? _bounds; // 地圖視野邊界，用於自動縮放
-
-  // (新功能) 狀態變數：用於控制衛星圖層的透明度，初始值為 0.3
+  List<Polyline> _polylines = [];
+  List<Marker> _markers = [];
+  LatLngBounds? _bounds;
   double _satelliteOpacity = 0.3;
 
-  // 用於分段著色的顏色列表，當顏色用完時會循環使用
+  BusPoint? _selectedPoint;
+  Marker? _highlightMarker;
+
   final List<Color> _segmentColors = const [
     Colors.red,
     Colors.teal,
@@ -46,242 +40,172 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
     Colors.cyan,
     Colors.brown,
     Colors.indigo,
-    Colors.grey,
     Colors.deepPurple,
   ];
 
   @override
   void initState() {
     super.initState();
-    // 頁面初始化時，準備所有地圖上需要顯示的數據
     _prepareMapData();
   }
 
-  // 準備地圖數據的核心方法
   void _prepareMapData() {
-    if (widget.points.isEmpty) return; // 如果沒有軌跡點，直接返回
+    if (widget.points.isEmpty) return;
 
-    // --- 步驟 1: 計算所有點的整體地理邊界，用於地圖初始縮放 ---
     if (widget.points.length > 1) {
-      final allLatLngPoints =
-          widget.points.map((p) => LatLng(p.lat, p.lon)).toList();
-      _bounds = LatLngBounds.fromPoints(allLatLngPoints);
+      _bounds = LatLngBounds.fromPoints(
+          widget.points.map((p) => LatLng(p.lat, p.lon)).toList());
     }
 
-    // --- 步驟 2: 處理軌跡線與標記點 ---
     final List<Polyline> segmentedPolylines = [];
     final List<Marker> allMarkers = [];
 
     if (widget.points.length > 1) {
       int colorIndex = 0;
-      // 初始化第一個線段的起點
       List<LatLng> currentSegmentPoints = [
         LatLng(widget.points.first.lat, widget.points.first.lon)
       ];
 
-      // 遍歷所有點，從第二個點開始
       for (int i = 1; i < widget.points.length; i++) {
         final currentPoint = widget.points[i];
         final previousPoint = widget.points[i - 1];
         final segmentColor = _segmentColors[colorIndex % _segmentColors.length];
-
-        // 為前一個點創建軌跡標記
         allMarkers.add(_createTrackPointMarker(previousPoint, segmentColor));
-
         final timeDifference =
             currentPoint.dataTime.difference(previousPoint.dataTime);
-
-        // 判斷是否為一個新線段的開始
-        // 條件：路線ID改變、去返程改變、或時間差大於等於5分鐘
-        bool isNewSegment = (currentPoint.routeId != previousPoint.routeId ||
+        bool isSegmentEnd = (currentPoint.routeId != previousPoint.routeId ||
             currentPoint.goBack != previousPoint.goBack ||
             timeDifference.inMinutes >= 10);
-
-        if (isNewSegment) {
-          // 如果是新線段，則將目前收集到的點繪製成一條 Polyline
-          segmentedPolylines.add(
-            Polyline(
+        if (isSegmentEnd) {
+          segmentedPolylines.add(Polyline(
               points: List.from(currentSegmentPoints),
               color: segmentColor,
-              strokeWidth: 3,
-            ),
-          );
-          // 換下一個顏色
+              strokeWidth: 4));
           colorIndex++;
-          // (核心修改) 建立一個新的線段列表，並只包含「目前點」。
-          // 這樣就不會將「目前點」與「前一個點」連接起來，實現了斷開連線的效果。
-          currentSegmentPoints = [LatLng(currentPoint.lat, currentPoint.lon)];
+          currentSegmentPoints = [
+            LatLng(previousPoint.lat, previousPoint.lon),
+            LatLng(currentPoint.lat, currentPoint.lon)
+          ];
         } else {
-          // 如果仍在同一個線段，則將目前點加入到線段列表中
           currentSegmentPoints.add(LatLng(currentPoint.lat, currentPoint.lon));
         }
       }
-
-      // 迴圈結束後，處理最後一段未被繪製的線段
       final lastSegmentColor =
           _segmentColors[colorIndex % _segmentColors.length];
       if (currentSegmentPoints.length > 1) {
-        segmentedPolylines.add(
-          Polyline(
+        segmentedPolylines.add(Polyline(
             points: currentSegmentPoints,
             color: lastSegmentColor,
-            strokeWidth: 3,
-          ),
-        );
+            strokeWidth: 4));
       }
-      // 為軌跡的最後一個點添加標記
       allMarkers
           .add(_createTrackPointMarker(widget.points.last, lastSegmentColor));
     } else if (widget.points.isNotEmpty) {
-      // 當只有一個點時，只繪製一個普通軌跡點標記
-      allMarkers.add(
-        Marker(
-          point: LatLng(widget.points.first.lat, widget.points.first.lon),
-          width: 36,
-          height: 36,
-          child: GestureDetector(
-            onTap: () => _showPointInfo(widget.points.first), // 點擊時顯示詳細資訊
-            child: const Icon(
-              Icons.directions_bus,
-              color: Colors.pinkAccent,
-              size: 36,
-            ),
-          ),
-        ),
-      );
+      allMarkers.add(_createSinglePointMarker(widget.points.first));
     }
-    _polylines = segmentedPolylines;
 
-    // --- 步驟 3: 繪製起點和終點的特殊標記 ---
     if (widget.points.length > 1) {
-      final BusPoint startPoint = widget.points.first;
-      allMarkers.add(_createStartEndMarker(startPoint, isStart: true));
-
-      final BusPoint endPoint = widget.points.last;
-      allMarkers.add(_createStartEndMarker(endPoint, isStart: false));
+      allMarkers.add(_createStartEndMarker(widget.points.first, isStart: true));
+      allMarkers.add(_createStartEndMarker(widget.points.last, isStart: false));
     }
 
-    _markers = allMarkers;
+    setState(() {
+      _polylines = segmentedPolylines;
+      _markers = allMarkers;
+    });
   }
 
-  // 輔助方法：創建一個普通的軌跡點標記 (小圓點)
-  Marker _createTrackPointMarker(BusPoint point, Color borderColor) {
+  Marker _createTrackPointMarker(BusPoint point, Color color) {
     return Marker(
       point: LatLng(point.lat, point.lon),
-      width: 16,
-      height: 16,
+      width: 14,
+      height: 14,
       child: GestureDetector(
-        onTap: () => _showPointInfo(point), // 點擊時顯示詳細資訊
+        onTap: () => _selectPoint(point),
         child: Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white,
-            border: Border.all(
-              color: borderColor, // 邊框顏色與軌跡線顏色一致
-              width: 2.5,
-            ),
+            color: color,
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
           ),
         ),
       ),
     );
   }
 
-  // 輔助方法：創建起點或終點的特殊標記 (大圖示)
+  Marker _createSinglePointMarker(BusPoint point) {
+    return Marker(
+      point: LatLng(point.lat, point.lon),
+      width: 40,
+      height: 40,
+      child: GestureDetector(
+        onTap: () => _selectPoint(point),
+        child: const Icon(Icons.directions_bus, color: Colors.pink, size: 40),
+      ),
+    );
+  }
+
   Marker _createStartEndMarker(BusPoint point, {required bool isStart}) {
     return Marker(
       point: LatLng(point.lat, point.lon),
-      width: 80,
-      height: 80,
+      width: 48,
+      height: 48,
       child: GestureDetector(
-        onTap: () => _showPointInfo(point),
-        child: Tooltip(
-          message: isStart ? '軌跡起點' : '軌跡終點',
-          child: Icon(
-            isStart ? Icons.play_circle_fill : Icons.stop_circle,
-            color: isStart ? Colors.green : Colors.red,
-            size: 40,
-          ),
+        onTap: () => _selectPoint(point),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: (isStart ? Colors.green : Colors.red).withOpacity(0.2),
+              ),
+            ),
+            Icon(
+              isStart ? Icons.flag_circle_rounded : Icons.stop_circle_rounded,
+              color: isStart
+                  ? Colors.greenAccent.shade700
+                  : Colors.redAccent.shade700,
+              size: 32,
+              shadows: const [Shadow(color: Colors.black45, blurRadius: 5)],
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // 當點擊標記時，顯示 SnackBar 資訊框
-  void _showPointInfo(BusPoint point) {
-    ScaffoldMessenger.of(context).removeCurrentSnackBar();
-
-    // 從上下文中獲取當前主題，以便讓 SnackBar 樣式與 App 主題一致
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    // (程式碼健壯性修正) 安全地查找路線名稱，如果找不到則返回'未知路線'
-    final route =
-        Static.routeData.firstWhere((route) => route.id == point.routeId);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: colorScheme.surfaceContainerHighest,
-        content: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '時間：${Static.displayDateFormat.format(point.dataTime)}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '座標：${point.lon.toStringAsFixed(6)}, ${point.lat.toStringAsFixed(6)}',
-                    style: TextStyle(color: colorScheme.onSurface),
-                  ),
-                  Text(
-                    '狀態：${point.dutyStatus == 0 ? "營運" : "非營運"}',
-                    style: TextStyle(color: colorScheme.onSurface),
-                  ),
-                  Text(
-                    '路線 / 編號：${route.name} / ${route.id}',
-                    style: TextStyle(color: colorScheme.onSurface),
-                  ),
-                  Text(
-                    '方向：${point.goBack == 1 ? "去程" : "返程"} | 往：${point.goBack == 1 ? route.destination : route.departure}',
-                    style: TextStyle(color: colorScheme.onSurface),
-                  ),
-                ],
-              ),
+  void _selectPoint(BusPoint point) {
+    setState(() {
+      if (_selectedPoint == point) {
+        _selectedPoint = null;
+        _highlightMarker = null;
+      } else {
+        _selectedPoint = point;
+        _highlightMarker = Marker(
+          point: LatLng(point.lat, point.lon),
+          width: 40,
+          height: 40,
+          alignment: Alignment.topCenter,
+          child: IgnorePointer(
+            child: Icon(
+              Icons.location_on,
+              color: Colors.blue.shade600,
+              size: 40,
+              shadows: const [
+                Shadow(
+                    color: Colors.black54, blurRadius: 8, offset: Offset(0, 2))
+              ],
             ),
-            SizedBox(
-              width: 24,
-              height: 24,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: const Icon(Icons.close),
-                color: colorScheme.onSurfaceVariant,
-                onPressed: () {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                },
-              ),
-            ),
-          ],
-        ),
-        duration: const Duration(minutes: 1),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      ),
-    );
+          ),
+        );
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // 如果沒有點位數據，顯示一個提示，避免後續出錯
     if (widget.points.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: Text('${widget.plate} 軌跡地圖')),
@@ -289,155 +213,267 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
       );
     }
 
-    return PopScope(
-        // onPopInvokedWithResult 在較新的 Flutter 版本中替代了 WillPopScope
-        // 這裡確保返回上一頁時，SnackBar 會被移除
-        onPopInvokedWithResult: (didPop, _) {
-          if (didPop) {
-            ScaffoldMessenger.of(context).removeCurrentSnackBar();
-          }
-        },
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text('${widget.plate} 軌跡地圖'),
-          ),
-          // (新功能) 使用 Stack 來疊放地圖和 UI 控制項 (如滑桿)
-          body: Stack(
+    final theme = Theme.of(context);
+    final List<Marker> allMarkersToShow = [..._markers];
+    if (_highlightMarker != null) {
+      allMarkersToShow.add(_highlightMarker!);
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${widget.plate} 軌跡地圖'),
+        backgroundColor: theme.colorScheme.surface.withOpacity(0.85),
+        elevation: 1,
+      ),
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter:
+                  LatLng(widget.points.first.lat, widget.points.first.lon),
+              initialZoom: widget.points.length == 1 ? 17.0 : 12.0,
+              initialCameraFit: widget.points.length > 1 && _bounds != null
+                  ? CameraFit.bounds(
+                      bounds: _bounds!, padding: const EdgeInsets.all(50.0))
+                  : null,
+              onTap: (_, __) {
+                if (_selectedPoint != null) {
+                  setState(() {
+                    _selectedPoint = null;
+                    _highlightMarker = null;
+                  });
+                }
+              },
+            ),
             children: [
-              FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter:
-                      LatLng(widget.points.first.lat, widget.points.first.lon),
-                  initialZoom: (widget.points.length == 1) ? 17.0 : 12.0,
-                  initialCameraFit:
-                      (widget.points.length > 1 && _bounds != null)
-                          ? CameraFit.bounds(
-                              bounds: _bounds!,
-                              padding: const EdgeInsets.all(50.0),
-                            )
-                          : null,
-                ),
-                children: [
-                  TileLayer(
+              TileLayer(
+                  urlTemplate:
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+              Opacity(
+                opacity: _satelliteOpacity,
+                child: TileLayer(
                     urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'me.myster.bus_scraper',
-                  ),
-                  // (新功能) 將衛星圖層包裹在 Opacity 元件中，
-                  // 並使用 _satelliteOpacity 狀態變數來控制其透明度
-                  Opacity(
-                    opacity: _satelliteOpacity,
-                    child: TileLayer(
-                      urlTemplate:
-                          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                      userAgentPackageName: 'me.myster.bus_scraper',
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      width: double.infinity,
-                      child: SafeArea(
-                        top: false,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 4, horizontal: 4),
-                          child: Text(
-                            'Esri, Maxar, Earthstar Geographics, and the GIS User Community',
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 12),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  PolylineLayer(
-                    polylines: _polylines,
-                  ),
-                  MarkerLayer(
-                    markers: _markers,
-                  ),
-                ],
+                        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
               ),
-              // (新功能) 衛星雲圖透明度控制滑桿
-              Positioned(
-                // 將控制項放在右下角，並向上偏移一些距離以避免與 FAB 重疊
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.only(top: 10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primaryContainer
-                        .withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.satellite_alt_outlined,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
-                      // 使用 RotatedBox 將滑桿變為垂直方向，節省水平空間
-                      RotatedBox(
-                        quarterTurns: 3, // 旋轉 270 度
-                        child: Slider(
-                          padding: const EdgeInsetsGeometry.all(10),
-                          activeColor:
-                              Theme.of(context).colorScheme.onPrimaryContainer,
-                          inactiveColor:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
-                          value: _satelliteOpacity,
-                          min: 0.0,
-                          // 完全透明
-                          max: 1.0,
-                          // 完全不透明
-                          onChanged: (newValue) {
-                            // 當滑桿值改變時，更新狀態變數
-                            setState(() {
-                              _satelliteOpacity = newValue;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
+              PolylineLayer(polylines: _polylines),
+              MarkerLayer(markers: allMarkersToShow),
+              Align(
+                alignment: Alignment.topRight,
+                child: SafeArea(
+                  child: Container(
+                    margin: const EdgeInsets.all(8.0),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'Esri, Maxar, Earthstar Geo, and the GIS User Community',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.9), fontSize: 10),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              if (widget.points.length > 1 && _bounds != null) {
-                _mapController.fitCamera(
-                  CameraFit.bounds(
-                    bounds: _bounds!,
-                    padding: const EdgeInsets.all(50.0),
-                  ),
-                );
-              } else if (widget.points.isNotEmpty) {
-                _mapController.move(
-                  LatLng(widget.points.first.lat, widget.points.first.lon),
-                  17.0,
-                );
-              }
-            },
-            tooltip: '重新置中',
-            child: const Icon(Icons.my_location),
+          Positioned(
+            top: 30,
+            right: 10,
+            child: _buildMapControls(),
           ),
-        ));
+          _buildInfoPanel(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoPanel() {
+    final theme = Theme.of(context);
+    final isVisible = _selectedPoint != null;
+    // *** 修改點 2: 微調面板高度以適應新的 Chip 樣式 ***
+    const double panelHeight = 190.0;
+
+    final route = isVisible
+        ? Static.routeData.firstWhere((r) => r.id == _selectedPoint!.routeId)
+        : null;
+
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      bottom: isVisible ? 0 : -(panelHeight + 40),
+      left: 0,
+      right: 0,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          height: panelHeight,
+          margin: const EdgeInsets.all(12.0),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: isVisible
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            Static.displayDateFormat
+                                .format(_selectedPoint!.dataTime),
+                            style: theme.textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              setState(() {
+                                _selectedPoint = null;
+                                _highlightMarker = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(
+                        height: 1, thickness: 1, indent: 16, endIndent: 16),
+                    Expanded(
+                      // 使用 Expanded + SingleChildScrollView 確保內容過多時可滾動
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 8.0),
+                          child: Wrap(
+                            spacing: 8.0,
+                            runSpacing: 6.0,
+                            children: [
+                              // *** 修改點 3: 使用 _buildInfoChip 替換所有 _buildInfoChipForPanel ***
+                              _buildInfoChip(
+                                icon: Icons.route_outlined,
+                                label: "${route!.name} (${route.id})",
+                              ),
+                              _buildInfoChip(
+                                icon: Icons.description_outlined,
+                                label: route.description,
+                              ),
+                              _buildInfoChip(
+                                icon: Icons.swap_horiz,
+                                label:
+                                    "往 ${_selectedPoint!.goBack == 1 ? route.destination : route.departure}",
+                              ),
+                              _buildInfoChip(
+                                icon: _selectedPoint!.dutyStatus == 0
+                                    ? Icons.work_outline
+                                    : Icons.work_off_outlined,
+                                label: _selectedPoint!.dutyStatus == 0
+                                    ? "營運"
+                                    : "非營運",
+                                color: _selectedPoint!.dutyStatus == 0
+                                    ? Colors.green
+                                    : Colors.orange,
+                              ),
+                              _buildInfoChip(
+                                icon: Icons.person_pin_circle_outlined,
+                                label:
+                                    "駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId}",
+                              ),
+                              _buildInfoChip(
+                                icon: Icons.gps_fixed,
+                                label:
+                                    "${_selectedPoint!.lat.toStringAsFixed(5)}, ${_selectedPoint!.lon.toStringAsFixed(5)}",
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : const SizedBox.shrink(),
+        ),
+      ),
+    );
+  }
+
+  // *** 修改點 1: 複製 history_page.dart 的 _buildInfoChip 方法過來 ***
+  Widget _buildInfoChip(
+      {required IconData icon, required String label, Color? color}) {
+    final theme = Theme.of(context);
+    return Chip(
+      avatar: Icon(icon,
+          size: 16, color: color ?? theme.colorScheme.onSurfaceVariant),
+      label: Text(label, style: theme.textTheme.labelMedium),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      visualDensity: VisualDensity.compact,
+      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+    );
+  }
+
+  // _buildMapControls 保持不變
+  Widget _buildMapControls() {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Card(
+          elevation: 4,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            width: 56,
+            height: 180,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.satellite_alt_outlined,
+                    color: theme.colorScheme.onSurface),
+                Expanded(
+                  child: RotatedBox(
+                    quarterTurns: 3,
+                    child: Slider(
+                      value: _satelliteOpacity,
+                      activeColor: theme.colorScheme.primary,
+                      inactiveColor:
+                          theme.colorScheme.onSurface.withOpacity(0.3),
+                      onChanged: (v) => setState(() => _satelliteOpacity = v),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        FloatingActionButton(
+          onPressed: () {
+            if (widget.points.length > 1 && _bounds != null) {
+              _mapController.fitCamera(CameraFit.bounds(
+                  bounds: _bounds!, padding: const EdgeInsets.all(50)));
+            } else if (widget.points.isNotEmpty) {
+              _mapController.move(
+                  LatLng(widget.points.first.lat, widget.points.first.lon),
+                  17.0);
+            }
+          },
+          tooltip: '重新置中',
+          elevation: 4,
+          child: const Icon(Icons.my_location),
+        ),
+      ],
+    );
   }
 }

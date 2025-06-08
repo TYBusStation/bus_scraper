@@ -130,11 +130,15 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
               // 否則，顯示可滾動的列表
               return ListView.separated(
                 controller: scrollController,
+                // 增加上下 padding，讓列表與搜尋框和底部有更多空間
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 itemCount: filteredItems.length,
-                // 使用傳入的 itemBuilder 來建立每個列表項
                 itemBuilder: (context, index) =>
                     widget.itemBuilder(context, filteredItems[index]),
-                separatorBuilder: (context, index) => const Divider(height: 5),
+                // 將分隔線改為不顯示，因為 Card 的 margin 已經提供了間隔
+                // 如果您仍想要分隔線，可以保留 Divider，但 Card 的 margin 已經很足夠
+                separatorBuilder: (context, index) =>
+                    const SizedBox.shrink(), // 不顯示任何東西
               );
             },
           ),
