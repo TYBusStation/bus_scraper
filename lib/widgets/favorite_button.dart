@@ -30,6 +30,8 @@ class FavoriteButton extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('已將車牌 $plate ${isFavorite ? "移除" : "加入"}收藏'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            duration: const Duration(seconds: 2),
             action: SnackBarAction(
               label: '復原',
               onPressed: () => notifier.toggleFavorite(plate),

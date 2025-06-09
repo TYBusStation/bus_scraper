@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart'; // 用於 deepEq (深度相等比較)
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 新增：用於剪貼簿功能
 
 import '../data/company.dart'; // 公司資料模型 (假設仍然需要用於公司選擇)
 import '../static.dart'; // 靜態資源，例如 API URL 和 dio 實例
@@ -414,6 +415,68 @@ class _CompanyPageState extends State<CompanyPage> {
     }
   }
 
+  // --- 新增：複製功能相關方法 ---
+
+  /// 產生用於剪貼簿的比較結果純文字
+  String _generateComparisonTextForClipboard() {
+    if (_comparisonResult == null) {
+      return "沒有可複製的比較結果。";
+    }
+
+    final buffer = StringBuffer();
+    final String dataTypeDisplayName =
+        _dataTypeDisplayNames[_selectedDataType] ?? '項目';
+
+    buffer.writeln(
+        "--- 差異比對結果 (${_selectedCompany?.name ?? '未知公司'} / $dataTypeDisplayName) ---");
+    buffer.writeln("資料集 1: ${_selectedTimestamp1 ?? 'N/A'}");
+    buffer.writeln(
+        '${Static.apiBaseUrl}/company_data/file/${_selectedCompany!.code}/$_selectedDataType/$_selectedTimestamp1');
+    buffer.writeln('資料集 2: ${_selectedTimestamp2 ?? 'N/A'}');
+    buffer.writeln(
+        '${Static.apiBaseUrl}/company_data/file/${_selectedCompany!.code}/$_selectedDataType/$_selectedTimestamp2');
+    buffer.writeln("-" * 20);
+
+    final added = _comparisonResult!['added']!;
+    final removed = _comparisonResult!['removed']!;
+
+    if (added.isEmpty && removed.isEmpty) {
+      buffer.writeln("兩個資料集之間沒有差異。");
+    } else {
+      if (added.isNotEmpty) {
+        buffer.writeln("\n[新增的項目 (僅存在於資料集 2)]");
+        for (var item in added) {
+          buffer.writeln("- ${item['value']}");
+        }
+      }
+      if (removed.isNotEmpty) {
+        buffer.writeln("\n[移除的項目 (僅存在於資料集 1)]");
+        for (var item in removed) {
+          buffer.writeln("- ${item['value']}");
+        }
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// 執行複製操作並顯示提示
+  Future<void> _copyComparisonResult() async {
+    final comparisonText = _generateComparisonTextForClipboard();
+    await Clipboard.setData(ClipboardData(text: comparisonText));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('比較結果已複製到剪貼簿！'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // --- Widget 建構方法 ---
+
   Widget _buildDropdown<T>({
     required ThemeData themeData,
     required String hintText,
@@ -572,11 +635,11 @@ class _CompanyPageState extends State<CompanyPage> {
         if (item is String) {
           return Card(
             elevation: 0.5,
-            margin: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 4.0),
+            margin: const EdgeInsets.all(4.0),
             color: themeData.colorScheme.surfaceContainerHighest.withAlpha(180),
-            child: ListTile(
-              visualDensity: VisualDensity.compact,
-              title: Text(item, style: themeData.textTheme.titleSmall),
+            child: Padding(
+              padding: const EdgeInsetsGeometry.all(4),
+              child: Text(item, style: themeData.textTheme.bodySmall),
             ),
           );
         }
@@ -601,7 +664,7 @@ class _CompanyPageState extends State<CompanyPage> {
     final colorScheme = themeData.colorScheme;
 
     if (type == '新增') {
-      cardColor = colorScheme.tertiaryContainer.withAlpha(150);
+      cardColor = colorScheme.tertiary.withAlpha(150);
       iconColor = colorScheme.tertiary;
       textColor = colorScheme.onTertiaryContainer;
       icon = Icons.add_circle_outline;
@@ -618,12 +681,22 @@ class _CompanyPageState extends State<CompanyPage> {
     return Card(
       elevation: 0.2,
       color: cardColor,
-      child: ListTile(
-        contentPadding: const EdgeInsetsGeometry.only(left: 2.0, right: 2.0),
-        visualDensity: VisualDensity.compact,
-        leading: Icon(icon, color: iconColor, size: 18),
-        title: Text(title,
-            style: themeData.textTheme.bodyMedium?.copyWith(color: textColor)),
+      margin: const EdgeInsets.all(4.0),
+      child: Row(
+        children: [
+          Padding(
+            padding: const EdgeInsetsGeometry.all(4),
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          Expanded(
+            // 新增 Expanded 以避免文字過長時溢出
+            child: Text(
+              title,
+              style: themeData.textTheme.bodySmall?.copyWith(color: textColor),
+              overflow: TextOverflow.ellipsis, // 新增溢出處理
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -861,10 +934,12 @@ class _CompanyPageState extends State<CompanyPage> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            padding: const EdgeInsets.symmetric(vertical: 2.0),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
+                                // 使用 Spacer 將標題和複製按鈕分開
+                                const Spacer(flex: 2),
                                 Icon(Icons.compare_arrows,
                                     size: 18, color: colorScheme.primary),
                                 const SizedBox(width: 4),
@@ -873,6 +948,15 @@ class _CompanyPageState extends State<CompanyPage> {
                                     style: themeData.textTheme.titleSmall
                                         ?.copyWith(
                                             fontWeight: FontWeight.w600)),
+                                const Spacer(flex: 1),
+                                // 新增：複製按鈕
+                                IconButton(
+                                  icon: Icon(Icons.content_copy,
+                                      size: 16, color: colorScheme.primary),
+                                  tooltip: '複製比較結果',
+                                  // 如果沒有可複製的內容，則禁用按鈕 (onPressed 為 null)
+                                  onPressed: _copyComparisonResult,
+                                ),
                               ],
                             ),
                           ),

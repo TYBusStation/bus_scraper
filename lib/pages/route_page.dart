@@ -17,7 +17,7 @@ class RoutePage extends StatelessWidget {
 
     return SearchableList<BusRoute>(
       allItems: Static.routeData,
-      searchHintText: "搜尋路線名稱、描述或編號",
+      searchHintText: "搜尋路線名稱、描述或編號（如：1）",
       filterCondition: (route, text) {
         return text
             .toUpperCase()
@@ -125,7 +125,7 @@ class RoutePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.search_off,
-                size: 100, color: colorScheme.primary.withOpacity(0.7)),
+                size: 100, color: colorScheme.primary.withValues(alpha: 0.7)),
             const SizedBox(height: 16),
             Text(
               "找不到符合的路線",
