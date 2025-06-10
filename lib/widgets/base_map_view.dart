@@ -348,7 +348,12 @@ class _BaseMapViewState extends State<BaseMapView> {
                             color: Colors.blueAccent,
                             tooltip: '在 Google Map 上查看',
                             onPressed: () async => await launchUrl(Uri.parse(
-                                "https://www.google.com/maps?q=${_selectedPoint!.lat},${_selectedPoint!.lon}(${route.name} | ${route.description} | 往 ${_selectedPoint!.goBack == 1 ? route.destination : route.departure} | ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} | 駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId} | ${Static.displayDateFormat.format(_selectedPoint!.dataTime)})")),
+                                "https://www.google.com/maps?q=${_selectedPoint!.lat}"
+                                ",${_selectedPoint!.lon}(${route.name} | ${route.description} "
+                                "| 往 ${_selectedPoint!.goBack == 1 ? route.destination : route.departure} "
+                                "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
+                                "| 駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId} "
+                                "| ${Static.displayDateFormat.format(_selectedPoint!.dataTime)})")),
                           ),
                           IconButton(
                             icon: const Icon(Icons.close),
