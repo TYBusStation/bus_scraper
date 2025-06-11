@@ -5,11 +5,14 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:intl/intl.dart';
 
 import '../data/bus_point.dart';
 import '../static.dart';
+import '../utils/map_data_processor.dart';
 import '../widgets/base_map_view.dart';
+
+const Duration _kRefreshInterval = Duration(seconds: 45);
 
 class LiveOsmPage extends StatefulWidget {
   final String plate;
@@ -21,8 +24,7 @@ class LiveOsmPage extends StatefulWidget {
 }
 
 class _LiveOsmPageState extends State<LiveOsmPage>
-    with SingleTickerProviderStateMixin {
-  // ... (其他狀態變數保持不變)
+    with TickerProviderStateMixin {
   Timer? _refreshTimer;
   bool _isLoading = true;
   String? _error;
@@ -34,17 +36,28 @@ class _LiveOsmPageState extends State<LiveOsmPage>
   List<Marker> _markers = [];
   LatLngBounds? _bounds;
 
-  late final AnimationController _animationController;
+  late final AnimationController _locationAnimationController;
+  late final AnimationController _timerAnimationController;
+
+  bool _isFirstLoadComplete = false;
+  final DateFormat _timeFormat = DateFormat('HH:mm:ss');
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
+    _locationAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
+
+    _timerAnimationController = AnimationController(
+      vsync: this,
+      duration: _kRefreshInterval,
+    );
+
     _fetchAndDrawMap(isInitialLoad: true);
-    _refreshTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+
+    _refreshTimer = Timer.periodic(_kRefreshInterval, (timer) {
       _fetchAndDrawMap();
     });
   }
@@ -52,12 +65,24 @@ class _LiveOsmPageState extends State<LiveOsmPage>
   @override
   void dispose() {
     _refreshTimer?.cancel();
-    _animationController.dispose();
+    _locationAnimationController.dispose();
+    _timerAnimationController.dispose();
     super.dispose();
   }
 
-  /// 從 API 獲取數據並更新地圖 (數據邏輯)
+  // *** 新增：用於關閉錯誤提示框的方法 ***
+  void _dismissError() {
+    setState(() {
+      _error = null;
+    });
+  }
+
   Future<void> _fetchAndDrawMap({bool isInitialLoad = false}) async {
+    // 如果是自動刷新，先清除舊錯誤
+    if (!isInitialLoad) {
+      _dismissError();
+    }
+
     if (isInitialLoad) {
       setState(() {
         _isLoading = true;
@@ -86,7 +111,6 @@ class _LiveOsmPageState extends State<LiveOsmPage>
         final newPoints = decodedData
             .map((item) => BusPoint.fromJson(item))
             .toList()
-            .reversed
             .toList();
 
         if (isInitialLoad) {
@@ -122,133 +146,67 @@ class _LiveOsmPageState extends State<LiveOsmPage>
           _error = newError;
         });
       } else {
-        // 處理其他非 200 的成功狀態碼，視為錯誤
         throw DioException(
             requestOptions: response.requestOptions, response: response);
       }
     } on DioException catch (e) {
       if (!mounted) return;
-
-      // --- 核心修改邏輯開始 ---
-      // 檢查 DioException 的類型，並且其 response 不為 null
       if (e.response != null) {
-        // 如果狀態碼是 404 (Not Found)
         if (e.response!.statusCode == 404) {
-          // 將其視為「空資料」的正常情況
-          // 清空點位數據，並準備一個空的地圖
           _points.clear();
           _prepareMapData();
-
           setState(() {
             _error = "過去一小時内沒有找到軌跡資料。";
             _isLoading = false;
-            _lastFetchTime = DateTime.now(); // 仍然記錄更新時間
+            _lastFetchTime = DateTime.now();
           });
         } else {
-          // 對於其他 HTTP 錯誤 (如 500, 403 等)，顯示通用錯誤訊息
           setState(() {
             _error = "數據獲取失敗: ${e.response!.statusCode}";
             _isLoading = false;
           });
         }
       } else {
-        // 對於沒有 response 的錯誤 (如網絡中斷、超時)，顯示另一種錯誤訊息
         setState(() {
           _error = "網絡連線失敗，請檢查您的網絡設定。";
           _isLoading = false;
         });
       }
-      // --- 核心修改邏輯結束 ---
     } catch (e) {
       if (!mounted) return;
-      // 處理非 DioException 的其他未知錯誤
       setState(() {
         _error = "發生未知錯誤: $e";
         _isLoading = false;
       });
-    }
-  }
-
-  // _prepareMapData, _create...Marker, 和 build 方法保持不變
-  // ... (省略未變動的程式碼)
-  void _prepareMapData() {
-    if (_points.isEmpty) {
-      setState(() {
-        _polylines = [];
-        _markers = [];
-        _bounds = null;
-      });
-      return;
-    }
-    if (_points.length > 1) {
-      _bounds = LatLngBounds.fromPoints(
-          _points.map((p) => LatLng(p.lat, p.lon)).toList());
-    }
-    final List<Polyline> segmentedPolylines = [];
-    final List<Marker> allMarkers = [];
-    if (_points.length > 1) {
-      int colorIndex = 0;
-      List<LatLng> currentSegmentPoints = [
-        LatLng(_points.first.lat, _points.first.lon)
-      ];
-      for (int i = 1; i < _points.length; i++) {
-        final currentPoint = _points[i];
-        final previousPoint = _points[i - 1];
-        final segmentColor = BaseMapView
-            .segmentColors[colorIndex % BaseMapView.segmentColors.length];
-        allMarkers.add(_createTrackPointMarker(previousPoint, segmentColor));
-        final timeDifference =
-            currentPoint.dataTime.difference(previousPoint.dataTime);
-        bool isSegmentEnd = (currentPoint.routeId != previousPoint.routeId ||
-            currentPoint.goBack != previousPoint.goBack ||
-            timeDifference.inMinutes >= 10);
-        if (isSegmentEnd) {
-          segmentedPolylines.add(Polyline(
-              points: List.from(currentSegmentPoints),
-              color: segmentColor,
-              strokeWidth: 4));
-          colorIndex++;
-          currentSegmentPoints = [
-            LatLng(previousPoint.lat, previousPoint.lon),
-            LatLng(currentPoint.lat, currentPoint.lon)
-          ];
-        } else {
-          currentSegmentPoints.add(LatLng(currentPoint.lat, currentPoint.lon));
+    } finally {
+      if (mounted) {
+        _timerAnimationController.forward(from: 0.0);
+        if (isInitialLoad) {
+          setState(() {
+            _isFirstLoadComplete = true;
+          });
         }
       }
-      final lastSegmentColor = BaseMapView
-          .segmentColors[colorIndex % BaseMapView.segmentColors.length];
-      if (currentSegmentPoints.length > 1) {
-        segmentedPolylines.add(Polyline(
-            points: currentSegmentPoints,
-            color: lastSegmentColor,
-            strokeWidth: 4));
-      }
     }
-    if (_points.isNotEmpty) {
-      allMarkers.add(_createStartMarker(_points.first));
-      allMarkers.add(_createCurrentLocationMarker(_points.last));
-    }
-    setState(() {
-      _polylines = segmentedPolylines;
-      _markers = allMarkers;
-    });
   }
 
-  PointMarker _createTrackPointMarker(BusPoint point, Color color) {
-    return PointMarker(
-      busPoint: point,
-      width: 14,
-      height: 14,
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
-        ),
-      ),
-    );
+  void _prepareMapData() {
+    final processedData = processBusPoints(_points);
+    final List<Marker> allMarkers = processedData.markers;
+
+    if (_points.isNotEmpty) {
+      if (allMarkers.isNotEmpty) allMarkers.removeAt(0);
+      allMarkers.insert(0, _createStartMarker(_points.first));
+
+      if (allMarkers.length > 1) allMarkers.removeLast();
+      allMarkers.add(_createCurrentLocationMarker(_points.last));
+    }
+
+    setState(() {
+      _polylines = processedData.polylines;
+      _markers = allMarkers;
+      _bounds = processedData.bounds;
+    });
   }
 
   PointMarker _createStartMarker(BusPoint point) {
@@ -275,10 +233,10 @@ class _LiveOsmPageState extends State<LiveOsmPage>
         children: [
           FadeTransition(
             opacity: Tween<double>(begin: 0.7, end: 0.0)
-                .animate(_animationController),
+                .animate(_locationAnimationController),
             child: ScaleTransition(
               scale: Tween<double>(begin: 0.3, end: 1.0)
-                  .animate(_animationController),
+                  .animate(_locationAnimationController),
               child: Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
@@ -304,30 +262,114 @@ class _LiveOsmPageState extends State<LiveOsmPage>
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  AppBar _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
-    return BaseMapView(
-      appBarTitle: '${widget.plate} 即時位置',
-      appBarActions: [
-        if (_lastFetchTime != null)
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
+    return AppBar(
+      title: Text('${widget.plate} 即時位置'),
+      actions: [
+        if (_lastFetchTime != null && !_isLoading)
+          AnimatedBuilder(
+            animation: _timerAnimationController,
+            builder: (context, child) {
+              final remainingSeconds = (_kRefreshInterval.inSeconds *
+                      (1.0 - _timerAnimationController.value))
+                  .ceil();
+              return Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '上次更新：${_timeFormat.format(_lastFetchTime!)}',
+                        style: theme.textTheme.labelSmall,
+                      ),
+                      const SizedBox(height: 2),
+                      SizedBox(
+                        width: 120,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              remainingSeconds.toString().padLeft(2, '0'),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontFeatures: [
+                                  const FontFeature.tabularFigures()
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: LinearProgressIndicator(
+                                  value: _timerAnimationController.value,
+                                  backgroundColor: theme.colorScheme.primary
+                                      .withOpacity(0.2),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      theme.colorScheme.primary),
+                                  minHeight: 6,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          )
+        else if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.only(right: 16.0),
             child: Center(
-              child: Text(
-                '更新於：${TimeOfDay.fromDateTime(_lastFetchTime!).format(context)}\n（每分鐘更新）',
-                style: theme.textTheme.labelSmall,
-                textAlign: TextAlign.center,
-              ),
-            ),
+                child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))),
           ),
       ],
-      isLoading: _isLoading,
-      error: _error,
-      points: _points,
-      polylines: _polylines,
-      markers: _markers,
-      bounds: _bounds,
+      backgroundColor: theme.colorScheme.surface.withAlpha(220),
+      elevation: 1,
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(18.0),
+        child: Container(
+          color: theme.colorScheme.surface.withAlpha(200),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.only(bottom: 2),
+          child: Text(
+            'Map data © OpenStreetMap contributors, Imagery © Esri, Maxar, Earthstar Geo',
+            style: TextStyle(
+              fontSize: 9,
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _buildAppBar(context),
+      body: BaseMapView(
+        appBarTitle: '',
+        hideAppBar: true,
+        isLoading: _isLoading,
+        error: _error,
+        points: _points,
+        polylines: _polylines,
+        markers: _markers,
+        bounds: _isFirstLoadComplete ? _bounds : null,
+        // *** 核心修改：將關閉錯誤的方法傳遞給 BaseMapView ***
+        onErrorDismiss: _dismissError,
+      ),
     );
   }
 }

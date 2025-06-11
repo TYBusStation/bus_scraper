@@ -17,13 +17,9 @@ class PointMarker extends Marker {
     super.width = 30.0,
     super.height = 30.0,
     super.alignment,
-  }) : super(
-            point: LatLng(
-                busPoint.lat, busPoint.lon)); // 使用 busPoint 的經緯度作為 Marker 的位置
+  }) : super(point: LatLng(busPoint.lat, busPoint.lon));
 }
 
-/// 一個基礎的地圖視圖 Widget，封裝了共享的地圖 UI 和邏輯。
-/// 包含地圖、圖層、控件和資訊面板。
 class BaseMapView extends StatefulWidget {
   static const List<Color> segmentColors = [
     Colors.red,
@@ -40,16 +36,17 @@ class BaseMapView extends StatefulWidget {
     Colors.deepPurple,
   ];
 
-  // --- 從父 Widget 傳入的數據 ---
   final String appBarTitle;
   final List<Widget>? appBarActions;
   final bool isLoading;
   final String? error;
 
-  final List<BusPoint> points; // 用於地圖置中和初始位置
+  final List<BusPoint> points;
   final List<Polyline> polylines;
   final List<Marker> markers;
   final LatLngBounds? bounds;
+  final bool hideAppBar;
+  final VoidCallback? onErrorDismiss;
 
   const BaseMapView({
     super.key,
@@ -61,6 +58,8 @@ class BaseMapView extends StatefulWidget {
     required this.polylines,
     required this.markers,
     this.bounds,
+    this.hideAppBar = false,
+    this.onErrorDismiss,
   });
 
   @override
@@ -68,29 +67,38 @@ class BaseMapView extends StatefulWidget {
 }
 
 class _BaseMapViewState extends State<BaseMapView> {
-  // --- 內部 UI 狀態 ---
   final MapController _mapController = MapController();
   double _satelliteOpacity = 0.3;
   BusPoint? _selectedPoint;
   Marker? _highlightMarker;
 
-  /// 處理用戶點擊軌跡點的事件
+  @override
+  void didUpdateWidget(covariant BaseMapView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 處理異步加載的情況 (例如 LiveOsmPage)
+    // 當 bounds 從 null 變為有值時，觸發定位
+    if (widget.bounds != null && oldWidget.bounds == null) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _recenterMap();
+        }
+      });
+    }
+  }
+
   void _selectPoint(BusPoint point) {
     setState(() {
-      // 如果點擊同一個點，則取消選擇
       if (_selectedPoint == point) {
         _selectedPoint = null;
         _highlightMarker = null;
       } else {
         _selectedPoint = point;
-        // 創建一個高亮標記來顯示選擇的點
         _highlightMarker = Marker(
           point: LatLng(point.lat, point.lon),
           width: 40,
           height: 40,
           alignment: Alignment.topCenter,
           child: IgnorePointer(
-            // 避免高亮標記本身被點擊
             child: Icon(
               Icons.location_on,
               color: Colors.blue.shade600,
@@ -103,7 +111,6 @@ class _BaseMapViewState extends State<BaseMapView> {
     });
   }
 
-  /// 將地圖視圖重新置中以顯示所有軌跡
   void _recenterMap() {
     if (widget.points.length > 1 && widget.bounds != null) {
       _mapController.fitCamera(
@@ -111,7 +118,6 @@ class _BaseMapViewState extends State<BaseMapView> {
             bounds: widget.bounds!, padding: const EdgeInsets.all(50)),
       );
     } else if (widget.points.isNotEmpty) {
-      // 如果只有一個點或沒有邊界，則移動到最後一個點
       final lastPoint = widget.points.last;
       _mapController.move(LatLng(lastPoint.lat, lastPoint.lon), 17.0);
     }
@@ -127,32 +133,120 @@ class _BaseMapViewState extends State<BaseMapView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // *** 核心修正點 ***
-    // 處理傳入的 markers，為 PointMarker 添加點擊事件
     final processedMarkers = widget.markers.map((marker) {
-      // 檢查 marker 是否是我們自定義的 PointMarker
       if (marker is PointMarker) {
-        // 如果是，返回一個新的標準 Marker，
-        // 其 child 被 GestureDetector 包裹，onTap 會呼叫內部的 _selectPoint 方法。
         return Marker(
           point: marker.point,
           width: marker.width,
           height: marker.height,
           alignment: marker.alignment,
           child: GestureDetector(
-            onTap: () => _selectPoint(marker.busPoint), // 在這裡建立連接！
+            onTap: () => _selectPoint(marker.busPoint),
             child: marker.child,
           ),
         );
       }
-      // 如果是普通 Marker，直接返回
       return marker;
     }).toList();
 
-    // 將處理過的 markers 和高亮 marker 組合起來顯示
     final List<Marker> allMarkersToShow = [...processedMarkers];
     if (_highlightMarker != null) {
       allMarkersToShow.add(_highlightMarker!);
+    }
+
+    final body = Stack(
+      children: [
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: widget.points.isNotEmpty
+                ? LatLng(widget.points.last.lat, widget.points.last.lon)
+                : const LatLng(23.5, 121.0),
+            initialZoom: 15.0,
+            // *** 核心修改點：恢復 initialCameraFit ***
+            // 這將處理同步加載的情況 (例如 HistoryOsmPage)
+            initialCameraFit: widget.bounds != null
+                ? CameraFit.bounds(
+                    bounds: widget.bounds!,
+                    padding: const EdgeInsets.all(50.0),
+                  )
+                : null,
+            onTap: (_, __) {
+              if (_selectedPoint != null) {
+                setState(() {
+                  _selectedPoint = null;
+                  _highlightMarker = null;
+                });
+              }
+            },
+          ),
+          children: [
+            TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+            Opacity(
+              opacity: _satelliteOpacity,
+              child: TileLayer(
+                  urlTemplate:
+                      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
+            ),
+            PolylineLayer(polylines: widget.polylines),
+            MarkerLayer(markers: allMarkersToShow),
+          ],
+        ),
+        if (widget.isLoading)
+          const Center(child: CircularProgressIndicator())
+        else if (widget.error != null)
+          Center(
+            child: Card(
+              color: theme.colorScheme.primaryContainer,
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 40,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      widget.error!,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    if (widget.onErrorDismiss != null) ...[
+                      const SizedBox(height: 20),
+                      TextButton(
+                        onPressed: widget.onErrorDismiss,
+                        style: TextButton.styleFrom(
+                          foregroundColor: theme.colorScheme.onPrimaryContainer,
+                          backgroundColor:
+                              theme.colorScheme.error.withOpacity(0.1),
+                        ),
+                        child: const Text('關閉'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        Positioned(
+          top: 15,
+          right: 10,
+          child: _buildMapControls(),
+        ),
+        _buildInfoPanel(),
+      ],
+    );
+
+    if (widget.hideAppBar) {
+      return body;
     }
 
     return Scaffold(
@@ -161,99 +255,26 @@ class _BaseMapViewState extends State<BaseMapView> {
         actions: widget.appBarActions,
         backgroundColor: theme.colorScheme.surface.withAlpha(220),
         elevation: 1,
-      ),
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              // 初始中心點設為最後一個點或台灣中心
-              initialCenter: widget.points.isNotEmpty
-                  ? LatLng(widget.points.last.lat, widget.points.last.lon)
-                  : const LatLng(23.5, 121.0),
-              initialZoom: 15.0,
-              // 如果有邊界數據，則自動縮放到能容納所有點的視圖
-              initialCameraFit: widget.bounds != null
-                  ? CameraFit.bounds(
-                      bounds: widget.bounds!,
-                      padding: const EdgeInsets.all(50.0),
-                    )
-                  : null,
-              // 點擊地圖空白處時取消選擇點
-              onTap: (_, __) {
-                if (_selectedPoint != null) {
-                  setState(() {
-                    _selectedPoint = null;
-                    _highlightMarker = null;
-                  });
-                }
-              },
-              // 把 `onTap` 的邏輯轉發給 marker
-              // 注意：這需要 `flutter_map` 的一個較新版本。
-              // 如果 marker 上的 `onTap` 不起作用，可以將 `_selectPoint` 綁定到 `GestureDetector` 中。
-              // 這裡的程式碼結構已將 onTap 放在 marker 的 GestureDetector 中，所以這裡不需要。
-            ),
-            children: [
-              TileLayer(
-                  urlTemplate:
-                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
-              Opacity(
-                opacity: _satelliteOpacity,
-                child: TileLayer(
-                    urlTemplate:
-                        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
-              ),
-              PolylineLayer(polylines: widget.polylines),
-              MarkerLayer(markers: allMarkersToShow),
-              // 版權資訊
-              Align(
-                alignment: Alignment.topRight,
-                child: SafeArea(
-                  child: Container(
-                    margin: const EdgeInsets.all(8.0),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: Colors.black.withAlpha(128),
-                        borderRadius: BorderRadius.circular(4)),
-                    child: const Text(
-                        'Esri, Maxar, Earthstar Geo, and the GIS User Community',
-                        style: TextStyle(color: Colors.white70, fontSize: 10)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          // --- 疊加層 (Loading, Error) ---
-          if (widget.isLoading)
-            const Center(child: CircularProgressIndicator())
-          else if (widget.error != null)
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black26, blurRadius: 10)
-                    ]),
-                child: Text(widget.error!,
-                    style: const TextStyle(fontSize: 16, color: Colors.red)),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(18.0),
+          child: Container(
+            color: theme.colorScheme.surface.withAlpha(200),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Text(
+              'Map data © OpenStreetMap contributors, Imagery © Esri, Maxar, Earthstar Geo',
+              style: TextStyle(
+                fontSize: 9,
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
               ),
             ),
-          // --- 控件和資訊面板 ---
-          Positioned(
-            top: 30,
-            right: 10,
-            child: _buildMapControls(),
           ),
-          _buildInfoPanel(),
-        ],
+        ),
       ),
+      body: body,
     );
   }
 
-  /// 建立地圖控件（衛星圖層滑桿和置中按鈕）
   Widget _buildMapControls() {
     final theme = Theme.of(context);
     return Column(
@@ -296,16 +317,14 @@ class _BaseMapViewState extends State<BaseMapView> {
     );
   }
 
-  /// 建立底部滑出的資訊面板
   Widget _buildInfoPanel() {
     final theme = Theme.of(context);
     final isVisible = _selectedPoint != null;
     const double panelHeight = 190.0;
 
-    // 查找對應的路線資訊
     final route = isVisible
         ? Static.routeData.firstWhere((r) => r.id == _selectedPoint!.routeId,
-            orElse: () => Static.routeData.first) // 找不到時的後備
+            orElse: () => Static.routeData.first)
         : null;
 
     return AnimatedPositioned(
@@ -418,7 +437,6 @@ class _BaseMapViewState extends State<BaseMapView> {
     );
   }
 
-  /// 建立資訊面板中的小標籤 (Chip)
   Widget _buildInfoChip(
       {required IconData icon, required String label, Color? color}) {
     final theme = Theme.of(context);

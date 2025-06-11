@@ -1,11 +1,11 @@
 // lib/pages/history_osm_page.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart'; // 僅 Marker 需要
-import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart';
 
 import '../data/bus_point.dart';
-import '../widgets/base_map_view.dart'; // 引入新的共享 Widget
+import '../utils/map_data_processor.dart';
+import '../widgets/base_map_view.dart';
 
 class HistoryOsmPage extends StatefulWidget {
   final String plate;
@@ -18,7 +18,6 @@ class HistoryOsmPage extends StatefulWidget {
 }
 
 class _HistoryOsmPageState extends State<HistoryOsmPage> {
-  // --- 地圖數據 ---
   List<Polyline> _polylines = [];
   List<Marker> _markers = [];
   LatLngBounds? _bounds;
@@ -26,7 +25,6 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
   @override
   void initState() {
     super.initState();
-    // 在初始化時一次性準備好所有地圖數據
     _prepareMapData();
   }
 
@@ -34,90 +32,29 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
   void _prepareMapData() {
     if (widget.points.isEmpty) return;
 
-    if (widget.points.length > 1) {
-      _bounds = LatLngBounds.fromPoints(
-          widget.points.map((p) => LatLng(p.lat, p.lon)).toList());
-    }
+    // 調用共享處理器
+    final processedData = processBusPoints(widget.points);
+    final List<Marker> allMarkers = processedData.markers; // 從通用軌跡點開始
 
-    final List<Polyline> segmentedPolylines = [];
-    final List<Marker> allMarkers = [];
-
-    // --- 軌跡線和軌跡點 ---
-    if (widget.points.length > 1) {
-      int colorIndex = 0;
-      List<LatLng> currentSegmentPoints = [
-        LatLng(widget.points.first.lat, widget.points.first.lon)
-      ];
-      for (int i = 1; i < widget.points.length; i++) {
-        final currentPoint = widget.points[i];
-        final previousPoint = widget.points[i - 1];
-        final segmentColor = BaseMapView
-            .segmentColors[colorIndex % BaseMapView.segmentColors.length];
-        allMarkers.add(_createTrackPointMarker(previousPoint, segmentColor));
-        final timeDifference =
-            currentPoint.dataTime.difference(previousPoint.dataTime);
-        bool isSegmentEnd = (currentPoint.routeId != previousPoint.routeId ||
-            currentPoint.goBack != previousPoint.goBack ||
-            timeDifference.inMinutes >= 10);
-        if (isSegmentEnd) {
-          segmentedPolylines.add(Polyline(
-              points: List.from(currentSegmentPoints),
-              color: segmentColor,
-              strokeWidth: 4));
-          colorIndex++;
-          currentSegmentPoints = [
-            LatLng(previousPoint.lat, previousPoint.lon),
-            LatLng(currentPoint.lat, currentPoint.lon)
-          ];
-        } else {
-          currentSegmentPoints.add(LatLng(currentPoint.lat, currentPoint.lon));
-        }
-      }
-      final lastSegmentColor = BaseMapView
-          .segmentColors[colorIndex % BaseMapView.segmentColors.length];
-      if (currentSegmentPoints.length > 1) {
-        segmentedPolylines.add(Polyline(
-            points: currentSegmentPoints,
-            color: lastSegmentColor,
-            strokeWidth: 4));
-      }
-      allMarkers
-          .add(_createTrackPointMarker(widget.points.last, lastSegmentColor));
-    } else if (widget.points.isNotEmpty) {
+    // --- 添加此頁面特有的標記 ---
+    if (widget.points.length == 1) {
+      // 只有一個點的特殊情況
       allMarkers.add(_createSinglePointMarker(widget.points.first));
-    }
-
-    // --- 起點和終點的特殊標記 ---
-    if (widget.points.length > 1) {
+    } else {
+      // 多個點，添加起點和終點標記
       allMarkers.add(_createStartEndMarker(widget.points.first, isStart: true));
       allMarkers.add(_createStartEndMarker(widget.points.last, isStart: false));
     }
 
     // 更新狀態以觸發 build
     setState(() {
-      _polylines = segmentedPolylines;
+      _polylines = processedData.polylines;
       _markers = allMarkers;
+      _bounds = processedData.bounds;
     });
   }
 
   // --- Marker 創建方法 (特定於 History 頁面) ---
-  // 同樣，這些方法是此頁面的特殊實現，所以保留下來。
-  PointMarker _createTrackPointMarker(BusPoint point, Color color) {
-    return PointMarker(
-      busPoint: point,
-      width: 14,
-      height: 14,
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
-        ),
-      ),
-    );
-  }
-
   PointMarker _createSinglePointMarker(BusPoint point) {
     return PointMarker(
       busPoint: point,
@@ -167,7 +104,6 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
     return BaseMapView(
       appBarTitle: '${widget.plate} 軌跡地圖',
       isLoading: false,
-      // 歷史頁面沒有加載狀態
       error: null,
       points: widget.points,
       polylines: _polylines,
