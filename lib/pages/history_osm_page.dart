@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../data/bus_point.dart';
 import '../utils/map_data_processor.dart';
@@ -11,7 +12,15 @@ class HistoryOsmPage extends StatefulWidget {
   final String plate;
   final List<BusPoint> points;
 
-  const HistoryOsmPage({super.key, required this.plate, required this.points});
+  // *** NEW ***: 新增可選的背景點位參數
+  final List<BusPoint>? backgroundPoints;
+
+  const HistoryOsmPage({
+    super.key,
+    required this.plate,
+    required this.points,
+    this.backgroundPoints, // *** NEW ***
+  });
 
   @override
   State<HistoryOsmPage> createState() => _HistoryOsmPageState();
@@ -28,33 +37,72 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
     _prepareMapData();
   }
 
-  /// 準備 Polyline 和 Marker 數據
+  /// *** MODIFIED ***: 準備 Polyline 和 Marker 數據的完整重構邏輯
   void _prepareMapData() {
-    if (widget.points.isEmpty) return;
-
-    // 調用共享處理器
-    final processedData = processBusPoints(widget.points);
-    final List<Marker> allMarkers = processedData.markers; // 從通用軌跡點開始
-
-    // --- 添加此頁面特有的標記 ---
-    if (widget.points.length == 1) {
-      // 只有一個點的特殊情況
-      allMarkers.add(_createSinglePointMarker(widget.points.first));
-    } else {
-      // 多個點，添加起點和終點標記
-      allMarkers.add(_createStartEndMarker(widget.points.first, isStart: true));
-      allMarkers.add(_createStartEndMarker(widget.points.last, isStart: false));
+    // 如果主要點位和背景點位都為空，則不執行任何操作
+    if (widget.points.isEmpty && (widget.backgroundPoints?.isEmpty ?? true)) {
+      return;
     }
+
+    final List<Polyline> allPolylines = [];
+    final List<Marker> allMarkers = [];
+
+    // --- 1. 處理背景軌跡 (如果存在) ---
+    // 這些是被篩選掉的點位，將繪製成虛線且無標記
+    if (widget.backgroundPoints != null &&
+        widget.backgroundPoints!.isNotEmpty) {
+      final backgroundLatLatLngs =
+          widget.backgroundPoints!.map((p) => LatLng(p.lat, p.lon)).toList();
+
+      allPolylines.add(
+        Polyline(
+          points: backgroundLatLatLngs,
+          color: Colors.grey,
+          strokeWidth: 3.0,
+          pattern: const StrokePattern.dotted(),
+        ),
+      );
+    }
+
+    // --- 2. 處理主要軌跡 (篩選後的結果) ---
+    if (widget.points.isNotEmpty) {
+      // 調用共享處理器來生成主要軌跡線和通用標記 (如速度變化)
+      final processedData = processBusPoints(widget.points);
+
+      // 添加處理器生成的主要軌跡線和標記
+      allPolylines.addAll(processedData.polylines);
+      allMarkers.addAll(processedData.markers);
+
+      // --- 為主要軌跡添加特有的起點和終點標記 ---
+      if (widget.points.length == 1) {
+        allMarkers.add(_createSinglePointMarker(widget.points.first));
+      } else {
+        allMarkers
+            .add(_createStartEndMarker(widget.points.first, isStart: true));
+        allMarkers
+            .add(_createStartEndMarker(widget.points.last, isStart: false));
+      }
+    }
+
+    // --- 3. 計算包含所有點位的邊界 ---
+    final List<BusPoint> allPointsForBounds = [
+      ...widget.points,
+      ...(widget.backgroundPoints ?? [])
+    ];
+    final LatLngBounds? calculatedBounds = allPointsForBounds.isNotEmpty
+        ? LatLngBounds.fromPoints(
+            allPointsForBounds.map((p) => LatLng(p.lat, p.lon)).toList())
+        : null;
 
     // 更新狀態以觸發 build
     setState(() {
-      _polylines = processedData.polylines;
+      _polylines = allPolylines;
       _markers = allMarkers;
-      _bounds = processedData.bounds;
+      _bounds = calculatedBounds;
     });
   }
 
-  // --- Marker 創建方法 (特定於 History 頁面) ---
+  // --- Marker 創建方法 (無需修改) ---
   PointMarker _createSinglePointMarker(BusPoint point) {
     return PointMarker(
       busPoint: point,
@@ -93,7 +141,11 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.points.isEmpty) {
+    // *** MODIFIED ***: 檢查所有可能的點位
+    final bool hasData = widget.points.isNotEmpty ||
+        (widget.backgroundPoints?.isNotEmpty ?? false);
+
+    if (!hasData) {
       return Scaffold(
         appBar: AppBar(title: Text('${widget.plate} 軌跡地圖')),
         body: const Center(child: Text('沒有可顯示的點位數據。')),
@@ -105,7 +157,8 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
       appBarTitle: '${widget.plate} 軌跡地圖',
       isLoading: false,
       error: null,
-      points: widget.points,
+      // *** MODIFIED ***: 傳遞所有點位給 BaseMapView, 方便其內部可能的功能使用
+      points: [...widget.points, ...(widget.backgroundPoints ?? [])],
       polylines: _polylines,
       markers: _markers,
       bounds: _bounds,
