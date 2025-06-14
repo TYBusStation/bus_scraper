@@ -2422,6 +2422,13 @@
         "destination": "建國客運站"
     },
     {
+        "id": "6112",
+        "name": "L112(6/10上路)",
+        "description": "府前線",
+        "departure": "桃園市政府",
+        "destination": "桃園市政府"
+    },
+    {
         "id": "5032",
         "name": "5032",
         "description": "中壢  -  觀音(經石磊)",
@@ -3575,6 +3582,13 @@
         "description": "中壢  -  中壢(經觀音、永安)",
         "departure": "中壢總站(右線)",
         "destination": "中壢總站(左線)"
+    },
+    {
+        "id": "727",
+        "name": "727",
+        "description": "桃園巨蛋 - 永寧轉運站",
+        "departure": "桃園巨蛋",
+        "destination": "永寧轉運站"
     },
     {
         "id": "65257",

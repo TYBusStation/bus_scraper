@@ -26,12 +26,5 @@
     "description": "統聯專用調度路線",
     "departure": "",
     "destination": ""
-  },
-  {
-    "id": "727",
-    "name": "727",
-    "description": "桃園巨蛋 - 永寧轉運站",
-    "departure": "桃園巨蛋",
-    "destination": "永寧轉運站"
   }
 ]
