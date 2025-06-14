@@ -12,7 +12,7 @@ import '../static.dart';
 import '../utils/map_data_processor.dart';
 import '../widgets/base_map_view.dart';
 
-const Duration _kRefreshInterval = Duration(seconds: 45);
+const Duration _kRefreshInterval = Duration(seconds: 30);
 
 class LiveOsmPage extends StatefulWidget {
   final String plate;

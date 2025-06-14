@@ -19,13 +19,8 @@ class CarsPage extends StatelessWidget {
           allItems: Static.carData,
           searchHintText: "搜尋車牌（如：KKA-3822）",
           // 優化過濾邏輯，移除所有非英數字符再比較
-          filterCondition: (car, text) {
-            final cleanPlate =
-                car.plate.replaceAll(RegExp(r'[^A-Z0-9]'), "").toUpperCase();
-            final cleanText =
-                text.replaceAll(RegExp(r'[^A-Z0-9]'), "").toUpperCase();
-            return cleanPlate.contains(cleanText);
-          },
+          filterCondition: (car, text) =>
+              car.plate.toUpperCase().contains(text.toUpperCase()),
           sortCallback: (a, b) => a.plate.compareTo(b.plate),
 
           // 1. 使用重構後的 CarListItem

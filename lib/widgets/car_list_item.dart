@@ -12,12 +12,13 @@ import 'favorite_provider.dart';
 /// 一個可重用的 Widget，用於顯示單一車輛的資訊卡片。
 ///
 /// 封裝了卡片樣式、車牌資訊、收藏按鈕和操作按鈕。
-/// 【修改】：將導航功能從整個卡片點擊改為由獨立的按鈕觸發。
 class CarListItem extends StatelessWidget {
   const CarListItem({
     super.key,
     required this.car,
     required this.showLiveButton,
+    this.drivingDates,
+    this.driverId, // 【新增】接收 driverId 參數
   });
 
   /// 要顯示的車輛資料。
@@ -26,11 +27,19 @@ class CarListItem extends StatelessWidget {
   /// 是否顯示「即時動態」按鈕。
   final bool showLiveButton;
 
+  /// 要顯示的駕駛日期列表 (List<String>)
+  final List<String>? drivingDates;
+
+  /// 【新增】當前查詢的駕駛員 ID，用於點擊日期時傳遞
+  final String? driverId;
+
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    // 從 Provider 中獲取 FavoritesNotifier，以便傳遞給 FavoriteButton
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
     final favoritesNotifier = context.watch<FavoritesNotifier>();
+
+    final bool hasDates = drivingDates != null && drivingDates!.isNotEmpty;
 
     return Card(
       elevation: 2,
@@ -38,51 +47,118 @@ class CarListItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
       ),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      // 【修改】：移除了外層的 InkWell，卡片本身不再響應點擊事件。
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: ListTile(
-          // 收藏按鈕
-          leading: FavoriteButton(
-            plate: car.plate,
-            notifier: favoritesNotifier,
-          ),
-          // 車牌
-          title: Text(
-            car.plate,
-            style: textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-          // 車輛類型
-          subtitle: Text(
-            car.type.chinese,
-            style: textTheme.bodyLarge,
-          ),
-          // 【修改】：右側的操作按鈕現在是一個包含多個按鈕的 Row
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min, // 讓 Row 只佔用其子項所需的最小寬度
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12.0),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 歷史紀錄按鈕
-              _buildHistoryButton(context),
-              // 如果需要，顯示即時動態按鈕
-              if (showLiveButton) ...[
-                const SizedBox(width: 4), // 在按鈕之間增加一點間距
-                _buildLiveButton(context),
+              // --- 上層資訊區 ---
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 左側收藏按鈕
+                  FavoriteButton(
+                    plate: car.plate,
+                    notifier: favoritesNotifier,
+                  ),
+                  const SizedBox(width: 16),
+                  // 中間的文字資訊
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          car.plate,
+                          style: textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          car.type.chinese,
+                          style: textTheme.bodyLarge,
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 右側的操作按鈕
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildHistoryButton(context),
+                      if (showLiveButton) ...[
+                        _buildLiveButton(context),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+              // --- 下層日期區 ---
+              if (hasDates) ...[
+                const SizedBox(height: 12),
+                Divider(
+                  height: 1,
+                  color: theme.dividerColor.withOpacity(0.5),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  children: drivingDates!
+                      .map((date) => ActionChip(
+                            // 【修改】使用 ActionChip 使其可點擊
+                            label: Text(date),
+                            labelStyle: TextStyle(
+                              color: theme.colorScheme.onSecondaryContainer,
+                              fontSize: 12,
+                            ),
+                            backgroundColor:
+                                theme.colorScheme.secondaryContainer,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            side: BorderSide.none,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            // 【新增】點擊事件處理
+                            onPressed: () {
+                              if (driverId != null) {
+                                final selectedDate = DateTime.parse(date);
+                                final startTime = DateTime(selectedDate.year,
+                                    selectedDate.month, selectedDate.day);
+                                final endTime =
+                                    startTime.add(const Duration(days: 1));
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => HistoryPage(
+                                      plate: car.plate,
+                                      initialStartTime: startTime,
+                                      initialEndTime: endTime,
+                                      initialDriverId: driverId,
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                          ))
+                      .toList(),
+                ),
               ],
             ],
           ),
-          // ListTile 本身也不再需要 onTap
         ),
       ),
     );
   }
 
-  /// 建立一個「歷史紀錄」按鈕。
+  // 按鈕的建立函式保持不變
   Widget _buildHistoryButton(BuildContext context) {
     return IconButton(
-      icon: const Icon(Icons.history_rounded), // 使用圓角圖示，風格統一
+      icon: const Icon(Icons.history_rounded),
       tooltip: '歷史紀錄',
       style: IconButton.styleFrom(
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -91,6 +167,7 @@ class CarListItem extends StatelessWidget {
         padding: const EdgeInsets.all(10),
       ),
       onPressed: () {
+        // 【注意】這個按鈕仍然跳轉到一個沒有預設篩選的 HistoryPage
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -101,7 +178,6 @@ class CarListItem extends StatelessWidget {
     );
   }
 
-  /// 建立一個風格化的「即時動態」按鈕。
   Widget _buildLiveButton(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.directions_bus_rounded),

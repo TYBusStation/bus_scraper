@@ -57,7 +57,7 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
       allPolylines.add(
         Polyline(
           points: backgroundLatLatLngs,
-          color: Colors.grey,
+          color: Colors.black.withOpacity(0.5),
           strokeWidth: 3.0,
           pattern: const StrokePattern.dotted(),
         ),

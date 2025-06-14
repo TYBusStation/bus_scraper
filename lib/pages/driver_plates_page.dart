@@ -9,8 +9,12 @@ import '../static.dart';
 import '../widgets/car_list_item.dart';
 import '../widgets/theme_provider.dart';
 
-// 移除了 ThemeProvider，因為頁面本身不應該負責提供主題。
-// 主題應該由 App 的頂層（如 MaterialApp）提供。
+class DrivingRecord {
+  final Car car;
+  final List<String> dates;
+
+  DrivingRecord({required this.car, required this.dates});
+}
 
 class DriverPlatesPage extends StatefulWidget {
   const DriverPlatesPage({super.key});
@@ -22,20 +26,24 @@ class DriverPlatesPage extends StatefulWidget {
 class _DriverPlatesPageState extends State<DriverPlatesPage> {
   final _driverIdController = TextEditingController();
 
-  // --- 【修改點 2】設定初始時間 ---
-  // 預設查詢過去 24 小時的範圍
-  DateTime _startTime = DateTime.now().subtract(const Duration(days: 1));
-  DateTime _endTime = DateTime.now();
+  // 【修改 1】狀態變數直接使用 DateTime，並初始化為今天的日期
+  // 我們不再需要時間部分，但 DateTime 仍是處理日期的標準方式
+  DateTime _startDate =
+      DateTime.now().subtract(const Duration(days: 7)); // 預設查詢過去一週
+  DateTime _endDate = DateTime.now();
 
   bool _isLoading = false;
   String? _errorMessage;
-  List<Car> _foundCars = [];
 
-  // 狀態變數，用於控制初始提示的顯示
+  List<DrivingRecord> _foundRecords = [];
+
   bool _hasSearched = false;
 
+  // 用於發送給 API 的格式
   final DateFormat _apiDateFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
-  final DateFormat _displayDateFormat = DateFormat('yyyy/MM/dd HH:mm');
+
+  // 【修改 2】用於在 UI 上顯示日期的格式，移除了時間
+  final DateFormat _displayDateFormat = DateFormat('yyyy/MM/dd');
 
   @override
   void dispose() {
@@ -43,8 +51,9 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     super.dispose();
   }
 
-  Future<void> _selectDateTime(BuildContext context, bool isStart) async {
-    final DateTime initialDate = isStart ? _startTime : _endTime;
+  // 【修改 3】簡化日期選擇邏輯，只選擇日期
+  Future<void> _selectDate(BuildContext context, bool isStart) async {
+    final DateTime initialDate = isStart ? _startDate : _endDate;
 
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -54,55 +63,42 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
       helpText: isStart ? '選擇開始日期' : '選擇結束日期',
     );
 
-    if (pickedDate != null && mounted) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(initialDate),
-        helpText: isStart ? '選擇開始時間' : '選擇結束時間',
-      );
-
-      if (pickedTime != null) {
-        setState(() {
-          final newDateTime = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
-          if (isStart) {
-            _startTime = newDateTime;
-            if (_startTime.isAfter(_endTime)) {
-              _endTime = _startTime.add(const Duration(hours: 1));
-            }
-          } else {
-            _endTime = newDateTime;
-            if (_endTime.isBefore(_startTime)) {
-              _startTime = _endTime.subtract(const Duration(hours: 1));
-            }
+    // 移除了 showTimePicker 的部分
+    if (pickedDate != null) {
+      setState(() {
+        if (isStart) {
+          _startDate = pickedDate;
+          // 如果開始日期在結束日期之後，自動調整結束日期
+          if (_startDate.isAfter(_endDate)) {
+            _endDate = _startDate;
           }
-        });
-      }
+        } else {
+          _endDate = pickedDate;
+          // 如果結束日期在開始日期之前，自動調整開始日期
+          if (_endDate.isBefore(_startDate)) {
+            _startDate = _endDate;
+          }
+        }
+      });
     }
   }
 
   Future<void> _fetchPlatesByDriver() async {
-    // 點擊查詢時，收起鍵盤，提升體驗
     FocusScope.of(context).unfocus();
 
     if (_driverIdController.text.isEmpty) {
       setState(() {
         _errorMessage = "請輸入駕駛員 ID。";
-        _foundCars = [];
+        _foundRecords = [];
         _hasSearched = true;
       });
       return;
     }
 
-    if (_startTime.isAfter(_endTime)) {
+    if (_startDate.isAfter(_endDate)) {
       setState(() {
-        _errorMessage = "錯誤：開始時間不能晚於結束時間。";
-        _foundCars = [];
+        _errorMessage = "錯誤：開始日期不能晚於結束日期。";
+        _foundRecords = [];
         _hasSearched = true;
       });
       return;
@@ -111,37 +107,50 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _foundCars = [];
+      _foundRecords = [];
       _hasSearched = true;
     });
 
     try {
+      // 【修改 4】在發送 API 請求前，將日期轉換為完整的時間範圍
+      // 開始時間：選定日期的 00:00:00
+      final apiStartTime =
+          DateTime(_startDate.year, _startDate.month, _startDate.day);
+      // 結束時間：選定結束日期的隔天 00:00:00，這樣才能包含結束日期的所有時間
+      final apiEndTime = DateTime(_endDate.year, _endDate.month, _endDate.day)
+          .add(const Duration(days: 1));
+
       final queryParameters = {
         'driver_id': _driverIdController.text,
-        'start_time': _apiDateFormat.format(_startTime),
-        'end_time': _apiDateFormat.format(_endTime),
+        // 使用格式化的時間範圍發送請求
+        'start_time': _apiDateFormat.format(apiStartTime),
+        'end_time': _apiDateFormat.format(apiEndTime),
       };
 
-      // 注意: Dio 的 baseUrl 已經在 Static.dio 中設定，這裡只需要路徑
       final response = await Static.dio.get(
-        '${Static.apiBaseUrl}/tools/find_plates_by_driver',
-        // 移除了 Static.apiBaseUrl
+        '${Static.apiBaseUrl}/tools/find_driver_dates',
         queryParameters: queryParameters,
       );
 
-      final List<dynamic> platesData = response.data;
+      final List<dynamic> responseData = response.data;
+      final carMap = {for (var car in Static.carData) car.plate: car};
 
       setState(() {
-        // --- 【修改點 1】效能優化 ---
-        // 使用預先處理好的 Map 來查找，更高效
-        _foundCars = platesData
-            .cast<String>()
-            .map((plate) =>
-                Static.carData.firstWhere((car) => car.plate == plate))
-            .whereType<Car>() // 過濾 null 並轉換類型
+        _foundRecords = responseData
+            .map((item) {
+              final String plate = item['plate'];
+              final List<String> dates = List<String>.from(item['dates'] ?? []);
+              final Car? car = carMap[plate];
+              if (car != null && dates.isNotEmpty) {
+                return DrivingRecord(car: car, dates: dates);
+              }
+              return null;
+            })
+            .where((record) => record != null)
+            .cast<DrivingRecord>()
             .toList();
 
-        if (_foundCars.isEmpty) {
+        if (_foundRecords.isEmpty) {
           _errorMessage = "在此條件下找不到任何車牌紀錄。";
         }
       });
@@ -169,12 +178,9 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 直接使用 Scaffold，而不是 SingleChildScrollView
-    // 這樣可以有一個固定的 AppBar，並讓內容區滾動
     return ThemeProvider(
       builder: (BuildContext context, ThemeData themeData) =>
           SingleChildScrollView(
-        // 在這裡使用 SingleChildScrollView
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Column(
@@ -190,16 +196,13 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     );
   }
 
-  // --- 【修改點 3】美化後的 UI 元件 ---
-
   Widget _buildInputCard() {
     return Card(
       elevation: 2,
-      // 使用更現代的 Card 邊框
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
           width: 1,
         ),
       ),
@@ -212,26 +215,26 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
               controller: _driverIdController,
               decoration: const InputDecoration(
                 labelText: "駕駛員 ID",
-                hintText: "例如: 120031",
+                hintText: "如：120031",
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.person_search_outlined),
               ),
               keyboardType: TextInputType.text,
             ),
             const SizedBox(height: 20),
-            _buildDateTimePicker(
-              label: "起始時間",
-              value: _startTime,
-              onPressed: () => _selectDateTime(context, true),
+            // 【修改 5】調用新的日期選擇器 UI 元件
+            _buildDatePicker(
+              label: "起始日期",
+              value: _startDate,
+              onPressed: () => _selectDate(context, true),
             ),
             const SizedBox(height: 12),
-            _buildDateTimePicker(
-              label: "結束時間",
-              value: _endTime,
-              onPressed: () => _selectDateTime(context, false),
+            _buildDatePicker(
+              label: "結束日期",
+              value: _endDate,
+              onPressed: () => _selectDate(context, false),
             ),
             const SizedBox(height: 24),
-            // 美化查詢按鈕
             FilledButton.icon(
               onPressed: _isLoading ? null : _fetchPlatesByDriver,
               icon: _isLoading
@@ -239,7 +242,8 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
                       width: 20,
                       height: 20,
                       padding: const EdgeInsets.all(2.0),
-                      child: const CircularProgressIndicator(strokeWidth: 2),
+                      child: const CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.search_rounded),
               label: const Text("查詢"),
@@ -255,12 +259,14 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     );
   }
 
-  Widget _buildDateTimePicker({
+  // 【修改 6】重構日期選擇器 UI 元件，以反映其只選擇日期的功能
+  Widget _buildDatePicker({
     required String label,
-    required DateTime value, // 改為非 nullable，因為已有初始值
+    required DateTime value,
     required VoidCallback onPressed,
   }) {
     final theme = Theme.of(context);
+    // 使用新的日期格式
     final displayText = _displayDateFormat.format(value);
 
     return InkWell(
@@ -269,7 +275,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          // 使用次級容器顏色作為背景，使其與 Card 背景區分
           color: theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
         ),
@@ -279,9 +284,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
             Row(
               children: [
                 Icon(
-                  label == "起始時間"
-                      ? Icons.schedule_outlined
-                      : Icons.update_outlined,
+                  Icons.calendar_today_outlined, // 使用更符合日期的圖標
                   color: theme.colorScheme.primary,
                   size: 20,
                 ),
@@ -328,7 +331,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
       ));
     }
 
-    // 只有在查詢後才顯示錯誤或空狀態
     if (_hasSearched) {
       if (_errorMessage != null) {
         return _buildInfoMessage(
@@ -338,7 +340,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
           message: _errorMessage!,
         );
       }
-      if (_foundCars.isEmpty) {
+      if (_foundRecords.isEmpty) {
         return _buildInfoMessage(
           icon: Icons.sentiment_dissatisfied_outlined,
           iconColor: theme.colorScheme.primary,
@@ -347,23 +349,21 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
         );
       }
     } else {
-      // 首次進入頁面的提示
       return _buildInfoMessage(
         icon: Icons.search_off_rounded,
         iconColor: theme.colorScheme.secondary,
         title: "開始查詢",
-        message: "請輸入駕駛員 ID 並選擇時間範圍，然後點擊查詢按鈕。",
+        message: "請輸入駕駛員 ID 並選擇日期範圍\n然後點擊查詢按鈕",
       );
     }
 
-    // 成功找到結果的列表
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
           child: Text(
-            "查詢結果 (${_foundCars.length} 筆)",
+            "查詢結果 (${_foundRecords.length} 筆)",
             style: theme.textTheme.titleLarge
                 ?.copyWith(fontWeight: FontWeight.bold),
           ),
@@ -372,12 +372,14 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
           padding: EdgeInsets.zero,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: _foundCars.length,
+          itemCount: _foundRecords.length,
           itemBuilder: (context, index) {
-            final car = _foundCars[index];
+            final record = _foundRecords[index];
             return CarListItem(
-              car: car,
+              car: record.car,
               showLiveButton: true,
+              drivingDates: record.dates,
+              driverId: _driverIdController.text,
             );
           },
         ),
@@ -385,7 +387,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     );
   }
 
-  // 統一的資訊提示 Widget
   Widget _buildInfoMessage({
     required IconData icon,
     required Color iconColor,

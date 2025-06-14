@@ -9,7 +9,7 @@ import '../static.dart';
 import 'history_osm_page.dart';
 import 'segment_details_page.dart';
 
-// ... TrajectorySegment class is unchanged ...
+// TrajectorySegment class 保持不變
 class TrajectorySegment {
   final List<BusPoint> points;
   final DateTime startTime;
@@ -24,7 +24,6 @@ class TrajectorySegment {
       : startTime = points.first.dataTime,
         endTime = points.last.dataTime,
         duration = points.last.dataTime.difference(points.first.dataTime),
-        // 假設段內所有點的這些屬性都相同
         routeId = points.first.routeId,
         goBack = points.first.goBack,
         dutyStatus = points.first.dutyStatus,
@@ -45,8 +44,17 @@ class TrajectorySegment {
 
 class HistoryPage extends StatefulWidget {
   final String plate;
+  final DateTime? initialStartTime;
+  final DateTime? initialEndTime;
+  final String? initialDriverId;
 
-  const HistoryPage({super.key, required this.plate});
+  const HistoryPage({
+    super.key,
+    required this.plate,
+    this.initialStartTime,
+    this.initialEndTime,
+    this.initialDriverId,
+  });
 
   @override
   State<HistoryPage> createState() => _HistoryPageState();
@@ -59,25 +67,41 @@ class _HistoryPageState extends State<HistoryPage> {
   String? _error;
   String? _message;
 
-  DateTime _selectedStartTime =
-      DateTime.now().subtract(const Duration(hours: 1));
-  DateTime _selectedEndTime = DateTime.now();
+  late DateTime _selectedStartTime;
+  late DateTime _selectedEndTime;
 
   List<TrajectorySegment> _filteredSegments = [];
 
-  // *** MODIFIED ***: 新增 _availableRoutes 狀態變數
-  List<BusRoute> _availableRoutes = []; // 用於儲存當前查詢結果中出現的路線
+  List<BusRoute> _availableRoutes = [];
   List<String> _availableDrivers = [];
-  String? _selectedRouteId;
-  String? _selectedDriverId;
+
+  // 將單選狀態改為多選列表狀態
+  List<String> _selectedRouteIds = [];
+  List<String> _selectedDriverIds = [];
 
   @override
   void initState() {
     super.initState();
-    _message = "請選擇時間範圍後點擊查詢。";
+
+    _selectedStartTime = widget.initialStartTime ??
+        DateTime.now().subtract(const Duration(hours: 1));
+    _selectedEndTime = widget.initialEndTime ?? DateTime.now();
+
+    // 如果有傳入初始駕駛員 ID，將其加入到選擇列表中
+    if (widget.initialDriverId != null) {
+      _selectedDriverIds = [widget.initialDriverId!];
+    }
+
+    if (widget.initialStartTime != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fetchHistory();
+      });
+    } else {
+      _message = "請選擇時間範圍後點擊查詢。";
+    }
   }
 
-  // ... _pickDateTime method is unchanged ...
+  // _pickDateTime 方法保持不變
   Future<void> _pickDateTime(BuildContext context, bool isStartTime) async {
     final DateTime initialDate =
         isStartTime ? _selectedStartTime : _selectedEndTime;
@@ -131,19 +155,18 @@ class _HistoryPageState extends State<HistoryPage> {
     _segments = [];
     _filteredSegments = [];
     _error = null;
-    _selectedRouteId = null;
-    _selectedDriverId = null;
+    // 重置篩選器
+    _selectedRouteIds = [];
+    _selectedDriverIds = [];
     _availableDrivers = [];
-    // *** NEW ***: 重置可用路線列表
     _availableRoutes = [];
   }
 
-  // ... _processDataIntoSegments method is unchanged ...
+  // _processDataIntoSegments 方法保持不變
   List<TrajectorySegment> _processDataIntoSegments(List<BusPoint> points) {
     if (points.length < 2) {
       return [];
     }
-
     final List<TrajectorySegment> segments = [];
     List<BusPoint> currentSegmentPoints = [points.first];
 
@@ -177,6 +200,7 @@ class _HistoryPageState extends State<HistoryPage> {
     return segments;
   }
 
+  // _fetchHistory 方法保持不變
   Future<void> _fetchHistory() async {
     if (_selectedStartTime.isAfter(_selectedEndTime)) {
       setState(() {
@@ -190,7 +214,12 @@ class _HistoryPageState extends State<HistoryPage> {
     setState(() {
       _isLoading = true;
       _message = null;
+      // 在查詢前保留篩選條件
+      final routesToKeep = List<String>.from(_selectedRouteIds);
+      final driversToKeep = List<String>.from(_selectedDriverIds);
       _clearDataAndFilters();
+      _selectedRouteIds = routesToKeep;
+      _selectedDriverIds = driversToKeep;
     });
 
     try {
@@ -218,16 +247,15 @@ class _HistoryPageState extends State<HistoryPage> {
             if (_segments.isEmpty) {
               _message = "資料點過少，無法形成有效軌跡段。";
             } else {
-              // *** MODIFIED ***: 提取可用路線和駕駛
               final uniqueRouteIds = _segments.map((s) => s.routeId).toSet();
               _availableRoutes = Static.routeData
                   .where((route) => uniqueRouteIds.contains(route.id))
                   .toList();
-              // 可選：對可用路線進行排序
               _availableRoutes.sort((a, b) => a.name.compareTo(b.name));
 
               _availableDrivers =
                   _segments.map((s) => s.driverId).toSet().toList();
+              _availableDrivers.sort();
 
               _applyFilters();
             }
@@ -266,14 +294,18 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
-  // ... _applyFilters, build, and _buildControlPanel methods are unchanged ...
+  // 更新篩選邏輯以處理列表
   void _applyFilters() {
     setState(() {
       _filteredSegments = _segments.where((segment) {
-        final routeMatch =
-            _selectedRouteId == null || segment.routeId == _selectedRouteId;
-        final driverMatch =
-            _selectedDriverId == null || segment.driverId == _selectedDriverId;
+        // 如果路線篩選器為空，則匹配所有路線；否則，檢查該段的路線ID是否在選擇的列表中
+        final routeMatch = _selectedRouteIds.isEmpty ||
+            _selectedRouteIds.contains(segment.routeId);
+
+        // 對駕駛員進行同樣的邏輯判斷
+        final driverMatch = _selectedDriverIds.isEmpty ||
+            _selectedDriverIds.contains(segment.driverId);
+
         return routeMatch && driverMatch;
       }).toList();
     });
@@ -393,40 +425,22 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
+  // 重構篩選器 UI
   Widget _buildFilterDropdowns() {
     return Row(
       children: [
         // 路線篩選器
         Expanded(
-          child: DropdownButtonFormField<String>(
-            value: _selectedRouteId,
-            hint: const Text('所有路線'),
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: '路線',
-              prefixIcon: const Icon(Icons.route_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-            ),
-            // *** MODIFIED ***: 使用 _availableRoutes 作為項目源
-            items: [
-              const DropdownMenuItem<String>(
-                value: null,
-                child: Text('所有路線'),
-              ),
-              ..._availableRoutes.map((route) {
-                // 改用 _availableRoutes
-                return DropdownMenuItem<String>(
-                  value: route.id,
-                  child: Text(route.name, overflow: TextOverflow.ellipsis),
-                );
-              }),
-            ],
-            onChanged: (value) {
+          child: _buildMultiSelectFilterChip(
+            icon: Icons.route_outlined,
+            label: '路線',
+            allOptions: {
+              for (var route in _availableRoutes) route.id: route.name
+            },
+            selectedOptions: _selectedRouteIds,
+            onSelectionChanged: (newSelection) {
               setState(() {
-                _selectedRouteId = value;
+                _selectedRouteIds = newSelection;
                 _applyFilters();
               });
             },
@@ -435,33 +449,17 @@ class _HistoryPageState extends State<HistoryPage> {
         const SizedBox(width: 12),
         // 駕駛篩選器
         Expanded(
-          child: DropdownButtonFormField<String>(
-            value: _selectedDriverId,
-            hint: const Text('所有駕駛'),
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: '駕駛',
-              prefixIcon: const Icon(Icons.person_pin_circle_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-            ),
-            items: [
-              const DropdownMenuItem<String>(
-                value: null,
-                child: Text('所有駕駛'),
-              ),
-              ..._availableDrivers.map((driverId) {
-                return DropdownMenuItem<String>(
-                  value: driverId,
-                  child: Text(driverId == "0" ? "未知" : driverId),
-                );
-              }),
-            ],
-            onChanged: (value) {
+          child: _buildMultiSelectFilterChip(
+            icon: Icons.person_pin_circle_outlined,
+            label: '駕駛',
+            allOptions: {
+              for (var driverId in _availableDrivers)
+                driverId: driverId == "0" ? "未知" : driverId
+            },
+            selectedOptions: _selectedDriverIds,
+            onSelectionChanged: (newSelection) {
               setState(() {
-                _selectedDriverId = value;
+                _selectedDriverIds = newSelection;
                 _applyFilters();
               });
             },
@@ -471,7 +469,112 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  // ... The rest of the file (_buildDateTimePickerButton, _buildResultsArea, _buildSegmentCard, _buildSegmentDetailRow) is unchanged ...
+  // 新建一個可重用的多選篩選器 Chip 元件
+  Widget _buildMultiSelectFilterChip({
+    required IconData icon,
+    required String label,
+    required Map<String, String> allOptions,
+    required List<String> selectedOptions,
+    required ValueChanged<List<String>> onSelectionChanged,
+  }) {
+    String displayText = selectedOptions.isEmpty
+        ? '所有$label'
+        : (selectedOptions.length == 1
+            ? allOptions[selectedOptions.first]!
+            : '${selectedOptions.length} 個$label');
+
+    return InkWell(
+      onTap: () async {
+        final List<String>? result = await _showMultiSelectDialog(
+          title: '選擇$label',
+          items: allOptions,
+          initialSelectedValues: selectedOptions,
+        );
+
+        if (result != null) {
+          onSelectionChanged(result);
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        ),
+        child: Text(
+          displayText,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+      ),
+    );
+  }
+
+  // 新建一個顯示多選對話框的輔助方法
+  Future<List<String>?> _showMultiSelectDialog({
+    required String title,
+    required Map<String, String> items,
+    required List<String> initialSelectedValues,
+  }) async {
+    // 【修正】將狀態變數的宣告移至 builder 外部。
+    final tempSelectedValues = Set<String>.from(initialSelectedValues);
+
+    return showDialog<List<String>>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(title),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: ListBody(
+                    children: items.entries.map((entry) {
+                      final key = entry.key;
+                      final value = entry.value;
+                      return CheckboxListTile(
+                        title: Text(value),
+                        value: tempSelectedValues.contains(key),
+                        onChanged: (bool? isChecked) {
+                          setState(() {
+                            if (isChecked == true) {
+                              tempSelectedValues.add(key);
+                            } else {
+                              tempSelectedValues.remove(key);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('取消'),
+                  onPressed: () {
+                    Navigator.pop(context, null);
+                  },
+                ),
+                FilledButton(
+                  child: const Text('確定'),
+                  onPressed: () {
+                    Navigator.pop(context, tempSelectedValues.toList());
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ... 其餘的 build 方法 (_buildDateTimePickerButton, _buildResultsArea, etc.) 保持不變 ...
   Widget _buildDateTimePickerButton({
     required BuildContext context,
     required bool isStart,
@@ -539,7 +642,6 @@ class _HistoryPageState extends State<HistoryPage> {
     }
 
     if (_segments.isEmpty) {
-      // 檢查原始數據是否為空
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

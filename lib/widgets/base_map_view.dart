@@ -21,6 +21,8 @@ class PointMarker extends Marker {
 }
 
 class BaseMapView extends StatefulWidget {
+  static const double defaultZoom = 17;
+
   static const List<Color> segmentColors = [
     Colors.red,
     Colors.teal,
@@ -68,7 +70,7 @@ class BaseMapView extends StatefulWidget {
 
 class _BaseMapViewState extends State<BaseMapView> {
   final MapController _mapController = MapController();
-  double _satelliteOpacity = 0.3;
+  double _satelliteOpacity = 0.25;
   BusPoint? _selectedPoint;
   Marker? _highlightMarker;
 
@@ -111,15 +113,33 @@ class _BaseMapViewState extends State<BaseMapView> {
     });
   }
 
+  // *** 核心修正點 1：修改 _recenterMap 方法 ***
   void _recenterMap() {
-    if (widget.points.length > 1 && widget.bounds != null) {
-      _mapController.fitCamera(
-        CameraFit.bounds(
-            bounds: widget.bounds!, padding: const EdgeInsets.all(50)),
-      );
-    } else if (widget.points.isNotEmpty) {
+    if (widget.points.isEmpty) {
+      // 如果沒有點，則不執行任何操作
+      return;
+    }
+
+    if (widget.bounds != null) {
+      final bounds = widget.bounds!;
+      // 檢查邊界框是否為退化狀態（所有點都在同一個位置）
+      if (bounds.southWest == bounds.northEast) {
+        // 如果是，則將地圖移動到該單點，並使用固定的縮放層級
+        _mapController.move(bounds.center, BaseMapView.defaultZoom);
+      } else {
+        // 否則，正常使用 fitCamera 來適應邊界
+        _mapController.fitCamera(
+          CameraFit.bounds(
+              bounds: bounds,
+              padding: const EdgeInsets.all(50),
+              maxZoom: BaseMapView.defaultZoom),
+        );
+      }
+    } else {
+      // 如果沒有提供 bounds，則回退到以最後一個點為中心
       final lastPoint = widget.points.last;
-      _mapController.move(LatLng(lastPoint.lat, lastPoint.lon), 17.0);
+      _mapController.move(
+          LatLng(lastPoint.lat, lastPoint.lon), BaseMapView.defaultZoom);
     }
   }
 
@@ -161,15 +181,16 @@ class _BaseMapViewState extends State<BaseMapView> {
           options: MapOptions(
             initialCenter: widget.points.isNotEmpty
                 ? LatLng(widget.points.last.lat, widget.points.last.lon)
-                : const LatLng(23.5, 121.0),
-            initialZoom: 15.0,
-            // *** 核心修改點：恢復 initialCameraFit ***
-            // 這將處理同步加載的情況 (例如 HistoryOsmPage)
-            initialCameraFit: widget.bounds != null
+                : const LatLng(24.986763, 121.314007),
+            initialZoom: BaseMapView.defaultZoom,
+            // *** 核心修正點 2：修改 initialCameraFit 屬性 ***
+            // 同樣檢查 bounds 是否為退化狀態
+            initialCameraFit: (widget.bounds != null &&
+                    widget.bounds!.southWest != widget.bounds!.northEast)
                 ? CameraFit.bounds(
                     bounds: widget.bounds!,
                     padding: const EdgeInsets.all(50.0),
-                  )
+                    maxZoom: BaseMapView.defaultZoom)
                 : null,
             onTap: (_, __) {
               if (_selectedPoint != null) {
@@ -224,9 +245,8 @@ class _BaseMapViewState extends State<BaseMapView> {
                       TextButton(
                         onPressed: widget.onErrorDismiss,
                         style: TextButton.styleFrom(
-                          foregroundColor: theme.colorScheme.onPrimaryContainer,
-                          backgroundColor:
-                              theme.colorScheme.error.withOpacity(0.1),
+                          backgroundColor: theme.colorScheme.primaryFixedDim,
+                          foregroundColor: theme.colorScheme.onPrimaryFixed,
                         ),
                         child: const Text('關閉'),
                       ),
