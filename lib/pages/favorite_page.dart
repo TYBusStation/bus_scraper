@@ -35,13 +35,8 @@ class FavoritesPage extends StatelessWidget {
           allItems: favoriteCars,
           searchHintText: "在收藏中搜尋車牌",
           // 過濾和排序邏輯與 CarsPage 保持一致
-          filterCondition: (car, text) {
-            final cleanPlate =
-                car.plate.replaceAll(RegExp(r'[^A-Z0-9]'), "").toUpperCase();
-            final cleanText =
-                text.replaceAll(RegExp(r'[^A-Z0-9]'), "").toUpperCase();
-            return cleanPlate.contains(cleanText);
-          },
+          filterCondition: (car, text) =>
+              car.plate.toUpperCase().contains(text.toUpperCase()),
           sortCallback: (a, b) => a.plate.compareTo(b.plate),
 
           // 3. 同樣使用重構後的 CarListItem

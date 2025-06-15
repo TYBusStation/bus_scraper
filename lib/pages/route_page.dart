@@ -1,9 +1,12 @@
+// lib/pages/route_page.dart
+
 import 'package:bus_scraper/data/bus_route.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../static.dart';
 import '../widgets/searchable_list.dart';
+import 'route_vehicles_page.dart'; // 導入新頁面
 
 class RoutePage extends StatelessWidget {
   const RoutePage({super.key});
@@ -33,7 +36,7 @@ class RoutePage extends StatelessWidget {
       },
       sortCallback: (a, b) => Static.compareRoutes(a.name, b.name),
 
-      // 5. 定義如何建立每個列表項 (美化核心)
+      // 每個列表項的構建器
       itemBuilder: (context, route) {
         // 使用 Card 來提升視覺層次感
         return Card(
@@ -47,24 +50,15 @@ class RoutePage extends StatelessWidget {
                 // 路線名稱，使用較大的標題樣式
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 使用 Chip 顯示路線編號，更美觀
-                    Text(
-                      route.name,
-                      style: textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.primary,
-                      ),
-                    ),
-                    // 使用帶有圖示的按鈕，更直觀
-                    FilledButton.icon(
-                      onPressed: () async => await launchUrl(Uri.parse(
-                          "https://ebus.tycg.gov.tw/ebus/driving-map/${route.id}")),
-                      icon: const Icon(Icons.map_outlined),
-                      label: const Text('公車動態'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                    Flexible(
+                      child: Text(
+                        route.name,
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -113,19 +107,62 @@ class RoutePage extends StatelessWidget {
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
+                const SizedBox(height: 12), // 增加一點間距
+                // 將兩個按鈕放在一個 Row 中
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // 原有的「公車動態」按鈕，可以改為 OutlinedButton 以區分
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final url = Uri.parse(
+                            "https://ebus.tycg.gov.tw/ebus/driving-map/${route.id}");
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url);
+                        }
+                      },
+                      icon: const Icon(Icons.map_outlined),
+                      label: const Text('公車動態網'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // 新增的「查詢車輛」按鈕
+                    FilledButton.icon(
+                      onPressed: () {
+                        // 點擊後跳轉到新頁面，並將當前路線對象傳過去
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                RouteVehiclesPage(route: route),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.directions_bus_filled_outlined),
+                      label: const Text('查詢車輛'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
         );
       },
 
-      // 6. 提供搜尋不到結果時的顯示內容 (移除不必要的 ThemeProvider)
+      // 提供搜尋不到結果時的顯示內容
       emptyStateWidget: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.search_off,
-                size: 100, color: colorScheme.primary.withValues(alpha: 0.7)),
+                size: 100, color: colorScheme.primary.withOpacity(0.7)),
             const SizedBox(height: 16),
             Text(
               "找不到符合的路線",

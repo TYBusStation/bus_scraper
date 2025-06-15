@@ -1,22 +1,18 @@
-import 'dart:convert';
+// lib/static.dart
 
 import 'package:bus_scraper/storage/local_storage.dart';
 import 'package:bus_scraper/storage/storage.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import 'data/bus_route.dart';
 import 'data/car.dart';
 
 class Static {
-  // --- *** 核心修改：新增一個靜態 Future 變數來緩存初始化結果 *** ---
-  /// 這個變數會保存 `_performInit()` 返回的 Future。
-  /// 它是可為空的（nullable），初始值為 null。
   static Future<void>? _initFuture;
 
   // --- Constants ---
-  static final DateFormat dateFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
+  static final DateFormat apiDateFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
   static final DateFormat displayDateFormatNoSec =
       DateFormat('yyyy-MM-dd HH:mm');
   static final DateFormat displayDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
@@ -25,30 +21,41 @@ class Static {
 
   static String apiBaseUrl = "https://myster.freeddns.org:25566";
   static const String _graphqlApiUrl = "https://ebus.tycg.gov.tw/ebus/graphql";
+
   static const String _graphqlQueryRoutes = """
-query QUERY_ROUTES(\$lang: String!) {
-  routes(lang: \$lang) {
-    edges {
-      node {
-        id
-        name
-        description
-        departure
-        destination
+  query QUERY_ROUTES(\$lang: String!) {
+    routes(lang: \$lang) {
+      edges {
+        node {
+          id
+          name
+          description
+          departure
+          destination
+        }
       }
     }
   }
-}
-""";
+  """;
+
+  static const String _graphqlQueryRouteDetail = """
+  query QUERY_ROUTE_DETAIL(\$routeId: Int!, \$lang: String!) {
+    route(xno: \$routeId, lang: \$lang) {
+      id
+      name
+      departure
+      destination
+      description
+    }
+  }
+  """;
 
   // --- Dio Instance ---
   static final Dio dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 5),
-    sendTimeout: const Duration(seconds: 5),
-    receiveTimeout: const Duration(seconds: 5),
-    headers: {
-      "Content-Type": "application/json",
-    },
+    connectTimeout: const Duration(seconds: 10), // 增加超時以提高成功率
+    sendTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
+    headers: {"Content-Type": "application/json"},
   ));
 
   // --- Local Storage ---
@@ -60,47 +67,43 @@ query QUERY_ROUTES(\$lang: String!) {
   static late final List<BusRoute> routeData;
   static late final List<Car> carData;
 
-  // --- *** 核心修改：公開的 init 方法 *** ---
-  /// 這個方法是給外部（如 FutureBuilder）調用的。
-  /// 它確保底層的初始化邏輯 `_performInit` 只會被執行一次。
+  /// 公開的初始化方法，確保初始化邏輯只執行一次。
   static Future<void> init() {
-    // 使用 '??=' (null-aware assignment) 運算子。
-    // 如果 _initFuture 是 null，就執行 _performInit() 並將其返回的 Future 賦值給 _initFuture。
-    // 如果 _initFuture 不是 null（表示已經開始或已完成初始化），則不執行右邊的表達式。
     _initFuture ??= _performInit();
-
-    // 無論是第一次調用還是後續調用，都返回同一個 Future 實例。
-    // FutureBuilder 會正確地等待這個唯一的 Future 完成。
     return _initFuture!;
   }
 
-  // --- *** 核心修改：將原始的 init 邏輯移到一個私有方法中 *** ---
-  /// 這個私有方法包含了所有實際的數據加載和初始化工作。
-  /// 它只應該被上面的 `init()` 方法調用一次。
+  /// 私有的初始化核心邏輯。
   static Future<void> _performInit() async {
     log("Static initialization started. (This should only run once)");
 
     await StorageHelper.init();
-    specialRouteData =
-        await _loadRoutesFromJsonAsset("special_route_data.json");
-
     await _testApi();
 
-    try {
-      final results = await Future.wait([
-        _fetchOpRoutesFromServer(),
-        _fetchCarDataFromServer(),
-      ]);
+    // 並行執行所有網絡請求
+    final results = await Future.wait([
+      _fetchOpRoutesFromServer(),
+      _fetchSpecialRoutesFromServer(),
+      _fetchCarDataFromServer(),
+    ], eagerError: false);
 
-      opRouteData = results[0] as List<BusRoute>;
-      carData = results[1] as List<Car>;
-    } catch (e) {
-      log("Error during parallel data fetching: $e. Attempting individual fallbacks.");
-      opRouteData = await _loadRoutesFromJsonAsset("op_route_data.json");
-      carData = [];
-    }
+    // 【核心修正】在這裡進行安全的型別轉換
+    opRouteData = (results[0] is List<BusRoute>)
+        ? results[0] as List<BusRoute> // 強制轉換
+        : [];
 
+    specialRouteData = (results[1] is List<BusRoute>)
+        ? results[1] as List<BusRoute> // 強制轉換
+        : [];
+
+    carData = (results[2] is List<Car>)
+        ? results[2] as List<Car> // 強制轉換
+        : [];
+
+    // 合併路線數據
     routeData = [...opRouteData, ...specialRouteData];
+    final seen = <String>{};
+    routeData.retainWhere((route) => seen.add(route.id));
 
     log("Static initialization complete.");
     log("Operational routes loaded: ${opRouteData.length}");
@@ -112,17 +115,56 @@ query QUERY_ROUTES(\$lang: String!) {
   static Future<void> _testApi() async {
     try {
       await dio.getUri(Uri.parse(apiBaseUrl));
-    } on DioException catch (e) {
-      log("DioError: $e.Changing apiBaseUrl.");
+    } on DioException catch (_) {
+      log("Main API test failed. Changing apiBaseUrl to fallback.");
       apiBaseUrl = "http://192.168.1.159:25567";
     }
   }
 
-  // --- Private Helper Methods (以下所有方法保持不變) ---
-
   static void log(String message) {
     print("[${DateTime.now().toIso8601String()}] [Static] $message");
   }
+
+  /// 動態獲取單一未知路線的詳情。
+  static Future<BusRoute?> fetchRouteDetailById(String routeId) async {
+    final int? routeIdInt = int.tryParse(routeId);
+    if (routeIdInt == null) {
+      log("Error: Invalid routeId format for GraphQL query: $routeId");
+      return null;
+    }
+
+    log("Fetching unknown route detail from API for ID: $routeId");
+    try {
+      final response = await dio.post(
+        _graphqlApiUrl,
+        data: {
+          "operationName": "QUERY_ROUTE_DETAIL",
+          "variables": {"routeId": routeIdInt, "lang": "zh"},
+          "query": _graphqlQueryRouteDetail,
+        },
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        final routeNode = response.data['data']?['route'];
+        if (routeNode is Map<String, dynamic>) {
+          final newRoute = BusRoute.fromJson(routeNode);
+          log("Successfully fetched detail for unknown route: ${newRoute.name} ($routeId)");
+          // 動態地將新獲取的路線加入到全域靜態列表中
+          if (!routeData.any((r) => r.id == newRoute.id)) {
+            routeData.add(newRoute);
+            log("Dynamically added route ${newRoute.name} to Static.routeData.");
+          }
+          return newRoute;
+        }
+      }
+    } on DioException catch (e) {
+      log("DioError fetching route detail for ID $routeId: ${e.message}");
+    } catch (e) {
+      log("Unexpected error fetching route detail for ID $routeId: $e");
+    }
+    return null;
+  }
+
+  // --- Private Data Fetching Methods ---
 
   static Future<List<BusRoute>> _fetchOpRoutesFromServer() async {
     log("Fetching operational routes from API: $_graphqlApiUrl");
@@ -135,43 +177,53 @@ query QUERY_ROUTES(\$lang: String!) {
           "query": _graphqlQueryRoutes,
         },
       );
-
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data;
-        final routesNode = responseData['data']?['routes'];
+        final routesNode = response.data['data']?['routes'];
         if (routesNode != null && routesNode['edges'] is List) {
           final List<dynamic> routeEdges = routesNode['edges'];
-          if (routeEdges.isNotEmpty) {
-            List<BusRoute> processedRoutes = [];
-            for (var edge in routeEdges) {
-              if (edge is Map<String, dynamic> &&
-                  edge['node'] is Map<String, dynamic>) {
-                Map<String, dynamic> routeInfo =
-                    Map<String, dynamic>.from(edge['node']);
-                processedRoutes.add(BusRoute.fromJson(routeInfo));
-              } else {
-                log("Warning: Skipping malformed operational route edge: $edge");
-              }
-            }
-            log("Successfully fetched and processed ${processedRoutes.length} operational routes from API.");
-            return processedRoutes;
-          } else {
-            log("API returned success, but operational route list is empty.");
-          }
-        } else {
-          log("API returned success, but data structure for routes is unexpected: $responseData");
+          List<BusRoute> processedRoutes = routeEdges
+              .where((edge) =>
+                  edge is Map<String, dynamic> &&
+                  edge['node'] is Map<String, dynamic>)
+              .map((edge) =>
+                  BusRoute.fromJson(Map<String, dynamic>.from(edge['node'])))
+              .toList();
+          log("Successfully fetched ${processedRoutes.length} operational routes from API.");
+          return processedRoutes;
         }
-      } else {
-        log("Failed to fetch operational routes. Status: ${response.statusCode}, Message: ${response.statusMessage}, Data: ${response.data}");
       }
     } on DioException catch (e) {
-      log("DioError fetching operational routes: ${e.message}${e.response != null ? " - Response: ${e.response?.data}" : ""}");
+      log("DioError fetching operational routes: ${e.message}");
     } catch (e, stackTrace) {
-      log("Unexpected error fetching or parsing operational routes: $e\nStackTrace: $stackTrace");
+      log("Unexpected error fetching operational routes: $e\nStackTrace: $stackTrace");
     }
+    log("Failed to fetch operational routes. Returning empty list.");
+    return [];
+  }
 
-    log("Falling back to local asset for operational routes (op_route_data.json).");
-    return _loadRoutesFromJsonAsset("op_route_data.json");
+  static Future<List<BusRoute>> _fetchSpecialRoutesFromServer() async {
+    final String url = "$apiBaseUrl/special_routes";
+    log("Fetching special routes from API: $url");
+    try {
+      final response = await dio.getUri(Uri.parse(url));
+      if (response.statusCode == 200 && response.data is List) {
+        final List<dynamic> routesJson = response.data;
+        List<BusRoute> processedRoutes = routesJson
+            .where((routeJson) => routeJson is Map<String, dynamic>)
+            .map((routeJson) => BusRoute.fromJson(routeJson))
+            .toList();
+        log("Successfully fetched ${processedRoutes.length} special routes from API.");
+        return processedRoutes;
+      } else {
+        log("Failed to fetch special routes. Status: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      log("DioError fetching special routes: ${e.message}");
+    } catch (e) {
+      log("Unexpected error fetching special routes: $e");
+    }
+    log("Failed to fetch special routes. Returning empty list as a fallback.");
+    return [];
   }
 
   static Future<List<Car>> _fetchCarDataFromServer() async {
@@ -179,63 +231,25 @@ query QUERY_ROUTES(\$lang: String!) {
     log("Fetching car data from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
-
-      if (response.statusCode == 200 && response.data != null) {
-        if (response.data is List) {
-          final List<dynamic> carsJson = response.data;
-          if (carsJson.isNotEmpty) {
-            List<Car> processedCars = [];
-            for (var carJson in carsJson) {
-              if (carJson is Map<String, dynamic>) {
-                processedCars.add(Car.fromJson(carJson));
-              } else {
-                log("Warning: Skipping malformed car data item: $carJson");
-              }
-            }
-            log("Successfully fetched and processed ${processedCars.length} cars from API.");
-            return processedCars;
-          } else {
-            log("API returned success, but car list is empty.");
-            return [];
-          }
-        } else {
-          log("API returned success, but car data structure is unexpected (expected a List): ${response.data}");
-        }
-      } else {
-        log("Failed to fetch car data. Status: ${response.statusCode}, Message: ${response.statusMessage}, Data: ${response.data}");
+      if (response.statusCode == 200 && response.data is List) {
+        final List<dynamic> carsJson = response.data;
+        List<Car> processedCars = carsJson
+            .where((carJson) => carJson is Map<String, dynamic>)
+            .map((carJson) => Car.fromJson(carJson))
+            .toList();
+        log("Successfully fetched ${processedCars.length} cars from API.");
+        return processedCars;
       }
     } on DioException catch (e) {
-      log("DioError fetching car data: ${e.message}${e.response != null ? " - Response: ${e.response?.data}" : ""}");
-    } catch (e, stackTrace) {
-      log("Unexpected error fetching or parsing car data: $e\nStackTrace: $stackTrace");
+      log("DioError fetching car data: ${e.message}");
+    } catch (e) {
+      log("Unexpected error fetching car data: $e");
     }
-
-    log("Failed to fetch car data from API. Returning empty list as fallback.");
+    log("Failed to fetch car data. Returning empty list.");
     return [];
   }
 
-  static Future<List<BusRoute>> _loadRoutesFromJsonAsset(
-      String fileName) async {
-    log("Loading routes from asset: assets/$fileName");
-    try {
-      final String jsonString = await rootBundle.loadString("assets/$fileName");
-      final List<dynamic> jsonData = jsonDecode(jsonString);
-
-      List<BusRoute> assetRoutes = [];
-      for (var routeJson in jsonData) {
-        if (routeJson is Map<String, dynamic>) {
-          assetRoutes.add(BusRoute.fromJson(routeJson));
-        } else {
-          log("Warning: Skipping malformed route data item in asset $fileName: $routeJson");
-        }
-      }
-      log("Successfully loaded ${assetRoutes.length} routes from asset: $fileName");
-      return assetRoutes;
-    } catch (e, stackTrace) {
-      log("Error loading or parsing routes from asset $fileName: $e\nStackTrace: $stackTrace");
-      return [];
-    }
-  }
+  // --- Sorting Logic (保持不變) ---
 
   static Map<String, dynamic> _parseRoute(String route) {
     String type = 'UNKNOWN';

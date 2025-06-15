@@ -18,7 +18,8 @@ class CarListItem extends StatelessWidget {
     required this.car,
     required this.showLiveButton,
     this.drivingDates,
-    this.driverId, // 【新增】接收 driverId 參數
+    this.driverId,
+    this.routeId, // 【新增】接收 routeId 參數
   });
 
   /// 要顯示的車輛資料。
@@ -30,8 +31,11 @@ class CarListItem extends StatelessWidget {
   /// 要顯示的駕駛日期列表 (List<String>)
   final List<String>? drivingDates;
 
-  /// 【新增】當前查詢的駕駛員 ID，用於點擊日期時傳遞
+  /// 當前查詢的駕駛員 ID，用於點擊日期時傳遞
   final String? driverId;
+
+  /// 【新增】當前查詢的路線 ID，用於點擊日期時傳遞
+  final String? routeId;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +113,6 @@ class CarListItem extends StatelessWidget {
                   runSpacing: 8.0,
                   children: drivingDates!
                       .map((date) => ActionChip(
-                            // 【修改】使用 ActionChip 使其可點擊
                             label: Text(date),
                             labelStyle: TextStyle(
                               color: theme.colorScheme.onSecondaryContainer,
@@ -122,27 +125,29 @@ class CarListItem extends StatelessWidget {
                             side: BorderSide.none,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
-                            // 【新增】點擊事件處理
                             onPressed: () {
-                              if (driverId != null) {
-                                final selectedDate = DateTime.parse(date);
-                                final startTime = DateTime(selectedDate.year,
-                                    selectedDate.month, selectedDate.day);
-                                final endTime =
-                                    startTime.add(const Duration(days: 1));
+                              final selectedDate = DateTime.parse(date);
+                              final startTime = DateTime(selectedDate.year,
+                                  selectedDate.month, selectedDate.day);
+                              final endTime = DateTime(
+                                selectedDate.year,
+                                selectedDate.month,
+                                selectedDate.day,
+                              ).add(const Duration(days: 1));
 
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => HistoryPage(
-                                      plate: car.plate,
-                                      initialStartTime: startTime,
-                                      initialEndTime: endTime,
-                                      initialDriverId: driverId,
-                                    ),
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => HistoryPage(
+                                    plate: car.plate,
+                                    initialStartTime: startTime,
+                                    initialEndTime: endTime,
+                                    initialDriverId: driverId,
+                                    // 【修改】將 routeId 傳遞過去
+                                    initialRouteId: routeId,
                                   ),
-                                );
-                              }
+                                ),
+                              );
                             },
                           ))
                       .toList(),
@@ -155,7 +160,6 @@ class CarListItem extends StatelessWidget {
     );
   }
 
-  // 按鈕的建立函式保持不變
   Widget _buildHistoryButton(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.history_rounded),
@@ -167,7 +171,6 @@ class CarListItem extends StatelessWidget {
         padding: const EdgeInsets.all(10),
       ),
       onPressed: () {
-        // 【注意】這個按鈕仍然跳轉到一個沒有預設篩選的 HistoryPage
         Navigator.push(
           context,
           MaterialPageRoute(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 /// 一個通用的空狀態指示器 Widget。
 ///
 /// 用於在列表為空或搜尋無結果時，提供一個視覺上統一的提示。
+/// 內部使用 SingleChildScrollView 來避免內容溢出 (Overflow)。
 class EmptyStateIndicator extends StatelessWidget {
   const EmptyStateIndicator({
     super.key,
@@ -27,39 +28,43 @@ class EmptyStateIndicator extends StatelessWidget {
     final textTheme = theme.textTheme;
 
     return Center(
-      child: Padding(
-        // 在周圍增加一些間距，避免內容太靠近螢幕邊緣
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 90, // 稍微縮小圖示，使其不那麼突兀
-              color:
-                  colorScheme.secondary.withValues(alpha: 0.7), // 使用次要顏色，視覺上更柔和
-            ),
-            const SizedBox(height: 20),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+      // 解決方案：將內容包裹在 SingleChildScrollView 中。
+      // 這能確保當內容（特別是文字換行後）高度超過可用空間時，
+      // 畫面不會出現 Overflow 錯誤，而是可以滾動。
+      child: SingleChildScrollView(
+        child: Padding(
+          // 在周圍增加一些間距，避免內容太靠近螢幕邊緣
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 80, // 稍微調整大小以適應更多場景
+                color: colorScheme.secondary.withOpacity(0.7), // 使用次要顏色，視覺上更柔和
               ),
-            ),
-            // 如果有提供副標題，則顯示它
-            if (subtitle != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 24),
               Text(
-                subtitle!,
+                title,
                 textAlign: TextAlign.center,
-                style: textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurfaceVariant, // 使用更柔和的文字顏色
+                style: textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
+              // 如果有提供副標題，則顯示它
+              if (subtitle != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  subtitle!,
+                  textAlign: TextAlign.center,
+                  style: textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.onSurfaceVariant, // 使用更柔和的文字顏色
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

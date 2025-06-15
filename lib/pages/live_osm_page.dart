@@ -96,8 +96,8 @@ class _LiveOsmPageState extends State<LiveOsmPage>
           ? endTime.subtract(const Duration(hours: 1))
           : _lastPointTime!;
 
-      final formattedStartTime = Static.dateFormat.format(startTime);
-      final formattedEndTime = Static.dateFormat.format(endTime);
+      final formattedStartTime = Static.apiDateFormat.format(startTime);
+      final formattedEndTime = Static.apiDateFormat.format(endTime);
 
       final url = Uri.parse(
           "${Static.apiBaseUrl}/bus_data/${widget.plate}?start_time=$formattedStartTime&end_time=$formattedEndTime");

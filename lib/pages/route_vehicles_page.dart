@@ -1,30 +1,32 @@
+// lib/pages/route_vehicles_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../data/bus_route.dart';
 import '../widgets/driving_record_list.dart';
-import '../widgets/empty_state_indicator.dart'; // 【修改】1. 引入 EmptyStateIndicator
+import '../widgets/empty_state_indicator.dart';
 import '../widgets/theme_provider.dart';
 
-class DriverPlatesPage extends StatefulWidget {
-  const DriverPlatesPage({super.key});
+class RouteVehiclesPage extends StatefulWidget {
+  final BusRoute route;
+
+  const RouteVehiclesPage({super.key, required this.route});
 
   @override
-  State<DriverPlatesPage> createState() => _DriverPlatesPageState();
+  State<RouteVehiclesPage> createState() => _RouteVehiclesPageState();
 }
 
-class _DriverPlatesPageState extends State<DriverPlatesPage> {
-  final _driverIdController = TextEditingController();
-  DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
+class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
+  DateTime _startDate = DateTime.now().subtract(const Duration(days: 2));
   DateTime _endDate = DateTime.now();
   final _displayDateFormat = DateFormat('yyyy/MM/dd');
 
   bool _hasSearched = false;
-  String _currentDriverId = '';
+  Map<String, dynamic> _queryParameters = {};
 
   @override
-  void dispose() {
-    _driverIdController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
   }
 
   Future<void> _selectDate(BuildContext context, bool isStart) async {
@@ -49,43 +51,50 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
   }
 
   void _triggerSearch() {
-    FocusScope.of(context).unfocus();
+    FocusScope.of(context).unfocus(); // 點擊查詢時收起鍵盤
     setState(() {
       _hasSearched = true;
-      _currentDriverId = _driverIdController.text;
+      _queryParameters = {
+        'routeId': widget.route.id,
+        'startDate': _startDate,
+        'endDate': _endDate,
+      };
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return ThemeProvider(
-      builder: (BuildContext context, ThemeData themeData) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildInputCard(),
-            const SizedBox(height: 8),
-            Expanded(
-              child: _hasSearched
-                  ? DrivingRecordList(
-                      key: ValueKey('driver_$_currentDriverId'),
-                      queryType: QueryType.byDriver,
-                      queryValue: _currentDriverId,
-                      startDate: _startDate,
-                      endDate: _endDate,
-                      driverIdForListItem: _currentDriverId,
-                    )
-                  : _buildInitialMessage(), // <-- 這個方法現在更簡潔了
-            ),
-          ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${widget.route.name} 行駛車輛查詢'),
+      ),
+      body: ThemeProvider(
+        builder: (BuildContext context, ThemeData themeData) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildControlCard(),
+              const SizedBox(height: 8),
+              Expanded(
+                child: _hasSearched
+                    ? DrivingRecordList(
+                        key: ValueKey(_queryParameters.toString()),
+                        queryType: QueryType.byRoute,
+                        queryValue: _queryParameters['routeId'],
+                        startDate: _queryParameters['startDate'],
+                        endDate: _queryParameters['endDate'],
+                      )
+                    : _buildInitialMessage(),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildInputCard() {
-    // ... 此處程式碼不變 ...
+  Widget _buildControlCard() {
     return Card(
       elevation: 1,
       margin: const EdgeInsets.only(top: 12),
@@ -101,20 +110,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _driverIdController,
-              decoration: const InputDecoration(
-                isDense: true,
-                labelText: "駕駛員 ID",
-                hintText: "如：120031",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person_search_outlined),
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-              ),
-              keyboardType: TextInputType.text,
-            ),
-            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -156,7 +151,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     required DateTime value,
     required VoidCallback onPressed,
   }) {
-    // ... 此處程式碼不變 ...
     final theme = Theme.of(context);
     final displayText = _displayDateFormat.format(value);
 
@@ -194,12 +188,11 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     );
   }
 
-  // 【修改】2. 將此方法的實作替換為 EmptyStateIndicator
   Widget _buildInitialMessage() {
     return const EmptyStateIndicator(
-      icon: Icons.person_search_outlined, // 也可以用 Icons.search_off_rounded
-      title: "開始查詢",
-      subtitle: "請輸入駕駛員 ID 並選擇日期範圍\n然後點擊查詢按鈕\n(註：ID 前方若有 0 可能需去除)",
+      icon: Icons.directions_bus_filled_outlined,
+      title: "查詢路線車輛",
+      subtitle: "請選擇日期範圍後\n點擊查詢按鈕",
     );
   }
 }
