@@ -169,9 +169,6 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   List<TrajectorySegment> _processDataIntoSegments(List<BusPoint> points) {
-    if (points.length < 2) {
-      return [];
-    }
     final List<TrajectorySegment> segments = [];
     List<BusPoint> currentSegmentPoints = [points.first];
 
@@ -256,14 +253,6 @@ class _HistoryPageState extends State<HistoryPage> {
         final allHistoryData =
             decodedData.map((item) => BusPoint.fromJson(item)).toList();
         final segments = _processDataIntoSegments(allHistoryData);
-
-        if (segments.isEmpty) {
-          setState(() {
-            _message = "資料點過少，無法形成有效軌跡段。";
-            _isLoading = false;
-          });
-          return;
-        }
 
         // --- 動態處理路線 ---
         final uniqueRouteIds = segments.map((s) => s.routeId).toSet();

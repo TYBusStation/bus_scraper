@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart'; // 用於 deepEq (深度相等比較)
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // 新增：用於剪貼簿功能
+import 'package:flutter/services.dart'; // 用於剪貼簿功能
 
 import '../data/company.dart'; // 公司資料模型 (假設仍然需要用於公司選擇)
 import '../static.dart'; // 靜態資源，例如 API URL 和 dio 實例
@@ -459,8 +459,23 @@ class _CompanyPageState extends State<CompanyPage> {
     return buffer.toString();
   }
 
-  /// 執行複製操作並顯示提示
+  /// 執行複製比較結果操作並顯示提示
   Future<void> _copyComparisonResult() async {
+    // --- 修改 ---: 增加一個檢查，確保有東西可以複製
+    if (_comparisonResult == null ||
+        (_comparisonResult!['added']!.isEmpty &&
+            _comparisonResult!['removed']!.isEmpty)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('沒有可複製的差異內容。'),
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
     final comparisonText = _generateComparisonTextForClipboard();
     await Clipboard.setData(ClipboardData(text: comparisonText));
 
@@ -473,6 +488,34 @@ class _CompanyPageState extends State<CompanyPage> {
         ),
       );
     }
+  }
+
+  // --- 新增 ---: 複製單一資料集連結的方法
+  Future<void> _copyDataLink(String? timestamp, String panelName) async {
+    // 檢查是否所有必要資訊都存在
+    if (timestamp == null ||
+        _selectedCompany == null ||
+        _selectedDataType == null) {
+      return;
+    }
+    // 確保 widget 仍然掛載在樹上
+    if (!mounted) return;
+
+    // 構建 URL
+    final url =
+        '${Static.apiBaseUrl}/company_data/file/${_selectedCompany!.code}/$_selectedDataType/$timestamp';
+
+    // 複製到剪貼簿
+    await Clipboard.setData(ClipboardData(text: url));
+
+    // 顯示提示
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$panelName 的資料連結已複製！'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   // --- Widget 建構方法 ---
@@ -548,17 +591,23 @@ class _CompanyPageState extends State<CompanyPage> {
     );
   }
 
+  // 最終優化版的 _buildDataPanel 方法
   Widget _buildDataPanel({
     required ThemeData themeData,
-    required String title,
-    required dynamic data, // 預期是 List<String> 或 null
+    required int panelIndex,
+    required dynamic data,
     required bool isLoading,
-    // selectedDataType 仍然可以傳遞，但 _buildListDisplay 已不依賴它來顯示 List<String>
     required String? selectedDataType,
   }) {
+    final String? selectedTimestamp =
+        (panelIndex == 1) ? _selectedTimestamp1 : _selectedTimestamp2;
+    // 我們將標題和時間戳分開處理，以便更好地控制佈局
+    final String titleText = "資料集 $panelIndex:";
+    final String timestampText = selectedTimestamp ?? '未選';
+
     String dataTypeDisplayName = selectedDataType != null
         ? (_dataTypeDisplayNames[selectedDataType] ?? selectedDataType)
-        : '資料'; // Fallback display name
+        : '資料';
 
     Widget content;
     final placeholderColor =
@@ -590,7 +639,6 @@ class _CompanyPageState extends State<CompanyPage> {
                 ?.copyWith(color: placeholderColor)),
       ));
     } else if (data is List) {
-      // 主要處理 List<String>
       content = _buildListDisplay(themeData, data);
     } else {
       content = Center(
@@ -611,13 +659,51 @@ class _CompanyPageState extends State<CompanyPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6.0),
-            child: Text(title,
-                style: themeData.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center),
+          // --- 修改開始: 使用 Stack 佈局來徹底解決空間衝突 ---
+          Stack(
+            children: [
+              // 1. 標題文字本身，佔據所有寬度，並有足夠的內邊距
+              Padding(
+                // 左右提供足夠邊距，避免文字跑到卡片邊緣或按鈕下方
+                padding: const EdgeInsets.fromLTRB(12, 6, 40, 6),
+                child: RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: themeData.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                    children: [
+                      TextSpan(text: '$titleText\n'), // 標題，並強制換行
+                      TextSpan(
+                        text: timestampText,
+                        // 讓時間戳文字小一點，更易於在小空間內顯示
+                        style: themeData.textTheme.bodySmall?.copyWith(
+                          color: themeData.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // 2. 將複製按鈕疊加在右上角
+              Positioned(
+                top: 0,
+                right: 4,
+                bottom: 0, // top:0 和 bottom:0 會讓按鈕在垂直方向上居中
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Icon(Icons.link,
+                      size: 16, color: themeData.colorScheme.primary),
+                  tooltip: '複製資料連結',
+                  onPressed: selectedTimestamp == null
+                      ? null
+                      : () =>
+                          _copyDataLink(selectedTimestamp, '資料集 $panelIndex'),
+                ),
+              ),
+            ],
           ),
+          // --- 修改結束 ---
           Divider(height: 1, thickness: 1, color: themeData.dividerColor),
           Expanded(child: content),
         ],
@@ -638,7 +724,7 @@ class _CompanyPageState extends State<CompanyPage> {
             margin: const EdgeInsets.all(4.0),
             color: themeData.colorScheme.surfaceContainerHighest.withAlpha(180),
             child: Padding(
-              padding: const EdgeInsetsGeometry.all(4),
+              padding: const EdgeInsets.all(4),
               child: Text(item, style: themeData.textTheme.bodySmall),
             ),
           );
@@ -685,7 +771,7 @@ class _CompanyPageState extends State<CompanyPage> {
       child: Row(
         children: [
           Padding(
-            padding: const EdgeInsetsGeometry.all(4),
+            padding: const EdgeInsets.all(4),
             child: Icon(icon, color: iconColor, size: 18),
           ),
           Expanded(
@@ -700,8 +786,6 @@ class _CompanyPageState extends State<CompanyPage> {
       ),
     );
   }
-
-  // _buildModifiedItemCard 已被移除
 
   Widget _buildComparisonPanel(ThemeData themeData) {
     String dataTypeDisplayName = "項目"; // 簡化顯示名稱
@@ -735,7 +819,7 @@ class _CompanyPageState extends State<CompanyPage> {
         padding: const EdgeInsets.all(4.0),
         child: Text(
             (_filteredData1 != null && _filteredData2 != null)
-                ? '正在準備比較結果或無明顯差異...'
+                ? '正在準備比較結果...'
                 : '比較結果將顯示於此。',
             textAlign: TextAlign.center,
             style: themeData.textTheme.bodySmall
@@ -788,7 +872,6 @@ class _CompanyPageState extends State<CompanyPage> {
           }
           diffWidgets.add(const SizedBox(height: 4));
         }
-        // "modified" 部分已移除
         content = ListView(
             padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
             children: diffWidgets);
@@ -811,6 +894,10 @@ class _CompanyPageState extends State<CompanyPage> {
         final bool canSelectTimestamps =
             _selectedCompany != null && _selectedDataType != null;
         final colorScheme = themeData.colorScheme;
+        // --- 新增 ---: 判斷比較結果複製按鈕是否可用的邏輯
+        final bool canCopyComparison = _comparisonResult != null &&
+            (_comparisonResult!['added']!.isNotEmpty ||
+                _comparisonResult!['removed']!.isNotEmpty);
 
         return Padding(
           padding: const EdgeInsets.all(8.0),
@@ -908,9 +995,10 @@ class _CompanyPageState extends State<CompanyPage> {
                   children: [
                     Expanded(
                       flex: 1,
+                      // --- 修改 ---: 更新 _buildDataPanel 的呼叫方式
                       child: _buildDataPanel(
                         themeData: themeData,
-                        title: "資料集 1: ${_selectedTimestamp1 ?? '未選'}",
+                        panelIndex: 1,
                         data: _filteredData1,
                         isLoading: _isLoadingData1,
                         selectedDataType: _selectedDataType,
@@ -919,9 +1007,10 @@ class _CompanyPageState extends State<CompanyPage> {
                     const SizedBox(width: 6),
                     Expanded(
                       flex: 1,
+                      // --- 修改 ---: 更新 _buildDataPanel 的呼叫方式
                       child: _buildDataPanel(
                         themeData: themeData,
-                        title: "資料集 2: ${_selectedTimestamp2 ?? '未選'}",
+                        panelIndex: 2,
                         data: _filteredData2,
                         isLoading: _isLoadingData2,
                         selectedDataType: _selectedDataType,
@@ -938,7 +1027,6 @@ class _CompanyPageState extends State<CompanyPage> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // 使用 Spacer 將標題和複製按鈕分開
                                 const Spacer(flex: 2),
                                 Icon(Icons.compare_arrows,
                                     size: 18, color: colorScheme.primary),
@@ -949,13 +1037,14 @@ class _CompanyPageState extends State<CompanyPage> {
                                         ?.copyWith(
                                             fontWeight: FontWeight.w600)),
                                 const Spacer(flex: 1),
-                                // 新增：複製按鈕
                                 IconButton(
                                   icon: Icon(Icons.content_copy,
                                       size: 16, color: colorScheme.primary),
                                   tooltip: '複製比較結果',
-                                  // 如果沒有可複製的內容，則禁用按鈕 (onPressed 為 null)
-                                  onPressed: _copyComparisonResult,
+                                  // --- 修改 ---: 根據是否有結果來決定是否啟用按鈕
+                                  onPressed: canCopyComparison
+                                      ? _copyComparisonResult
+                                      : null,
                                 ),
                               ],
                             ),
