@@ -50,6 +50,8 @@ class BaseMapView extends StatefulWidget {
   final bool hideAppBar;
   final VoidCallback? onErrorDismiss;
 
+  final Function(BusPoint, String?)? onPointSelected;
+
   const BaseMapView({
     super.key,
     required this.appBarTitle,
@@ -62,17 +64,19 @@ class BaseMapView extends StatefulWidget {
     this.bounds,
     this.hideAppBar = false,
     this.onErrorDismiss,
+    this.onPointSelected, // **新增**
   });
 
   @override
-  State<BaseMapView> createState() => _BaseMapViewState();
+  State<BaseMapView> createState() => BaseMapViewState();
 }
 
-class _BaseMapViewState extends State<BaseMapView> {
+class BaseMapViewState extends State<BaseMapView> {
   final MapController _mapController = MapController();
   double _satelliteOpacity = 0.25;
   BusPoint? _selectedPoint;
   Marker? _highlightMarker;
+  String? _selectedPlate;
 
   @override
   void didUpdateWidget(covariant BaseMapView oldWidget) {
@@ -88,13 +92,15 @@ class _BaseMapViewState extends State<BaseMapView> {
     }
   }
 
-  void _selectPoint(BusPoint point) {
+  void selectPoint(BusPoint point, {String? plate}) {
     setState(() {
       if (_selectedPoint == point) {
         _selectedPoint = null;
         _highlightMarker = null;
+        _selectedPlate = null; // 清除車牌
       } else {
         _selectedPoint = point;
+        _selectedPlate = plate; // 存儲車牌
         _highlightMarker = Marker(
           point: LatLng(point.lat, point.lon),
           width: 40,
@@ -153,23 +159,33 @@ class _BaseMapViewState extends State<BaseMapView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final processedMarkers = widget.markers.map((marker) {
-      if (marker is PointMarker) {
-        return Marker(
-          point: marker.point,
-          width: marker.width,
-          height: marker.height,
-          alignment: marker.alignment,
-          child: GestureDetector(
-            onTap: () => _selectPoint(marker.busPoint),
-            child: marker.child,
+    // 我們需要創建一個新的 marker 列表來添加 GestureDetector
+    final List<Marker> interactiveMarkers = [];
+    for (final marker in widget.markers) {
+      if (marker.child is GestureDetector) {
+        // 如果 marker 已經是交互式的 (從 MultiLiveOsmPage 傳來)，直接添加
+        interactiveMarkers.add(marker);
+      } else if (marker is PointMarker) {
+        // 如果是 PointMarker (從 LiveOsmPage 傳來)，為它包裝 GestureDetector
+        interactiveMarkers.add(
+          PointMarker(
+            busPoint: marker.busPoint,
+            width: marker.width,
+            height: marker.height,
+            alignment: marker.alignment,
+            child: GestureDetector(
+              onTap: () => selectPoint(marker.busPoint), // 不傳遞 plate
+              child: marker.child,
+            ),
           ),
         );
+      } else {
+        // 其他類型的 marker
+        interactiveMarkers.add(marker);
       }
-      return marker;
-    }).toList();
+    }
 
-    final List<Marker> allMarkersToShow = [...processedMarkers];
+    final List<Marker> allMarkersToShow = [...interactiveMarkers];
     if (_highlightMarker != null) {
       allMarkersToShow.add(_highlightMarker!);
     }
@@ -347,6 +363,9 @@ class _BaseMapViewState extends State<BaseMapView> {
             orElse: () => Static.routeData.first)
         : null;
 
+    // 直接使用 state 中的 _selectedPlate
+    final String? plate = _selectedPlate;
+
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -383,23 +402,28 @@ class _BaseMapViewState extends State<BaseMapView> {
                                   style: theme.textTheme.titleMedium
                                       ?.copyWith(fontWeight: FontWeight.bold))),
                           IconButton(
-                            icon: const Icon(Icons.map_sharp),
-                            color: Colors.blueAccent,
-                            tooltip: '在 Google Map 上查看',
-                            onPressed: () async => await launchUrl(Uri.parse(
-                                "https://www.google.com/maps?q=${_selectedPoint!.lat}"
-                                ",${_selectedPoint!.lon}(${route.name} | ${route.description} "
-                                "| 往 ${_selectedPoint!.goBack == 1 ? route.destination : route.departure} "
-                                "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
-                                "| 駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId} "
-                                "| ${Static.displayDateFormat.format(_selectedPoint!.dataTime)})")),
-                          ),
+                              icon: const Icon(Icons.map_sharp),
+                              color: Colors.blueAccent,
+                              tooltip: '在 Google Map 上查看',
+                              onPressed: () async {
+                                // 根據 plate 是否存在，動態構建 Google Maps 連結的標題
+                                final mapTitle = (plate != null
+                                        ? "$plate | "
+                                        : "") +
+                                    "${route.name} | ${route.description} "
+                                        "| 往 ${_selectedPoint!.goBack == 1 ? route.destination : route.departure} "
+                                        "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
+                                        "| 駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId} "
+                                        "| ${Static.displayDateFormat.format(_selectedPoint!.dataTime)}";
+
+                                await launchUrl(Uri.parse(
+                                    "https://www.google.com/maps?q=${_selectedPoint!.lat}"
+                                    ",${_selectedPoint!.lon}($mapTitle)"));
+                              }),
                           IconButton(
                             icon: const Icon(Icons.close),
-                            onPressed: () => setState(() {
-                              _selectedPoint = null;
-                              _highlightMarker = null;
-                            }),
+                            onPressed: () =>
+                                selectPoint(_selectedPoint!), // 點擊關閉會取消選中
                           ),
                         ],
                       ),
@@ -415,6 +439,13 @@ class _BaseMapViewState extends State<BaseMapView> {
                             spacing: 8.0,
                             runSpacing: 6.0,
                             children: [
+                              // **核心邏輯: 只有在 plate 不為 null 時才顯示車牌 Chip**
+                              if (plate != null)
+                                _buildInfoChip(
+                                  icon: Icons.numbers,
+                                  label: "車牌：$plate",
+                                  color: theme.colorScheme.primary, // 給予突出的顏色
+                                ),
                               _buildInfoChip(
                                   icon: Icons.route_outlined,
                                   label: "${route.name} (${route.id})"),
