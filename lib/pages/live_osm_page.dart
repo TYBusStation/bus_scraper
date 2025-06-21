@@ -92,8 +92,9 @@ class _LiveOsmPageState extends State<LiveOsmPage>
 
     try {
       final endTime = DateTime.now();
+      // --- 變更 1: 查詢開始時間從 1 小時前改為 20 分鐘前 ---
       final startTime = isInitialLoad || _lastPointTime == null
-          ? endTime.subtract(const Duration(hours: 1))
+          ? endTime.subtract(const Duration(minutes: 20))
           : _lastPointTime!;
 
       final formattedStartTime = Static.apiDateFormat.format(startTime);
@@ -117,8 +118,11 @@ class _LiveOsmPageState extends State<LiveOsmPage>
           _points = newPoints;
         } else {
           _points.addAll(newPoints);
-          final oneHourAgo = DateTime.now().subtract(const Duration(hours: 1));
-          _points.removeWhere((point) => point.dataTime.isBefore(oneHourAgo));
+          // --- 變更 2: 清除舊點位的基準從 1 小時前改為 20 分鐘前 ---
+          final twentyMinutesAgo =
+              DateTime.now().subtract(const Duration(minutes: 20));
+          _points.removeWhere(
+              (point) => point.dataTime.isBefore(twentyMinutesAgo));
         }
 
         if (_points.isNotEmpty) {
@@ -129,7 +133,8 @@ class _LiveOsmPageState extends State<LiveOsmPage>
 
         String? newError;
         if (_points.isEmpty) {
-          newError = "過去一小時内沒有找到軌跡資料。";
+          // --- 變更 3: 更新錯誤訊息 ---
+          newError = "過去 20 分鐘内沒有找到軌跡資料。";
         } else {
           final lastPointTime = _points.last.dataTime;
           final timeDifference = DateTime.now().difference(lastPointTime);
@@ -156,7 +161,8 @@ class _LiveOsmPageState extends State<LiveOsmPage>
           _points.clear();
           _prepareMapData();
           setState(() {
-            _error = "過去一小時内沒有找到軌跡資料。";
+            // --- 變更 4: 更新 404 錯誤訊息 ---
+            _error = "過去 20 分鐘内沒有找到軌跡資料。";
             _isLoading = false;
             _lastFetchTime = DateTime.now();
           });

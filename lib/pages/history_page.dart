@@ -462,7 +462,8 @@ class _HistoryPageState extends State<HistoryPage> {
             icon: Icons.route_outlined,
             label: '路線',
             allOptions: {
-              for (var route in _availableRoutes) route.id: route.name,
+              for (var route in _availableRoutes)
+                route.id: "${route.name} [${route.description}] (${route.id})",
               for (var segment in _segments)
                 if (!_availableRoutes.any((r) => r.id == segment.routeId) &&
                     !Static.routeData.any((r) => r.id == segment.routeId))
@@ -557,6 +558,7 @@ class _HistoryPageState extends State<HistoryPage> {
     return showDialog<List<String>>(
       context: context,
       builder: (BuildContext context) {
+        final theme = Theme.of(context);
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
@@ -569,7 +571,10 @@ class _HistoryPageState extends State<HistoryPage> {
                       final key = entry.key;
                       final value = entry.value;
                       return CheckboxListTile(
-                        title: Text(value),
+                        title: Text(
+                          value,
+                          style: theme.textTheme.bodyMedium,
+                        ),
                         value: tempSelectedValues.contains(key),
                         onChanged: (bool? isChecked) {
                           setStateDialog(() {
@@ -764,23 +769,27 @@ class _HistoryPageState extends State<HistoryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Chip(
                   avatar: Icon(Icons.route_outlined,
                       size: 18, color: theme.colorScheme.primary),
-                  label: Text("${route.name} (${route.id})",
-                      style: theme.textTheme.labelLarge),
+                  label: Text(
+                      "${route.name} [${route.description}] (${route.id})",
+                      style: theme.textTheme.labelMedium),
                   backgroundColor:
                       theme.colorScheme.primaryContainer.withOpacity(0.4),
                 ),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    "往 ${segment.goBack == 1 ? route.destination : route.departure}",
-                    style: theme.textTheme.bodyMedium,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Chip(
+                  avatar: Icon(Icons.swap_horiz,
+                      size: 18, color: theme.colorScheme.primary),
+                  label: Text(
+                      "往 ${segment.goBack == 1 ? route.destination : route.departure}",
+                      style: theme.textTheme.labelMedium),
+                  backgroundColor:
+                      theme.colorScheme.primaryContainer.withOpacity(0.4),
                 ),
               ],
             ),

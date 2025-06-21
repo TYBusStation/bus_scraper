@@ -101,8 +101,9 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
       // 為每個車牌創建一個異步請求
       final futures = widget.plates.map((plate) async {
         final lastPointTime = _lastPointTimeByPlate[plate];
+        // --- 變更 1: 查詢開始時間從 1 小時前改為 20 分鐘前 ---
         final startTime = isInitialLoad || lastPointTime == null
-            ? endTime.subtract(const Duration(hours: 1))
+            ? endTime.subtract(const Duration(minutes: 20))
             : lastPointTime;
 
         final formattedStartTime = Static.apiDateFormat.format(startTime);
@@ -140,9 +141,11 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
           _pointsByPlate[plate] = newPoints;
         } else {
           _pointsByPlate.putIfAbsent(plate, () => []).addAll(newPoints);
-          final oneHourAgo = DateTime.now().subtract(const Duration(hours: 1));
+          // --- 變更 2: 清除舊點位的基準從 1 小時前改為 20 分鐘前 ---
+          final twentyMinutesAgo =
+              DateTime.now().subtract(const Duration(minutes: 20));
           _pointsByPlate[plate]
-              ?.removeWhere((p) => p.dataTime.isBefore(oneHourAgo));
+              ?.removeWhere((p) => p.dataTime.isBefore(twentyMinutesAgo));
         }
 
         if (_pointsByPlate[plate]?.isNotEmpty ?? false) {
@@ -157,9 +160,10 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
           _pointsByPlate.values.expand((points) => points).toList();
       String? newError;
       if (allPoints.isEmpty) {
-        newError = "過去一小時内沒有找到任何收藏車輛的軌跡資料。";
+        // --- 變更 3: 更新錯誤訊息 ---
+        newError = "過去 20 分鐘内沒有找到任何收藏車輛的軌跡資料。";
       } else if (errorPlates.isNotEmpty) {
-        newError = "車輛資料獲取失敗。";
+        newError = "部分車輛資料獲取失敗。"; // 訊息可以更精確一點
       }
 
       setState(() {
