@@ -463,7 +463,7 @@ class _HistoryPageState extends State<HistoryPage> {
             label: '路線',
             allOptions: {
               for (var route in _availableRoutes)
-                route.id: "${route.name} [${route.description}] (${route.id})",
+                route.id: "${route.name} (${route.id})\n${route.description}",
               for (var segment in _segments)
                 if (!_availableRoutes.any((r) => r.id == segment.routeId) &&
                     !Static.routeData.any((r) => r.id == segment.routeId))
@@ -542,7 +542,9 @@ class _HistoryPageState extends State<HistoryPage> {
         child: Text(
           displayText,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodyLarge,
+          style: allOptions.length > 3
+              ? Theme.of(context).textTheme.bodySmall
+              : Theme.of(context).textTheme.bodyLarge,
         ),
       ),
     );
@@ -573,7 +575,9 @@ class _HistoryPageState extends State<HistoryPage> {
                       return CheckboxListTile(
                         title: Text(
                           value,
-                          style: theme.textTheme.bodyMedium,
+                          style: items.length > 3
+                              ? Theme.of(context).textTheme.bodySmall
+                              : Theme.of(context).textTheme.bodyLarge,
                         ),
                         value: tempSelectedValues.contains(key),
                         onChanged: (bool? isChecked) {
@@ -771,17 +775,16 @@ class _HistoryPageState extends State<HistoryPage> {
           children: [
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 4,
               children: [
                 Chip(
                   avatar: Icon(Icons.route_outlined,
                       size: 18, color: theme.colorScheme.primary),
-                  label: Text(
-                      "${route.name} [${route.description}] (${route.id})",
+                  label: Text("${route.name} (${route.id})",
                       style: theme.textTheme.labelMedium),
                   backgroundColor:
                       theme.colorScheme.primaryContainer.withOpacity(0.4),
                 ),
-                const SizedBox(width: 8),
                 Chip(
                   avatar: Icon(Icons.swap_horiz,
                       size: 18, color: theme.colorScheme.primary),

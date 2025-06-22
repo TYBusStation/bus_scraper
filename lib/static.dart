@@ -61,11 +61,14 @@ class Static {
   // --- Local Storage ---
   static final LocalStorage localStorage = LocalStorage();
 
-  // --- Static Data (late final) ---
+  // --- Static Data (late final and nullable) ---
   static late final List<BusRoute> opRouteData;
   static late final List<BusRoute> specialRouteData;
-  static late final List<BusRoute> routeData;
+  static late final List<BusRoute> routeData; // 營運中 + 特殊路線
   static late final List<Car> carData;
+
+  // 【新增】用於快取所有路線的變數，設為 nullable
+  static List<BusRoute>? allRouteData;
 
   /// 公開的初始化方法，確保初始化邏輯只執行一次。
   static Future<void> init() {
@@ -164,7 +167,48 @@ class Static {
     return null;
   }
 
+  // --- 【新增】獲取所有路線的公共方法，包含快取邏輯 ---
+  static Future<List<BusRoute>> fetchAllRoutes() async {
+    // 如果已經快取，直接返回快取的資料
+    if (allRouteData != null) {
+      log("Returning all routes from cache.");
+      return allRouteData!;
+    }
+
+    // 如果沒有快取，則從伺服器獲取
+    log("Cache empty. Fetching all routes from server...");
+    final List<BusRoute> routes = await _fetchAllRoutesFromServer();
+    allRouteData = routes; // 將結果存入快取
+    return routes;
+  }
+
   // --- Private Data Fetching Methods ---
+
+  // 【新增】實際從伺服器獲取所有路線資料的私有方法
+  static Future<List<BusRoute>> _fetchAllRoutesFromServer() async {
+    final String url = "$apiBaseUrl/all_routes";
+    log("Fetching all routes from API: $url");
+    try {
+      final response = await dio.getUri(Uri.parse(url));
+      if (response.statusCode == 200 && response.data is List) {
+        final List<dynamic> routesJson = response.data;
+        List<BusRoute> processedRoutes = routesJson
+            .where((routeJson) => routeJson is Map<String, dynamic>)
+            .map((routeJson) => BusRoute.fromJson(routeJson))
+            .toList();
+        log("Successfully fetched ${processedRoutes.length} routes from /all_routes.");
+        return processedRoutes;
+      } else {
+        log("Failed to fetch all routes. Status: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      log("DioError fetching all routes: ${e.message}");
+    } catch (e) {
+      log("Unexpected error fetching all routes: $e");
+    }
+    log("Failed to fetch all routes. Returning empty list as a fallback.");
+    return [];
+  }
 
   static Future<List<BusRoute>> _fetchOpRoutesFromServer() async {
     log("Fetching operational routes from API: $_graphqlApiUrl");
@@ -374,7 +418,7 @@ class Static {
           (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
       if (suffixAlphaComparison != 0) return suffixAlphaComparison;
       String paParen = pa['suffixParenthesis'] as String;
-      String pbParen = pb['suffixParenthesis'] as String;
+      String pbParen = pa['suffixParenthesis'] as String;
       if (paIsSpecial && pbIsSpecial) return 0;
       if (paParen.isEmpty && pbParen.isNotEmpty) return -1;
       if (paParen.isNotEmpty && pbParen.isEmpty) return 1;

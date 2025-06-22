@@ -189,23 +189,51 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
     }
   }
 
+  // =========================================================================
+  // ===                         核心修改在此方法                         ===
+  // =========================================================================
   void _prepareMapData() {
     final List<Polyline> allPolylines = [];
     final List<Marker> allMarkers = [];
     final List<LatLng> allPointsForBounds = [];
 
+    // **核心修改 1: 定義一個全域顏色索引**
+    // 這個索引將在所有車輛的所有軌跡段之間共享和遞增。
+    int globalColorIndex = 0;
+
     _pointsByPlate.forEach((plate, points) {
       if (points.isEmpty) return;
 
+      // 1. 正常處理單一車輛的點位，獲取其軌跡段
       final processedData = processBusPoints(points);
-      allPolylines.addAll(processedData.polylines);
 
-      // **核心修改: 自定義 Marker 的點擊事件**
-      // 我們不再直接使用 processedData.markers
-      // 而是遍歷原始的 BusPoint 來創建帶有自定義 onTap 的 Marker
+      // **核心修改 2: 為當前車輛的軌跡段重新上色**
+      // 我們不直接使用 processedData.polylines，而是創建一個新的列表。
+      final List<Polyline> vehicleRecoloredPolylines = [];
+      for (final originalPolyline in processedData.polylines) {
+        // 使用全域索引來獲取顏色
+        final newColor = BaseMapView
+            .segmentColors[globalColorIndex % BaseMapView.segmentColors.length];
+
+        // 創建一個帶有新顏色的 Polyline 物件
+        vehicleRecoloredPolylines.add(
+          Polyline(
+            points: originalPolyline.points,
+            color: newColor,
+            strokeWidth: originalPolyline.strokeWidth,
+          ),
+        );
+        // 每處理一個軌跡段，索引就加一
+        globalColorIndex++;
+      }
+
+      // 將重新上色後的軌跡線加入到總列表中
+      allPolylines.addAll(vehicleRecoloredPolylines);
+
+      // **核心修改 3: 創建 Marker 時，從重新上色後的軌跡線獲取顏色**
       for (final point in points) {
-        // 找到這個點對應的顏色
-        final segmentColor = processedData.polylines
+        // 找到這個點對應的顏色，但這次是從我們自己創建的 `vehicleRecoloredPolylines` 列表中查找
+        final segmentColor = vehicleRecoloredPolylines
             .lastWhere(
                 (polyline) =>
                     polyline.points.contains(LatLng(point.lat, point.lon)),
@@ -221,13 +249,12 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
             height: 14,
             child: GestureDetector(
               onTap: () {
-                // 使用 GlobalKey 調用 BaseMapView 的方法
                 _baseMapStateKey.currentState?.selectPoint(point, plate: plate);
               },
               child: Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: segmentColor,
+                  color: segmentColor, // 使用正確的連續顏色
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: const [
                     BoxShadow(color: Colors.black26, blurRadius: 4)
@@ -239,7 +266,7 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
         );
       }
 
-      // 添加當前位置的 Marker，同樣需要自定義 onTap
+      // 添加當前位置的 Marker (這部分邏輯不變)
       final lastPoint = points.last;
       allMarkers.add(Marker(
           point: LatLng(lastPoint.lat, lastPoint.lon),
@@ -251,8 +278,7 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
               _baseMapStateKey.currentState
                   ?.selectPoint(lastPoint, plate: plate);
             },
-            child:
-                _buildCurrentLocationMarkerContent(lastPoint, plate), // 抽離出內容部分
+            child: _buildCurrentLocationMarkerContent(lastPoint, plate),
           )));
 
       allPointsForBounds.addAll(points.map((p) => LatLng(p.lat, p.lon)));
@@ -431,7 +457,6 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
       appBar: _buildAppBar(context),
       body: BaseMapView(
         key: _baseMapStateKey,
-        // **核心修改: 將 GlobalKey 賦予 BaseMapView**
         appBarTitle: '',
         hideAppBar: true,
         isLoading: _isLoading,
@@ -439,7 +464,6 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
         points: allPoints,
         polylines: _polylines,
         markers: _markers,
-        // **核心修改: 傳入我們手動創建的 Markers**
         bounds: _isFirstLoadComplete ? _bounds : null,
         onErrorDismiss: _dismissError,
       ),
