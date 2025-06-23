@@ -605,6 +605,13 @@ class _CompanyPageState extends State<CompanyPage> {
     final String titleText = "資料集 $panelIndex:";
     final String timestampText = selectedTimestamp ?? '未選';
 
+    // --- 新增開始: 計算資料筆數 ---
+    String countText = '';
+    if (data is List) {
+      countText = ' (筆數: ${data.length})';
+    }
+    // --- 新增結束 ---
+
     String dataTypeDisplayName = selectedDataType != null
         ? (_dataTypeDisplayNames[selectedDataType] ?? selectedDataType)
         : '資料';
@@ -659,12 +666,9 @@ class _CompanyPageState extends State<CompanyPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // --- 修改開始: 使用 Stack 佈局來徹底解決空間衝突 ---
           Stack(
             children: [
-              // 1. 標題文字本身，佔據所有寬度，並有足夠的內邊距
               Padding(
-                // 左右提供足夠邊距，避免文字跑到卡片邊緣或按鈕下方
                 padding: const EdgeInsets.fromLTRB(12, 6, 40, 6),
                 child: RichText(
                   textAlign: TextAlign.center,
@@ -672,10 +676,10 @@ class _CompanyPageState extends State<CompanyPage> {
                     style: themeData.textTheme.titleSmall
                         ?.copyWith(fontWeight: FontWeight.w600),
                     children: [
-                      TextSpan(text: '$titleText\n'), // 標題，並強制換行
+                      // --- 修改: 將筆數加到標題中 ---
+                      TextSpan(text: '$titleText$countText\n'),
                       TextSpan(
                         text: timestampText,
-                        // 讓時間戳文字小一點，更易於在小空間內顯示
                         style: themeData.textTheme.bodySmall?.copyWith(
                           color: themeData.colorScheme.onSurfaceVariant,
                         ),
@@ -684,11 +688,10 @@ class _CompanyPageState extends State<CompanyPage> {
                   ),
                 ),
               ),
-              // 2. 將複製按鈕疊加在右上角
               Positioned(
                 top: 0,
                 right: 4,
-                bottom: 0, // top:0 和 bottom:0 會讓按鈕在垂直方向上居中
+                bottom: 0,
                 child: IconButton(
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -703,7 +706,6 @@ class _CompanyPageState extends State<CompanyPage> {
               ),
             ],
           ),
-          // --- 修改結束 ---
           Divider(height: 1, thickness: 1, color: themeData.dividerColor),
           Expanded(child: content),
         ],

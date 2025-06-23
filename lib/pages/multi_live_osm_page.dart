@@ -360,7 +360,7 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
   AppBar _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
     return AppBar(
-      title: const Text('收藏車輛即時位置'),
+      title: const Text('收藏車輛動態'),
       actions: [
         if (_lastFetchTime != null && !_isLoading)
           AnimatedBuilder(

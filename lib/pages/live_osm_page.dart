@@ -271,7 +271,7 @@ class _LiveOsmPageState extends State<LiveOsmPage>
   AppBar _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
     return AppBar(
-      title: Text('${widget.plate} 即時位置'),
+      title: Text('${widget.plate} 動態'),
       actions: [
         if (_lastFetchTime != null && !_isLoading)
           AnimatedBuilder(

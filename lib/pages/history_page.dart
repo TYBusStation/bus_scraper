@@ -539,13 +539,9 @@ class _HistoryPageState extends State<HistoryPage> {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         ),
-        child: Text(
-          displayText,
-          overflow: TextOverflow.ellipsis,
-          style: allOptions.length > 3
-              ? Theme.of(context).textTheme.bodySmall
-              : Theme.of(context).textTheme.bodyLarge,
-        ),
+        child: Text(displayText,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium),
       ),
     );
   }
@@ -573,12 +569,8 @@ class _HistoryPageState extends State<HistoryPage> {
                       final key = entry.key;
                       final value = entry.value;
                       return CheckboxListTile(
-                        title: Text(
-                          value,
-                          style: items.length > 3
-                              ? Theme.of(context).textTheme.bodySmall
-                              : Theme.of(context).textTheme.bodyLarge,
-                        ),
+                        title: Text(value,
+                            style: Theme.of(context).textTheme.bodyMedium),
                         value: tempSelectedValues.contains(key),
                         onChanged: (bool? isChecked) {
                           setStateDialog(() {

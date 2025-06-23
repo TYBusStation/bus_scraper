@@ -2,11 +2,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/bus_point.dart';
+import '../data/bus_route.dart';
 import '../static.dart';
 
 // PointMarker class (無變更)
@@ -81,9 +83,14 @@ class BaseMapViewState extends State<BaseMapView> {
   Marker? _highlightMarker;
   String? _selectedPlate;
 
-  // ** 2. 新增狀態變數 **
   LatLng? _currentLocation;
   bool _isLocating = false;
+
+  // --- 變更開始: 新增狀態變數以處理未知路線 ---
+  BusRoute? _selectedRoute;
+  bool _isFetchingRouteDetail = false;
+
+  // --- 變更結束 ---
 
   @override
   void didUpdateWidget(covariant BaseMapView oldWidget) {
@@ -97,14 +104,36 @@ class BaseMapViewState extends State<BaseMapView> {
     }
   }
 
-  // selectPoint 方法 (無變更)
+  // --- 變更開始: 新增獲取路線詳情的方法 ---
+  /// 異步獲取未知路線的詳細資訊並更新狀態。
+  Future<void> _fetchAndSetRouteDetail(String routeId) async {
+    // 使用 Static 類別來獲取未知路線的詳細資訊
+    final route = await Static.fetchRouteDetailById(routeId);
+    if (mounted) {
+      // 確保當前選擇的點仍然是我們正在獲取的那個點
+      if (_selectedPoint != null && _selectedPoint!.routeId == routeId) {
+        setState(() {
+          _selectedRoute = route; // 如果獲取失敗，route 會是 null
+          _isFetchingRouteDetail = false;
+        });
+      }
+    }
+  }
+
+  // --- 變更結束 ---
+
+  // --- 變更開始: 修改 selectPoint 方法以處理未知路線 ---
   void selectPoint(BusPoint point, {String? plate}) {
     setState(() {
       if (_selectedPoint == point) {
+        // --- 取消選擇 ---
         _selectedPoint = null;
         _highlightMarker = null;
         _selectedPlate = null;
+        _selectedRoute = null; // 清除已選擇的路線
+        _isFetchingRouteDetail = false; // 重置加載狀態
       } else {
+        // --- 選擇新的點 ---
         _selectedPoint = point;
         _selectedPlate = plate;
         _highlightMarker = Marker(
@@ -121,11 +150,30 @@ class BaseMapViewState extends State<BaseMapView> {
             ),
           ),
         );
+
+        // --- 處理路線資訊 ---
+        _selectedRoute = null; // 先清除舊的路線
+        _isFetchingRouteDetail = false; // 重置狀態
+
+        // 在現有資料中尋找路線
+        final routeIndex =
+            Static.routeData.indexWhere((r) => r.id == point.routeId);
+
+        if (routeIndex != -1) {
+          // 在靜態資料中找到了路線
+          _selectedRoute = Static.routeData[routeIndex];
+        } else {
+          // 沒有找到，需要從 API 獲取
+          _isFetchingRouteDetail = true;
+          // 呼叫非同步方法，不要在 setState 中 await
+          _fetchAndSetRouteDetail(point.routeId);
+        }
       }
     });
   }
 
-  // _recenterMap 方法 (無變更)
+  // --- 變更結束 ---
+
   void _recenterMap() {
     if (widget.points.isEmpty) {
       return;
@@ -150,7 +198,6 @@ class BaseMapViewState extends State<BaseMapView> {
     }
   }
 
-  // ** 3. 新增定位方法 **
   Future<void> _locateMe() async {
     if (_isLocating) return;
 
@@ -251,7 +298,6 @@ class BaseMapViewState extends State<BaseMapView> {
       allMarkersToShow.add(_highlightMarker!);
     }
 
-    // ** 4. 新增當前位置的 Marker **
     if (_currentLocation != null) {
       allMarkersToShow.add(
         Marker(
@@ -259,7 +305,6 @@ class BaseMapViewState extends State<BaseMapView> {
           width: 24,
           height: 24,
           child: IgnorePointer(
-            // 讓這個 marker 不可點擊
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -276,7 +321,6 @@ class BaseMapViewState extends State<BaseMapView> {
     }
 
     final body = Stack(
-      // ... Stack 內容 (無變更)
       children: [
         FlutterMap(
           mapController: _mapController,
@@ -294,24 +338,26 @@ class BaseMapViewState extends State<BaseMapView> {
                 : null,
             onTap: (_, __) {
               if (_selectedPoint != null) {
-                setState(() {
-                  _selectedPoint = null;
-                  _highlightMarker = null;
-                });
+                // selectPoint is now the single source of truth for deselection
+                selectPoint(_selectedPoint!);
               }
             },
           ),
           children: [
             TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              tileProvider: CancellableNetworkTileProvider(),
+            ),
             Opacity(
               opacity: _satelliteOpacity,
               child: TileLayer(
-                  urlTemplate:
-                      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
+                urlTemplate:
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                tileProvider: CancellableNetworkTileProvider(),
+              ),
             ),
             PolylineLayer(polylines: widget.polylines),
-            MarkerLayer(markers: allMarkersToShow), // markers 已包含當前位置
+            MarkerLayer(markers: allMarkersToShow),
           ],
         ),
         if (widget.isLoading)
@@ -365,7 +411,6 @@ class BaseMapViewState extends State<BaseMapView> {
       ],
     );
 
-    // ... Scaffold 部分 (無變更)
     if (widget.hideAppBar) {
       return body;
     }
@@ -400,37 +445,29 @@ class BaseMapViewState extends State<BaseMapView> {
     final theme = Theme.of(context);
     return Column(
       children: [
-        // 衛星圖層 Slider Card (已再次縮小)
         Card(
           elevation: 4,
-          // --- 變更開始 ---
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          // 圓角可選地縮小
           child: Container(
-            width: 40, // 原為 48
-            height: 120, // 原為 150
-            padding: const EdgeInsets.symmetric(vertical: 4), // 原為 6
-            // --- 變更結束 ---
+            width: 40,
+            height: 120,
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.satellite_alt_outlined,
-                    // --- 變更開始 ---
-                    size: 18, // 原為 20
-                    // --- 變更結束 ---
-                    color: theme.colorScheme.onSurface),
+                    size: 18, color: theme.colorScheme.onSurface),
                 Expanded(
                   child: RotatedBox(
                     quarterTurns: 3,
-                    // --- 變更開始：使用 SliderTheme 來縮小滑桿本身 ---
                     child: SliderTheme(
                       data: SliderTheme.of(context).copyWith(
-                        trackHeight: 2.0, // 軌道高度 (厚度)
+                        trackHeight: 2.0,
                         thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 6.0), // 滑塊圓點的大小
-                        overlayShape: const RoundSliderOverlayShape(
-                            overlayRadius: 12.0), // 按下時水波紋的大小
+                            enabledThumbRadius: 6.0),
+                        overlayShape:
+                            const RoundSliderOverlayShape(overlayRadius: 12.0),
                       ),
                       child: Slider(
                         value: _satelliteOpacity,
@@ -438,14 +475,13 @@ class BaseMapViewState extends State<BaseMapView> {
                         onChanged: (v) => setState(() => _satelliteOpacity = v),
                       ),
                     ),
-                    // --- 變更結束 ---
                   ),
                 ),
               ],
             ),
           ),
         ),
-        // 重新置中按鈕 (維持縮小版)
+        const SizedBox(height: 4),
         FloatingActionButton.small(
           onPressed: _recenterMap,
           tooltip: '重新置中',
@@ -453,7 +489,7 @@ class BaseMapViewState extends State<BaseMapView> {
           heroTag: 'recenter_btn',
           child: const Icon(Icons.my_location),
         ),
-        // 定位按鈕 (維持縮小版)
+        const SizedBox(height: 4),
         FloatingActionButton.small(
           onPressed: _isLocating ? null : _locateMe,
           tooltip: '定位我的位置',
@@ -477,18 +513,14 @@ class BaseMapViewState extends State<BaseMapView> {
     );
   }
 
-  // _buildInfoPanel 方法 (無變更)
+  // --- 變更開始: 修改 _buildInfoPanel 以顯示加載和錯誤狀態 ---
   Widget _buildInfoPanel() {
-    // ... 此方法內容完全不變 ...
     final theme = Theme.of(context);
     final isVisible = _selectedPoint != null;
     const double panelHeight = 190.0;
 
-    final route = isVisible
-        ? Static.routeData.firstWhere((r) => r.id == _selectedPoint!.routeId,
-            orElse: () => Static.routeData.first)
-        : null;
-
+    // 現在直接使用狀態變數
+    final route = _selectedRoute;
     final String? plate = _selectedPlate;
 
     return AnimatedPositioned(
@@ -512,10 +544,12 @@ class BaseMapViewState extends State<BaseMapView> {
                   offset: const Offset(0, -2))
             ],
           ),
-          child: isVisible && _selectedPoint != null && route != null
-              ? Column(
+          child: !isVisible
+              ? const SizedBox.shrink()
+              : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // --- Header (一直顯示) ---
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
                       child: Row(
@@ -530,20 +564,23 @@ class BaseMapViewState extends State<BaseMapView> {
                               icon: const Icon(Icons.map_sharp),
                               color: Colors.blueAccent,
                               tooltip: '在 Google Map 上查看',
-                              onPressed: () async {
-                                final mapTitle = (plate != null
-                                        ? "$plate | "
-                                        : "") +
-                                    "${route.name} | ${route.description} "
-                                        "| 往 ${_selectedPoint!.goBack == 1 ? route.destination : route.departure} "
-                                        "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
-                                        "| 駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId} "
-                                        "| ${Static.displayDateFormat.format(_selectedPoint!.dataTime)}";
+                              // 當路線資訊還在加載或加載失敗時，禁用此按鈕
+                              onPressed: route == null
+                                  ? null
+                                  : () async {
+                                      final mapTitle = (plate != null
+                                              ? "$plate | "
+                                              : "") +
+                                          "${route.name} | ${route.description} "
+                                              "| 往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'} "
+                                              "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
+                                              "| 駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId} "
+                                              "| ${Static.displayDateFormat.format(_selectedPoint!.dataTime)}";
 
-                                await launchUrl(Uri.parse(
-                                    "https://www.google.com/maps?q=${_selectedPoint!.lat}"
-                                    ",${_selectedPoint!.lon}($mapTitle)"));
-                              }),
+                                      await launchUrl(Uri.parse(
+                                          "https://www.google.com/maps?q=${_selectedPoint!.lat}"
+                                          ",${_selectedPoint!.lon}($mapTitle)"));
+                                    }),
                           IconButton(
                             icon: const Icon(Icons.close),
                             onPressed: () => selectPoint(_selectedPoint!),
@@ -553,64 +590,87 @@ class BaseMapViewState extends State<BaseMapView> {
                     ),
                     const Divider(
                         height: 1, thickness: 1, indent: 16, endIndent: 16),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 8.0),
-                          child: Wrap(
-                            spacing: 8.0,
-                            runSpacing: 6.0,
-                            children: [
-                              if (plate != null)
+
+                    // --- Body (根據狀態條件性顯示) ---
+                    if (_isFetchingRouteDetail)
+                      // 狀態 1: 正在加載
+                      const Expanded(
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (route != null)
+                      // 狀態 2: 成功加載路線資訊
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0, vertical: 8.0),
+                            child: Wrap(
+                              spacing: 8.0,
+                              runSpacing: 6.0,
+                              children: [
+                                if (plate != null)
+                                  _buildInfoChip(
+                                    icon: Icons.numbers,
+                                    label: "車牌：$plate",
+                                    color: theme.colorScheme.primary,
+                                  ),
                                 _buildInfoChip(
-                                  icon: Icons.numbers,
-                                  label: "車牌：$plate",
-                                  color: theme.colorScheme.primary,
+                                    icon: Icons.route_outlined,
+                                    label: "${route.name} (${route.id})"),
+                                _buildInfoChip(
+                                    icon: Icons.description_outlined,
+                                    label: route.description),
+                                _buildInfoChip(
+                                    icon: Icons.swap_horiz,
+                                    label:
+                                        "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'}"),
+                                _buildInfoChip(
+                                  icon: _selectedPoint!.dutyStatus == 0
+                                      ? Icons.work_outline
+                                      : Icons.work_off_outlined,
+                                  label: _selectedPoint!.dutyStatus == 0
+                                      ? "營運"
+                                      : "非營運",
+                                  color: _selectedPoint!.dutyStatus == 0
+                                      ? Colors.green
+                                      : Colors.orange,
                                 ),
-                              _buildInfoChip(
-                                  icon: Icons.route_outlined,
-                                  label: "${route.name} (${route.id})"),
-                              _buildInfoChip(
-                                  icon: Icons.description_outlined,
-                                  label: route.description),
-                              _buildInfoChip(
-                                  icon: Icons.swap_horiz,
-                                  label:
-                                      "往 ${_selectedPoint!.goBack == 1 ? route.destination : route.departure}"),
-                              _buildInfoChip(
-                                icon: _selectedPoint!.dutyStatus == 0
-                                    ? Icons.work_outline
-                                    : Icons.work_off_outlined,
-                                label: _selectedPoint!.dutyStatus == 0
-                                    ? "營運"
-                                    : "非營運",
-                                color: _selectedPoint!.dutyStatus == 0
-                                    ? Colors.green
-                                    : Colors.orange,
-                              ),
-                              _buildInfoChip(
-                                  icon: Icons.person_pin_circle_outlined,
-                                  label:
-                                      "駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId}"),
-                              _buildInfoChip(
-                                  icon: Icons.gps_fixed,
-                                  label:
-                                      "${_selectedPoint!.lat.toStringAsFixed(5)}, ${_selectedPoint!.lon.toStringAsFixed(5)}"),
-                            ],
+                                _buildInfoChip(
+                                    icon: Icons.person_pin_circle_outlined,
+                                    label:
+                                        "駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId}"),
+                                _buildInfoChip(
+                                    icon: Icons.gps_fixed,
+                                    label:
+                                        "${_selectedPoint!.lat.toStringAsFixed(5)}, ${_selectedPoint!.lon.toStringAsFixed(5)}"),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      // 狀態 3: 加載失敗 (或無此路線)
+                      Expanded(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              '無法載入路線 ${_selectedPoint!.routeId} 的詳細資訊。',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: theme.colorScheme.error),
+                            ),
                           ),
                         ),
                       ),
-                    ),
                   ],
-                )
-              : const SizedBox.shrink(),
+                ),
         ),
       ),
     );
   }
 
-  // _buildInfoChip 方法 (無變更)
+  // --- 變更結束 ---
+
   Widget _buildInfoChip(
       {required IconData icon, required String label, Color? color}) {
     final theme = Theme.of(context);

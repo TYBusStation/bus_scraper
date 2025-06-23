@@ -45,6 +45,7 @@ dependencies:
   latlong2: ^0.9.1
   cupertino_icons: ^1.0.6
   geolocator: ^14.0.1
+  flutter_map_cancellable_tile_provider: ^3.1.0
 
 dev_dependencies:
   flutter_test:

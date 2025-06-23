@@ -147,7 +147,7 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
 
     if (!hasData) {
       return Scaffold(
-        appBar: AppBar(title: Text('${widget.plate} 軌跡地圖')),
+        appBar: AppBar(title: Text('${widget.plate} 軌跡')),
         body: const Center(child: Text('沒有可顯示的點位數據。')),
       );
     }

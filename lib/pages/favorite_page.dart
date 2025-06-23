@@ -49,8 +49,8 @@ class FavoritesPage extends StatelessWidget {
                       ),
                     );
                   },
-                  label: const Text('顯示所有收藏動態'),
-                  icon: const Icon(Icons.map_outlined),
+                  label: const Text('顯示收藏車輛動態'),
+                  icon: const Icon(Icons.directions_bus_rounded),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     textStyle: const TextStyle(
