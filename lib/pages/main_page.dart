@@ -1,5 +1,8 @@
+// lib/main_page.dart
+
 import 'package:bus_scraper/pages/company_page.dart';
 import 'package:bus_scraper/pages/favorite_page.dart';
+import 'package:bus_scraper/pages/nearby_vehicles_page.dart'; // <--- 1. 導入新頁面
 import 'package:flutter/material.dart';
 
 import 'cars_page.dart';
@@ -20,9 +23,22 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 根據選擇的頁面動態設定 AppBar 標題
+    final String appBarTitle = switch (selectedIndex) {
+      0 => "資訊",
+      1 => "路線",
+      2 => "車輛",
+      3 => "收藏",
+      4 => "駕駛反查",
+      5 => "公司",
+      6 => "附近車輛", // <--- 4. 新增標題
+      7 => "設定",
+      _ => "BusScraper"
+    };
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("BusScraper"),
+        title: Text(appBarTitle),
       ),
       body: switch (selectedIndex) {
         0 => const InfoPage(),
@@ -31,7 +47,8 @@ class _MainPageState extends State<MainPage> {
         3 => const FavoritesPage(),
         4 => const DriverPlatesPage(),
         5 => const CompanyPage(),
-        6 => const SettingsPage(),
+        6 => const NearbyVehiclesPage(),
+        7 => const SettingsPage(),
         _ => throw UnsupportedError('Invalid index: $selectedIndex'),
       },
       bottomNavigationBar: NavigationBar(
@@ -67,6 +84,12 @@ class _MainPageState extends State<MainPage> {
             icon: Icon(Icons.business_outlined),
             selectedIcon: Icon(Icons.business),
             label: '公司',
+          ),
+          // --- 3. 新增導航項目 ---
+          NavigationDestination(
+            icon: Icon(Icons.pin_drop_outlined),
+            selectedIcon: Icon(Icons.pin_drop),
+            label: '附近',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

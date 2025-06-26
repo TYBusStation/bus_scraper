@@ -403,8 +403,8 @@ class BaseMapViewState extends State<BaseMapView> {
             ),
           ),
         Positioned(
-          top: 15,
-          right: 10,
+          bottom: (_selectedPoint != null ? 220 : 0) + 16,
+          right: 16,
           child: _buildMapControls(),
         ),
         _buildInfoPanel(),
@@ -444,6 +444,7 @@ class BaseMapViewState extends State<BaseMapView> {
   Widget _buildMapControls() {
     final theme = Theme.of(context);
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Card(
           elevation: 4,
@@ -486,8 +487,8 @@ class BaseMapViewState extends State<BaseMapView> {
           onPressed: _recenterMap,
           tooltip: '重新置中',
           elevation: 4,
-          heroTag: 'recenter_btn',
-          child: const Icon(Icons.my_location),
+          heroTag: 'recenter_btn_nearby',
+          child: const Icon(Icons.center_focus_strong),
         ),
         const SizedBox(height: 4),
         FloatingActionButton.small(
@@ -497,17 +498,14 @@ class BaseMapViewState extends State<BaseMapView> {
           backgroundColor: _isLocating
               ? Colors.grey
               : theme.floatingActionButtonTheme.backgroundColor,
-          heroTag: 'locate_me_btn',
+          heroTag: 'locate_me_btn_nearby',
           child: _isLocating
               ? const SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: Colors.white,
-                  ),
-                )
-              : const Icon(Icons.person_pin),
+                      strokeWidth: 2.5, color: Colors.white))
+              : const Icon(Icons.my_location),
         ),
       ],
     );

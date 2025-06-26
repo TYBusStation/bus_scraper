@@ -4,6 +4,8 @@ part 'bus_point.g.dart';
 
 @JsonSerializable()
 class BusPoint {
+  @JsonKey(name: "plate")
+  final String plate;
   @JsonKey(name: "driver_id")
   final String driverId;
   @JsonKey(name: "route_id")
@@ -20,6 +22,7 @@ class BusPoint {
   final DateTime dataTime;
 
   BusPoint({
+    required this.plate,
     required this.driverId,
     required this.routeId,
     required this.goBack,

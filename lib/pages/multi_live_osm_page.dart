@@ -13,6 +13,19 @@ import '../static.dart';
 import '../utils/map_data_processor.dart';
 import '../widgets/base_map_view.dart';
 
+// --- 優化 1: 為地圖顯示資料創建一個封裝類，讓狀態更新更清晰 ---
+class _MapDisplayData {
+  final List<Polyline> polylines;
+  final List<Marker> markers;
+  final LatLngBounds? bounds;
+
+  _MapDisplayData({
+    required this.polylines,
+    required this.markers,
+    this.bounds,
+  });
+}
+
 const Duration _kRefreshInterval = Duration(seconds: 30);
 
 final GlobalKey<BaseMapViewState> _baseMapStateKey =
@@ -34,13 +47,11 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
   String? _error;
   DateTime? _lastFetchTime;
 
-  // 使用 Map 來儲存每輛車的數據和最後更新時間
   final Map<String, List<BusPoint>> _pointsByPlate = {};
   final Map<String, DateTime> _lastPointTimeByPlate = {};
 
-  List<Polyline> _polylines = [];
-  List<Marker> _markers = [];
-  LatLngBounds? _bounds;
+  // 使用 _MapDisplayData 來管理地圖圖層
+  _MapDisplayData _mapData = _MapDisplayData(polylines: [], markers: []);
 
   late final AnimationController _locationAnimationController;
   late final AnimationController _timerAnimationController;
@@ -98,13 +109,19 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
       final endTime = DateTime.now();
       final List<String> errorPlates = [];
 
-      // 為每個車牌創建一個異步請求
       final futures = widget.plates.map((plate) async {
         final lastPointTime = _lastPointTimeByPlate[plate];
-        // --- 變更 1: 查詢開始時間從 1 小時前改為 20 分鐘前 ---
-        final startTime = isInitialLoad || lastPointTime == null
-            ? endTime.subtract(const Duration(minutes: 20))
-            : lastPointTime;
+
+        // --- *** 修正點 *** ---
+        final DateTime startTime;
+        if (isInitialLoad || lastPointTime == null) {
+          // 初次載入或無歷史資料，抓取過去 20 分鐘
+          startTime = endTime.subtract(const Duration(minutes: 20));
+        } else {
+          // 增量更新，從最後一個點的時間再往後推一毫秒開始抓取
+          startTime = lastPointTime.add(const Duration(milliseconds: 1));
+        }
+        // --- *** 修正結束 *** ---
 
         final formattedStartTime = Static.apiDateFormat.format(startTime);
         final formattedEndTime = Static.apiDateFormat.format(endTime);
@@ -125,14 +142,12 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
             errorPlates.add(plate);
           }
         }
-        return {'plate': plate, 'points': <BusPoint>[]}; // 失敗或404時返回空列表
+        return {'plate': plate, 'points': <BusPoint>[]};
       });
 
-      // 使用 Future.wait 等待所有請求完成
       final results = await Future.wait(futures);
       if (!mounted) return;
 
-      // 處理所有請求的結果
       for (var result in results) {
         final plate = result['plate'] as String;
         final newPoints = result['points'] as List<BusPoint>;
@@ -141,7 +156,6 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
           _pointsByPlate[plate] = newPoints;
         } else {
           _pointsByPlate.putIfAbsent(plate, () => []).addAll(newPoints);
-          // --- 變更 2: 清除舊點位的基準從 1 小時前改為 20 分鐘前 ---
           final twentyMinutesAgo =
               DateTime.now().subtract(const Duration(minutes: 20));
           _pointsByPlate[plate]
@@ -153,20 +167,19 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
         }
       }
 
-      _prepareMapData();
+      final newMapData = _prepareMapData();
 
-      // 檢查是否有任何車輛數據，並設定錯誤訊息
       final allPoints =
           _pointsByPlate.values.expand((points) => points).toList();
       String? newError;
       if (allPoints.isEmpty) {
-        // --- 變更 3: 更新錯誤訊息 ---
         newError = "過去 20 分鐘内沒有找到任何收藏車輛的軌跡資料。";
       } else if (errorPlates.isNotEmpty) {
-        newError = "部分車輛資料獲取失敗。"; // 訊息可以更精確一點
+        newError = "部分車輛資料獲取失敗: ${errorPlates.join(', ')}";
       }
 
       setState(() {
+        _mapData = newMapData;
         _isLoading = false;
         _lastFetchTime = DateTime.now();
         _error = newError;
@@ -189,118 +202,103 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
     }
   }
 
-  // =========================================================================
-  // ===                         核心修改在此方法                         ===
-  // =========================================================================
-  void _prepareMapData() {
+  _MapDisplayData _prepareMapData() {
     final List<Polyline> allPolylines = [];
     final List<Marker> allMarkers = [];
     final List<LatLng> allPointsForBounds = [];
 
-    // **核心修改 1: 定義一個全域顏色索引**
-    // 這個索引將在所有車輛的所有軌跡段之間共享和遞增。
+    final Map<LatLng, Color> pointColorMap = {};
     int globalColorIndex = 0;
 
     _pointsByPlate.forEach((plate, points) {
       if (points.isEmpty) return;
 
-      // 1. 正常處理單一車輛的點位，獲取其軌跡段
       final processedData = processBusPoints(points);
 
-      // **核心修改 2: 為當前車輛的軌跡段重新上色**
-      // 我們不直接使用 processedData.polylines，而是創建一個新的列表。
-      final List<Polyline> vehicleRecoloredPolylines = [];
-      for (final originalPolyline in processedData.polylines) {
-        // 使用全域索引來獲取顏色
-        final newColor = BaseMapView
+      for (final segmentPolyline in processedData.polylines) {
+        final segmentColor = BaseMapView
             .segmentColors[globalColorIndex % BaseMapView.segmentColors.length];
 
-        // 創建一個帶有新顏色的 Polyline 物件
-        vehicleRecoloredPolylines.add(
+        allPolylines.add(
           Polyline(
-            points: originalPolyline.points,
-            color: newColor,
-            strokeWidth: originalPolyline.strokeWidth,
+            points: segmentPolyline.points,
+            color: segmentColor,
+            strokeWidth: segmentPolyline.strokeWidth,
           ),
         );
-        // 每處理一個軌跡段，索引就加一
+
+        for (final point in segmentPolyline.points) {
+          pointColorMap[point] = segmentColor;
+        }
+
         globalColorIndex++;
       }
 
-      // 將重新上色後的軌跡線加入到總列表中
-      allPolylines.addAll(vehicleRecoloredPolylines);
-
-      // **核心修改 3: 創建 Marker 時，從重新上色後的軌跡線獲取顏色**
       for (final point in points) {
-        // 找到這個點對應的顏色，但這次是從我們自己創建的 `vehicleRecoloredPolylines` 列表中查找
-        final segmentColor = vehicleRecoloredPolylines
-            .lastWhere(
-                (polyline) =>
-                    polyline.points.contains(LatLng(point.lat, point.lon)),
-                orElse: () => Polyline(
-                    points: [], color: BaseMapView.segmentColors.first))
-            .color;
+        final latLng = LatLng(point.lat, point.lon);
+        allPointsForBounds.add(latLng);
 
-        // 創建軌跡點 Marker，並添加 GestureDetector
-        allMarkers.add(
-          PointMarker(
-            busPoint: point,
-            width: 14,
-            height: 14,
-            child: GestureDetector(
-              onTap: () {
-                _baseMapStateKey.currentState?.selectPoint(point, plate: plate);
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: segmentColor, // 使用正確的連續顏色
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black26, blurRadius: 4)
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
+        final color = pointColorMap[latLng] ?? BaseMapView.segmentColors.first;
+        allMarkers.add(_buildPointMarker(point, color, plate));
       }
 
-      // 添加當前位置的 Marker (這部分邏輯不變)
-      final lastPoint = points.last;
-      allMarkers.add(Marker(
-          point: LatLng(lastPoint.lat, lastPoint.lon),
-          width: 110,
-          height: 110,
-          alignment: const Alignment(0.0, 0.23),
-          child: GestureDetector(
-            onTap: () {
-              _baseMapStateKey.currentState
-                  ?.selectPoint(lastPoint, plate: plate);
-            },
-            child: _buildCurrentLocationMarkerContent(lastPoint, plate),
-          )));
-
-      allPointsForBounds.addAll(points.map((p) => LatLng(p.lat, p.lon)));
+      if (points.isNotEmpty) {
+        final lastPoint = points.last;
+        allMarkers.add(_buildCurrentLocationMarker(lastPoint, plate));
+      }
     });
 
-    setState(() {
-      _polylines = allPolylines;
-      _markers = allMarkers;
-      _bounds = allPointsForBounds.isNotEmpty
+    return _MapDisplayData(
+      polylines: allPolylines,
+      markers: allMarkers,
+      bounds: allPointsForBounds.isNotEmpty
           ? LatLngBounds.fromPoints(allPointsForBounds)
-          : null;
-    });
+          : null,
+    );
   }
 
-  // **新增: 將創建 Marker 內容的邏輯抽離出來**
+  Marker _buildPointMarker(BusPoint point, Color color, String plate) {
+    return PointMarker(
+      busPoint: point,
+      width: 14,
+      height: 14,
+      child: GestureDetector(
+        onTap: () {
+          _baseMapStateKey.currentState?.selectPoint(point, plate: plate);
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Marker _buildCurrentLocationMarker(BusPoint point, String plate) {
+    return Marker(
+      point: LatLng(point.lat, point.lon),
+      width: 110,
+      height: 110,
+      alignment: const Alignment(0.0, 0.23),
+      child: GestureDetector(
+        onTap: () {
+          _baseMapStateKey.currentState?.selectPoint(point, plate: plate);
+        },
+        child: _buildCurrentLocationMarkerContent(point, plate),
+      ),
+    );
+  }
+
   Widget _buildCurrentLocationMarkerContent(BusPoint point, String plate) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // 車牌標籤
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
@@ -313,14 +311,12 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
                 color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ),
-        // 動畫和巴士圖標
         SizedBox(
           width: 40,
           height: 40,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // 擴散動畫效果
               FadeTransition(
                 opacity: Tween<double>(begin: 0.7, end: 0.0)
                     .animate(_locationAnimationController),
@@ -335,7 +331,6 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
                   ),
                 ),
               ),
-              // 中間的藍色圓點
               Container(
                 width: 36,
                 height: 36,
@@ -347,7 +342,6 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
                       BoxShadow(color: Colors.black38, blurRadius: 6)
                     ]),
               ),
-              // 巴士圖標
               const Icon(Icons.directions_bus, color: Colors.white, size: 24),
             ],
           ),
@@ -356,7 +350,6 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
     );
   }
 
-  // AppBar保持和 LiveOsmPage 類似，但標題不同
   AppBar _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
     return AppBar(
@@ -462,9 +455,9 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
         isLoading: _isLoading,
         error: _error,
         points: allPoints,
-        polylines: _polylines,
-        markers: _markers,
-        bounds: _isFirstLoadComplete ? _bounds : null,
+        polylines: _mapData.polylines,
+        markers: _mapData.markers,
+        bounds: _isFirstLoadComplete ? _mapData.bounds : null,
         onErrorDismiss: _dismissError,
       ),
     );

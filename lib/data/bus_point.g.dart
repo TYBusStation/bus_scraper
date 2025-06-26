@@ -7,6 +7,7 @@ part of 'bus_point.dart';
 // **************************************************************************
 
 BusPoint _$BusPointFromJson(Map<String, dynamic> json) => BusPoint(
+      plate: json['plate'] as String,
       driverId: json['driver_id'] as String,
       routeId: json['route_id'] as String,
       goBack: (json['go_back'] as num).toInt(),
@@ -17,6 +18,7 @@ BusPoint _$BusPointFromJson(Map<String, dynamic> json) => BusPoint(
     );
 
 Map<String, dynamic> _$BusPointToJson(BusPoint instance) => <String, dynamic>{
+      'plate': instance.plate,
       'driver_id': instance.driverId,
       'route_id': instance.routeId,
       'go_back': instance.goBack,
