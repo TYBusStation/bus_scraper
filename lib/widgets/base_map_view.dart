@@ -1,6 +1,7 @@
 // lib/widgets/base_map_view.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -209,8 +210,13 @@ class BaseMapViewState extends State<BaseMapView> {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('請開啟裝置的定位服務')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('請開啟裝置的定位服務'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              showCloseIcon: true,
+            ),
+          );
         }
         return;
       }
@@ -220,8 +226,13 @@ class BaseMapViewState extends State<BaseMapView> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           if (mounted) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('您已拒絕位置權限')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('您已拒絕位置權限'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                showCloseIcon: true,
+              ),
+            );
           }
           return;
         }
@@ -230,7 +241,12 @@ class BaseMapViewState extends State<BaseMapView> {
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('位置權限已被永久拒絕，請至應用程式設定中開啟')));
+            SnackBar(
+              content: const Text('位置權限已被永久拒絕，請至應用程式設定中開啟'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              showCloseIcon: true,
+            ),
+          );
         }
         return;
       }
@@ -249,7 +265,11 @@ class BaseMapViewState extends State<BaseMapView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('無法獲取位置: $e')),
+          SnackBar(
+            content: Text('無法獲取位置: $e'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            showCloseIcon: true,
+          ),
         );
       }
     } finally {
@@ -637,10 +657,37 @@ class BaseMapViewState extends State<BaseMapView> {
                                     icon: Icons.person_pin_circle_outlined,
                                     label:
                                         "駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId}"),
-                                _buildInfoChip(
-                                    icon: Icons.gps_fixed,
-                                    label:
-                                        "${_selectedPoint!.lat.toStringAsFixed(5)}, ${_selectedPoint!.lon.toStringAsFixed(5)}"),
+
+                                // 2. 將經緯度 Chip 包裝在 InkWell 中
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  onTap: () {
+                                    // 3. 實作複製邏輯
+                                    final lat = _selectedPoint!.lat;
+                                    final lon = _selectedPoint!.lon;
+                                    final latLonString = '$lat, $lon';
+                                    Clipboard.setData(
+                                        ClipboardData(text: latLonString));
+
+                                    // 4. 顯示提示訊息
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text('已複製經緯度：$latLonString'),
+                                          duration: const Duration(seconds: 2),
+                                          backgroundColor:
+                                              theme.colorScheme.primary,
+                                          showCloseIcon: true,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: _buildInfoChip(
+                                      icon: Icons.gps_fixed,
+                                      label:
+                                          "${_selectedPoint!.lat.toStringAsFixed(5)}, ${_selectedPoint!.lon.toStringAsFixed(5)}"),
+                                ),
                               ],
                             ),
                           ),

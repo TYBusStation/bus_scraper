@@ -36,6 +36,7 @@ class FavoriteButton extends StatelessWidget {
               label: '復原',
               onPressed: () => notifier.toggleFavorite(plate),
             ),
+            showCloseIcon: true,
           ),
         );
       },

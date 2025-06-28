@@ -5,11 +5,14 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+// wakelock_plus 已經不再需要，您可以將其從 pubspec.yaml 中移除
 
 import '../data/bus_point.dart';
 import '../data/bus_route.dart';
@@ -26,6 +29,7 @@ class NearbyVehiclesPage extends StatefulWidget {
 
 class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   final MapController _mapController = MapController();
+  final TextEditingController _centerLatLngController = TextEditingController();
   LatLng _currentMapCenter = const LatLng(24.986763, 121.314007);
   StreamSubscription<MapEvent>? _mapEventSubscription;
   bool _isProgrammaticMove = false;
@@ -56,11 +60,15 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   @override
   void initState() {
     super.initState();
+    _updateCenterText();
     _mapEventSubscription = _mapController.mapEventStream.listen((mapEvent) {
       if (_isProgrammaticMove) return;
       if (mapEvent is MapEventMove && mounted && !_isSearched) {
         if (_currentMapCenter != mapEvent.camera.center) {
-          setState(() => _currentMapCenter = mapEvent.camera.center);
+          setState(() {
+            _currentMapCenter = mapEvent.camera.center;
+            _updateCenterText();
+          });
         }
       }
     });
@@ -70,9 +78,52 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   void dispose() {
     _mapEventSubscription?.cancel();
     _mapController.dispose();
+    _centerLatLngController.dispose();
     super.dispose();
   }
 
+  void _updateCenterText() {
+    final lat = _currentMapCenter.latitude.toStringAsFixed(6);
+    final lon = _currentMapCenter.longitude.toStringAsFixed(6);
+    _centerLatLngController.text = '$lat, $lon';
+  }
+
+  void _parseAndSetCenter(String value) {
+    if (_isSearched) return;
+    final parts = value.split(',').map((e) => e.trim()).toList();
+    if (parts.length == 2) {
+      final lat = double.tryParse(parts[0]);
+      final lon = double.tryParse(parts[1]);
+      if (lat != null &&
+          lon != null &&
+          (lat.abs() <= 90) &&
+          (lon.abs() <= 180)) {
+        final newCenter = LatLng(lat, lon);
+        if (newCenter == _currentMapCenter) return;
+
+        setState(() {
+          _currentMapCenter = newCenter;
+        });
+
+        _isProgrammaticMove = true;
+        _mapController.move(newCenter, _mapController.camera.zoom);
+        Future.delayed(const Duration(milliseconds: 500))
+            .whenComplete(() => _isProgrammaticMove = false);
+      }
+    }
+  }
+
+  Future<void> _pasteLatLng() async {
+    if (_isSearched) return;
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = clipboardData?.text;
+    if (text != null && text.isNotEmpty) {
+      _centerLatLngController.text = text;
+      _parseAndSetCenter(text);
+    }
+  }
+
+  // --- 變更: 移除 Wakelock 相關程式碼 ---
   Future<void> _performSearch() async {
     if (_isLoading) return;
     setState(() {
@@ -80,18 +131,20 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       _searchCenterWhenSearched = _currentMapCenter;
     });
 
-    final double effectiveRadius = _searchRadiusKm > 0 ? _searchRadiusKm : 0.01;
-    final dio = Static.dio;
-    final url = "${Static.apiBaseUrl}/tools/find_nearby_vehicles";
-    final queryParameters = {
-      'lat': _searchCenterWhenSearched.latitude.toString(),
-      'lon': _searchCenterWhenSearched.longitude.toString(),
-      'radius': effectiveRadius.toString(),
-      'start_time': Static.apiDateFormat.format(_startTime),
-      'end_time': Static.apiDateFormat.format(_endTime),
-    };
-
+    // Wakelock.enable() 已被移除
     try {
+      final double effectiveRadius =
+          _searchRadiusKm > 0 ? _searchRadiusKm : 0.01;
+      final dio = Static.dio;
+      final url = "${Static.apiBaseUrl}/tools/find_nearby_vehicles";
+      final queryParameters = {
+        'lat': _searchCenterWhenSearched.latitude.toString(),
+        'lon': _searchCenterWhenSearched.longitude.toString(),
+        'radius': effectiveRadius.toString(),
+        'start_time': Static.apiDateFormat.format(_startTime),
+        'end_time': Static.apiDateFormat.format(_endTime),
+      };
+
       final response = await dio.get(url, queryParameters: queryParameters);
       List<BusPoint> results = [];
       if (response.statusCode == 200 && response.data is List) {
@@ -120,6 +173,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       // Handle error silently
     } finally {
       if (mounted) setState(() => _isLoading = false);
+      // Wakelock.disable() 已被移除
     }
   }
 
@@ -309,29 +363,79 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied)
+        if (permission == LocationPermission.denied) {
           throw Exception('您已拒絕位置權限');
+        }
       }
-      if (permission == LocationPermission.deniedForever)
+      if (permission == LocationPermission.deniedForever) {
         throw Exception('位置權限已被永久拒絕，請至應用程式設定中開啟');
+      }
 
       final position = await Geolocator.getCurrentPosition();
       final newLocation = LatLng(position.latitude, position.longitude);
 
       if (mounted) {
-        setState(() => _myLocation = newLocation);
+        setState(() {
+          _myLocation = newLocation;
+          _currentMapCenter = newLocation;
+          _updateCenterText();
+        });
         _isProgrammaticMove = true;
         _mapController.move(newLocation, 17.0);
         await Future.delayed(const Duration(milliseconds: 500));
         _isProgrammaticMove = false;
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       if (mounted) setState(() => _isLocating = false);
     }
+  }
+
+  // --- 變更: TextField 改用 onChanged 事件 ---
+  Widget _buildLatLngInput(ThemeData theme) {
+    return SizedBox(
+      height: 44, // Tweak height to align with button
+      child: TextField(
+        controller: _centerLatLngController,
+        enabled: !_isSearched,
+        style: theme.textTheme.bodyMedium
+            ?.copyWith(fontFeatures: [const FontFeature.tabularFigures()]),
+        decoration: InputDecoration(
+          labelText: '中心點經緯度(可直接移動地圖)',
+          labelStyle: theme.textTheme.labelMedium,
+          prefixIcon: Icon(Icons.pin_drop_outlined,
+              size: 20,
+              color: _isSearched
+                  ? Colors.grey
+                  : theme.colorScheme.onSurfaceVariant),
+          suffixIcon: _isSearched
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.content_paste_go_outlined),
+                  iconSize: 20,
+                  tooltip: '貼上經緯度',
+                  onPressed: _pasteLatLng,
+                ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
+          border: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12))),
+          isDense: true,
+          disabledBorder: OutlineInputBorder(
+            borderRadius: const BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: Colors.grey.shade400),
+          ),
+        ),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        // 將 onEditingComplete 改為 onChanged
+        onChanged: (value) {
+          _parseAndSetCenter(value);
+        },
+      ),
+    );
   }
 
   @override
@@ -361,8 +465,10 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                   initialZoom: 15,
                   onMapReady: () {
                     if (mounted && !_isSearched) {
-                      setState(() =>
-                          _currentMapCenter = _mapController.camera.center);
+                      setState(() {
+                        _currentMapCenter = _mapController.camera.center;
+                        _updateCenterText();
+                      });
                     }
                   },
                   onTap: (_, __) {
@@ -433,8 +539,16 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
             ),
             const SizedBox(height: 4),
             Row(children: [Expanded(child: _buildRadiusSlider(theme))]),
-            const SizedBox(height: 4),
-            Row(children: [Expanded(child: _buildSearchAndClearButton(theme))]),
+            const SizedBox(height: 8),
+            // ** MODIFIED ROW for input and search button **
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: _buildLatLngInput(theme)),
+                const SizedBox(width: 8),
+                _buildSearchAndClearButton(theme)
+              ],
+            ),
             if (_availablePlates.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
@@ -571,7 +685,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
     );
   }
 
-  // **修正點: 全新的對話框實現**
   Future<void> _showMultiSelectDialog({
     required String title,
     required Map<String, String> items,
@@ -596,7 +709,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                     final key = items.keys.elementAt(index);
                     final value = items.values.elementAt(index);
 
-                    // **UI 修正: 每一行都是一個可點擊的 InkWell**
                     return InkWell(
                       onTap: () {
                         setStateDialog(() {
@@ -652,7 +764,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                   },
                 ),
               ),
-              // **佈局修正: 移除 Spacer**
               actions: <Widget>[
                 TextButton(
                   child: const Text('取消'),
@@ -876,10 +987,31 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                   icon: Icons.person_pin_circle_outlined,
                                   label:
                                       "駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId}"),
-                              _buildInfoChip(
-                                  icon: Icons.gps_fixed,
-                                  label:
-                                      "${_selectedPoint!.lat.toStringAsFixed(5)}, ${_selectedPoint!.lon.toStringAsFixed(5)}"),
+                              InkWell(
+                                borderRadius: BorderRadius.circular(16.0),
+                                onTap: () {
+                                  final lat = _selectedPoint!.lat;
+                                  final lon = _selectedPoint!.lon;
+                                  final latLonString = '$lat, $lon';
+                                  Clipboard.setData(
+                                      ClipboardData(text: latLonString));
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('已複製經緯度：$latLonString'),
+                                        duration: const Duration(seconds: 2),
+                                        backgroundColor:
+                                            theme.colorScheme.primary,
+                                        showCloseIcon: true,
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: _buildInfoChip(
+                                    icon: Icons.gps_fixed,
+                                    label:
+                                        "${_selectedPoint!.lat.toStringAsFixed(5)}, ${_selectedPoint!.lon.toStringAsFixed(5)}"),
+                              ),
                             ],
                           ),
                         ),
