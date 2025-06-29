@@ -17,14 +17,9 @@ class RoutePage extends StatefulWidget {
 }
 
 class _RoutePageState extends State<RoutePage> {
-  // 用於管理 switch 狀態的變數，預設為 false (不顯示所有路線)
-  bool _showAllRoutes = false;
-
-  // 用於管理是否正在從 API 載入資料
-  bool _isLoading = false;
-
-  // 用於儲存當前要在列表中顯示的路線數據
-  late List<BusRoute> _displayedRoutes;
+  bool _showAllRoutes = false; // 用於管理 switch 狀態的變數，預設為 false (不顯示所有路線)
+  bool _isLoading = false; // 用於管理是否正在從 API 載入資料
+  late List<BusRoute> _displayedRoutes = Static.routeData; // 明確型別
 
   @override
   void initState() {
@@ -35,12 +30,14 @@ class _RoutePageState extends State<RoutePage> {
 
   // 當 switch 狀態改變時呼叫此方法
   Future<void> _onSwitchChanged(bool value) async {
-    // 使用 setState 更新 switch 的視覺狀態
+    if (_showAllRoutes == value) return; // 如果當前值已經是目標值，則不做任何操作
     setState(() {
       _showAllRoutes = value;
+      if (!value)
+        _displayedRoutes = Static.routeData; // 如果切換回不顯示所有路線，則直接使用快取的特殊路線
     });
 
-    if (_showAllRoutes) {
+    if (value) {
       // 如果用戶切換到「顯示所有路線」
       // 檢查 Static 中是否已有快取
       if (Static.allRouteData != null) {
@@ -64,11 +61,6 @@ class _RoutePageState extends State<RoutePage> {
           });
         }
       }
-    } else {
-      // 如果用戶切換回預設模式，直接使用 Static.routeData
-      setState(() {
-        _displayedRoutes = Static.routeData;
-      });
     }
   }
 
@@ -91,11 +83,14 @@ class _RoutePageState extends State<RoutePage> {
               style: textTheme.bodyLarge,
             ),
             const SizedBox(width: 8),
-            Switch(
-              value: _showAllRoutes,
-              // 當 Switch 被點擊時，呼叫 _onSwitchChanged 方法
-              // 如果正在載入中，則禁用 Switch
-              onChanged: _isLoading ? null : _onSwitchChanged,
+            Tooltip(
+              message: _isLoading ? '正在載入所有路線...' : '',
+              child: Switch(
+                value: _showAllRoutes,
+                // 當 Switch 被點擊時，呼叫 _onSwitchChanged 方法
+                // 如果正在載入中，則禁用 Switch
+                onChanged: _isLoading ? null : _onSwitchChanged,
+              ),
             ),
           ],
         ),
@@ -135,21 +130,12 @@ class _RoutePageState extends State<RoutePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 路線名稱，使用較大的標題樣式
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    route.name,
-                                    style: textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: colorScheme.primary,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              route.name,
+                              style: textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
                             ),
                             const SizedBox(height: 4),
 
@@ -249,6 +235,7 @@ class _RoutePageState extends State<RoutePage> {
 
                   // 提供搜尋不到結果時的顯示內容
                   emptyStateWidget: Center(
+                    // 若有 EmptyStateIndicator 請改用該元件
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

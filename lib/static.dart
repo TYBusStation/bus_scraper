@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 
 import 'data/bus_route.dart';
 import 'data/car.dart';
+// --- 新增導入 ---
+import 'data/route_detail.dart';
 
 class Static {
   static Future<void>? _initFuture;
@@ -50,11 +52,33 @@ class Static {
   }
   """;
 
+  static const String _graphqlQueryRoutePathAndStops = """
+  query QUERY_ROUTE_DETAIL(\$routeId: Int!, \$lang: String!) {
+    route(xno: \$routeId, lang: \$lang) {
+      routePoint {
+        go
+        back
+      }
+      stations {
+        edges {
+          goBack
+          orderNo
+          node {
+            name
+            lat
+            lon
+          }
+        }
+      }
+    }
+  }
+  """;
+
   // --- Dio Instance ---
   static final Dio dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 10), // 增加超時以提高成功率
-    sendTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
+    connectTimeout: const Duration(seconds: 15), // 增加超時以提高成功率
+    sendTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 15),
     headers: {"Content-Type": "application/json"},
   ));
 
@@ -67,43 +91,37 @@ class Static {
   static late final List<BusRoute> routeData; // 營運中 + 特殊路線
   static late final List<Car> carData;
 
-  // 【新增】用於快取所有路線的變數，設為 nullable
   static List<BusRoute>? allRouteData;
 
-  /// 公開的初始化方法，確保初始化邏輯只執行一次。
+  // --- 【新增】路線詳細資料的快取 ---
+  static final Map<String, RouteDetail> _routeDetailCache = {};
+
+  // ... (init, _performInit, _testApi, log 保持不變) ...
   static Future<void> init() {
     _initFuture ??= _performInit();
     return _initFuture!;
   }
 
-  /// 私有的初始化核心邏輯。
   static Future<void> _performInit() async {
     log("Static initialization started. (This should only run once)");
 
     await StorageHelper.init();
     await _testApi();
 
-    // 並行執行所有網絡請求
     final results = await Future.wait([
       _fetchOpRoutesFromServer(),
       _fetchSpecialRoutesFromServer(),
       _fetchCarDataFromServer(),
     ], eagerError: false);
 
-    // 【核心修正】在這裡進行安全的型別轉換
-    opRouteData = (results[0] is List<BusRoute>)
-        ? results[0] as List<BusRoute> // 強制轉換
-        : [];
+    opRouteData =
+        (results[0] is List<BusRoute>) ? results[0] as List<BusRoute> : [];
 
-    specialRouteData = (results[1] is List<BusRoute>)
-        ? results[1] as List<BusRoute> // 強制轉換
-        : [];
+    specialRouteData =
+        (results[1] is List<BusRoute>) ? results[1] as List<BusRoute> : [];
 
-    carData = (results[2] is List<Car>)
-        ? results[2] as List<Car> // 強制轉換
-        : [];
+    carData = (results[2] is List<Car>) ? results[2] as List<Car> : [];
 
-    // 合併路線數據
     routeData = [...opRouteData, ...specialRouteData];
     final seen = <String>{};
     routeData.retainWhere((route) => seen.add(route.id));
@@ -128,8 +146,55 @@ class Static {
     print("[${DateTime.now().toIso8601String()}] [Static] $message");
   }
 
+  static BusRoute getRouteByIdSync(String routeId) {
+    // 1. 在 `routeData` (常用路線快取) 中查找
+    try {
+      return routeData.firstWhere((r) => r.id == routeId);
+    } catch (e) {
+      // firstWhere 找不到會拋出 StateError，我們捕捉它並繼續。
+    }
+
+    // 2. 在 `allRouteData` (所有路線快取) 中查找
+    if (allRouteData != null) {
+      try {
+        return allRouteData!.firstWhere((r) => r.id == routeId);
+      } catch (e) {
+        // 捕捉 StateError
+      }
+    }
+
+    // 在所有快取中都找不到，返回 null
+    return BusRoute.unknown;
+  }
+
+  static Future<BusRoute> getRouteById(String routeId) async {
+    try {
+      final route = routeData.firstWhere((r) => r.id == routeId);
+      // log("Route $routeId found in primary cache (routeData).");
+      return route;
+    } catch (e) {
+      // firstWhere 找不到會拋出 StateError，我們捕捉它並繼續。
+    }
+
+    // 2. 在 `allRouteData` (所有路線快取) 中查找
+    if (allRouteData != null) {
+      try {
+        final route = allRouteData!.firstWhere((r) => r.id == routeId);
+        // log("Route $routeId found in secondary cache (allRouteData).");
+        return route;
+      } catch (e) {
+        // 捕捉 StateError
+      }
+    }
+
+    // 3. 如果都找不到，則從 API 獲取
+    // log("Route $routeId not found in any cache, fetching from API...");
+    return await fetchRouteDetailById(routeId) ?? BusRoute.unknown;
+  }
+
   /// 動態獲取單一未知路線的詳情。
   static Future<BusRoute?> fetchRouteDetailById(String routeId) async {
+    // ... (此方法保持不變) ...
     final int? routeIdInt = int.tryParse(routeId);
     if (routeIdInt == null) {
       log("Error: Invalid routeId format for GraphQL query: $routeId");
@@ -151,7 +216,6 @@ class Static {
         if (routeNode is Map<String, dynamic>) {
           final newRoute = BusRoute.fromJson(routeNode);
           log("Successfully fetched detail for unknown route: ${newRoute.name} ($routeId)");
-          // 動態地將新獲取的路線加入到全域靜態列表中
           if (!routeData.any((r) => r.id == newRoute.id)) {
             routeData.add(newRoute);
             log("Dynamically added route ${newRoute.name} to Static.routeData.");
@@ -167,24 +231,70 @@ class Static {
     return null;
   }
 
-  // --- 【新增】獲取所有路線的公共方法，包含快取邏輯 ---
+  // --- 【新增】獲取路線路徑與站點的方法，包含快取邏輯 ---
+  static Future<RouteDetail> fetchRoutePathAndStops(String routeId) async {
+    // 1. 檢查快取
+    if (_routeDetailCache.containsKey(routeId)) {
+      log("Returning route detail for $routeId from cache.");
+      return _routeDetailCache[routeId]!;
+    }
+
+    // 2. 從 API 獲取
+    final int? routeIdInt = int.tryParse(routeId);
+    if (routeIdInt == null) {
+      log("Error: Invalid routeId format for path/stops query: $routeId");
+      return RouteDetail.unknown;
+    }
+
+    log("Fetching route path and stops from API for ID: $routeId");
+    try {
+      final response = await dio.post(
+        _graphqlApiUrl,
+        data: {
+          "operationName": "QUERY_ROUTE_DETAIL",
+          "variables": {"routeId": routeIdInt, "lang": "zh"},
+          "query": _graphqlQueryRoutePathAndStops,
+        },
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        final routeNode = response.data['data']?['route'];
+
+        // 【確認此處】routeNode 可能為 null，但我們的 fromJson 產生器
+        // 已經透過 @JsonKey(defaultValue: ...) 處理了這種情況。
+        // 我們只需確保傳入的是一個有效的 Map。
+        if (routeNode is Map<String, dynamic>) {
+          // 3. 解析並存入快取
+          final routeDetail =
+              RouteDetail.fromJson(routeNode); // <--- 這行現在使用產生的程式碼
+          _routeDetailCache[routeId] = routeDetail;
+          log("Successfully fetched and cached path/stops for route $routeId.");
+          return routeDetail;
+        } else {
+          log("Route node is null or not a map for ID $routeId. Response: ${response.data}");
+        }
+      } else {
+        log("Failed to fetch path/stops for $routeId. Status: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      log("DioError fetching path/stops for ID $routeId: ${e.message}");
+    } catch (e) {
+      log("Unexpected error fetching path/stops for ID $routeId: $e");
+    }
+    return RouteDetail.unknown;
+  }
+
+  // ... (其餘 Static 類別的方法保持不變) ...
   static Future<List<BusRoute>> fetchAllRoutes() async {
-    // 如果已經快取，直接返回快取的資料
     if (allRouteData != null) {
       log("Returning all routes from cache.");
       return allRouteData!;
     }
-
-    // 如果沒有快取，則從伺服器獲取
     log("Cache empty. Fetching all routes from server...");
     final List<BusRoute> routes = await _fetchAllRoutesFromServer();
-    allRouteData = routes; // 將結果存入快取
+    allRouteData = routes;
     return routes;
   }
 
-  // --- Private Data Fetching Methods ---
-
-  // 【新增】實際從伺服器獲取所有路線資料的私有方法
   static Future<List<BusRoute>> _fetchAllRoutesFromServer() async {
     final String url = "$apiBaseUrl/all_routes";
     log("Fetching all routes from API: $url");
@@ -292,8 +402,6 @@ class Static {
     log("Failed to fetch car data. Returning empty list.");
     return [];
   }
-
-  // --- Sorting Logic (保持不變) ---
 
   static Map<String, dynamic> _parseRoute(String route) {
     String type = 'UNKNOWN';

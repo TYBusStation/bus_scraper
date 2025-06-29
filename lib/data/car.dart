@@ -38,13 +38,12 @@ final typeValues = EnumValues(
     {"city_s": Type.CITY_S, "ev": Type.EV, "lfv": Type.LFV, "no_s": Type.NO_S});
 
 class EnumValues<T> {
-  Map<String, T> map;
-  late Map<T, String> reverseMap;
+  final Map<String, T> map;
+  late final Map<T, String> reverseMap;
 
-  EnumValues(this.map);
-
-  Map<T, String> get reverse {
+  EnumValues(this.map) {
     reverseMap = map.map((k, v) => MapEntry(v, k));
-    return reverseMap;
   }
+
+  Map<T, String> get reverse => reverseMap;
 }

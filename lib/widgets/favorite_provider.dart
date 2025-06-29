@@ -8,13 +8,16 @@ import '../static.dart'; // 假設 Static 類別在此路徑
 // 1. 建立一個專門管理收藏的 Notifier
 class FavoritesNotifier extends ChangeNotifier implements ReassembleHandler {
   // 私有變數，儲存收藏列表的快取
-  List<String> _favoritePlates;
+  List<String> _favoritePlates = [];
 
   // 初始化時，從 localStorage 讀取初始收藏列表
-  FavoritesNotifier(this._favoritePlates);
+  FavoritesNotifier(List<String> initialList) {
+    _favoritePlates = initialList;
+  }
 
   void setFavoritePlates(List<String> list) {
     _favoritePlates = list;
+    notifyListeners(); // 新增：確保外部變動時 UI 會更新
   }
 
   // 提供一個 getter 讓外部可以安全地讀取收藏列表

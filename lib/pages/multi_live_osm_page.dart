@@ -74,9 +74,13 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
 
     _fetchAndDrawMap(isInitialLoad: true);
 
-    _refreshTimer = Timer.periodic(_kRefreshInterval, (timer) {
-      _fetchAndDrawMap();
-    });
+    restartTimer();
+  }
+
+  void restartTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(
+        _kRefreshInterval, (_) async => await _fetchAndDrawMap());
   }
 
   @override
@@ -175,7 +179,7 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
       if (allPoints.isEmpty) {
         newError = "過去 20 分鐘内沒有找到任何收藏車輛的軌跡資料。";
       } else if (errorPlates.isNotEmpty) {
-        newError = "部分車輛資料獲取失敗: ${errorPlates.join(', ')}";
+        newError = "車輛資料獲取失敗";
       }
 
       setState(() {
@@ -246,6 +250,24 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
         final lastPoint = points.last;
         allMarkers.add(_buildCurrentLocationMarker(lastPoint, plate));
       }
+    });
+
+    allMarkers.sort((a, b) {
+      DateTime? aTime;
+      DateTime? bTime;
+
+      if (a is PointMarker) {
+        aTime = a.busPoint.dataTime;
+      }
+      if (b is PointMarker) {
+        bTime = b.busPoint.dataTime;
+      }
+      if (aTime != null && bTime == null) return -1;
+      if (aTime == null && bTime != null) return 1;
+      if (aTime != null && bTime != null) {
+        return aTime.compareTo(bTime);
+      }
+      return 0; // 都沒有時間，順序不變
     });
 
     return _MapDisplayData(
@@ -379,6 +401,14 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
+                            InkWell(
+                              onTap: () async {
+                                await _fetchAndDrawMap();
+                                restartTimer();
+                              },
+                              child: const Icon(Icons.refresh),
+                            ),
+                            const SizedBox(width: 4),
                             Text(
                               remainingSeconds.toString().padLeft(2, '0'),
                               style: theme.textTheme.labelMedium?.copyWith(

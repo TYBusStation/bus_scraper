@@ -51,7 +51,7 @@ class _CompanyPageState extends State<CompanyPage> {
   final TextEditingController _searchController = TextEditingController();
 
   // --- 快取機制 ---
-  final Map<String, dynamic> _cache = {};
+  final Map<String, dynamic> _cache = <String, dynamic>{};
   static const String _companiesCacheKey = 'companies_list';
 
   String _getTimestampsCacheKey(String companyCode, String dataType) {
@@ -331,9 +331,7 @@ class _CompanyPageState extends State<CompanyPage> {
     _filteredData1 = _filterSingleData(_fetchedData1, query);
     _filteredData2 = _filterSingleData(_fetchedData2, query);
     _performComparison();
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
   dynamic _filterSingleData(dynamic fetchedData, String query) {
@@ -346,22 +344,16 @@ class _CompanyPageState extends State<CompanyPage> {
         if (item is String) {
           return item.toLowerCase().contains(query);
         }
-        // 如果列表中有非字串元素（理論上不應該發生，如果API總是返回List<String>）
-        // 則回退到 toString 比較
-        return item.toString().toLowerCase().contains(query);
+        // 跳過非字串元素
+        return false;
       }).toList();
     }
-    // 如果 fetchedData 不是 List (例如，API返回錯誤或非預期格式)，則不篩選
     return fetchedData;
   }
 
   void _performComparison() {
     if (_filteredData1 == null || _filteredData2 == null) {
-      if (mounted) {
-        setState(() {
-          _comparisonResult = null;
-        });
-      }
+      if (mounted) setState(() => _comparisonResult = null);
       return;
     }
 
@@ -386,7 +378,7 @@ class _CompanyPageState extends State<CompanyPage> {
           _comparisonResult = {
             'added': added,
             'removed': removed,
-            'modified': [], // 對於 List<String>，我們不定義 "modified"
+            'modified': [],
           };
           _error = null;
         });
@@ -569,21 +561,23 @@ class _CompanyPageState extends State<CompanyPage> {
               style: themeData.textTheme.bodyMedium
                   ?.copyWith(color: themeData.hintColor)),
           value: value,
-          items: items.map((item) {
-            String displayText = item.toString();
-            if (item is Company) displayText = item.name;
-            if (displayNames != null &&
-                item is String &&
-                displayNames.containsKey(item)) {
-              displayText = displayNames[item]!;
-            }
-            return DropdownMenuItem<T>(
-              value: item,
-              child: Text(displayText,
-                  overflow: TextOverflow.ellipsis,
-                  style: themeData.textTheme.bodyMedium),
-            );
-          }).toList(),
+          items: items.isEmpty
+              ? []
+              : items.map((item) {
+                  String displayText = item.toString();
+                  if (item is Company) displayText = item.name;
+                  if (displayNames != null &&
+                      item is String &&
+                      displayNames.containsKey(item)) {
+                    displayText = displayNames[item]!;
+                  }
+                  return DropdownMenuItem<T>(
+                    value: item,
+                    child: Text(displayText,
+                        overflow: TextOverflow.ellipsis,
+                        style: themeData.textTheme.bodyMedium),
+                  );
+                }).toList(),
           onChanged: enabled && items.isNotEmpty ? onChanged : null,
           style: themeData.textTheme.bodyMedium,
         ),
@@ -731,11 +725,8 @@ class _CompanyPageState extends State<CompanyPage> {
             ),
           );
         }
-        // Fallback for any non-string items in the list (should ideally not happen)
-        return ListTile(
-            visualDensity: VisualDensity.compact,
-            title: Text("非預期項目: ${item.toString()}",
-                style: themeData.textTheme.bodyMedium));
+        // 跳過非字串元素
+        return const SizedBox.shrink();
       },
     );
   }
@@ -764,7 +755,7 @@ class _CompanyPageState extends State<CompanyPage> {
       icon = Icons.remove_circle_outline;
     }
 
-    String title = item['value']?.toString() ?? 'N/A';
+    String title = item['value'] as String? ?? 'N/A';
 
     return Card(
       elevation: 0.2,

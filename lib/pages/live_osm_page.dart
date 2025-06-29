@@ -57,9 +57,13 @@ class _LiveOsmPageState extends State<LiveOsmPage>
 
     _fetchAndDrawMap(isInitialLoad: true);
 
-    _refreshTimer = Timer.periodic(_kRefreshInterval, (timer) {
-      _fetchAndDrawMap();
-    });
+    restartTimer();
+  }
+
+  void restartTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(
+        _kRefreshInterval, (_) async => await _fetchAndDrawMap());
   }
 
   @override
@@ -297,6 +301,14 @@ class _LiveOsmPageState extends State<LiveOsmPage>
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
+                            InkWell(
+                              onTap: () async {
+                                await _fetchAndDrawMap();
+                                restartTimer();
+                              },
+                              child: const Icon(Icons.refresh),
+                            ),
+                            const SizedBox(width: 4),
                             Text(
                               remainingSeconds.toString().padLeft(2, '0'),
                               style: theme.textTheme.labelMedium?.copyWith(

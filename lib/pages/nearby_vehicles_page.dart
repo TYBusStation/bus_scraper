@@ -632,8 +632,8 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   Marker _buildMyLocationMarker() {
     return Marker(
       point: _myLocation!,
-      width: 24,
-      height: 24,
+      width: 20,
+      height: 20,
       child: IgnorePointer(
         child: Container(
           decoration: BoxDecoration(

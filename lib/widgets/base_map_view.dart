@@ -10,6 +10,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../data/bus_point.dart';
 import '../data/bus_route.dart';
+import '../data/route_detail.dart';
+import '../pages/map_route_selection_page.dart';
 import '../static.dart';
 
 // PointMarker class (無變更)
@@ -27,22 +29,30 @@ class PointMarker extends Marker {
 
 // BaseMapView class (無變更)
 class BaseMapView extends StatefulWidget {
-  static const double defaultZoom = 17;
-
   static const List<Color> segmentColors = [
-    Colors.red,
-    Colors.teal,
-    Colors.amber,
-    Colors.greenAccent,
-    Colors.orange,
-    Colors.pinkAccent,
-    Colors.blueAccent,
-    Colors.lightGreen,
-    Colors.cyan,
-    Colors.brown,
-    Colors.indigo,
-    Colors.deepPurple,
+    // --- 常用基本色 ---
+    Color(0xFFE53935), // 鮮紅 (Red.shade600)
+    Color(0xFF1E88E5), // 鮮藍 (Blue.shade600)
+    Color(0xFF43A047), // 翠綠 (Green.shade600)
+    Color(0xFFFB8C00), // 橙色 (Orange.shade600)
+    Color(0xFF00897B), // 青色 (Teal.shade600)
+
+    // --- 擴充色系 1 ---
+    Color(0xFF5E35B1), // 靛藍 (DeepPurple.shade600)
+    Color(0xFFFFB300), // 琥珀色 (Amber.shade700)
+    Color(0xFF039BE5), // 亮藍 (LightBlue.shade600)
+    Color(0xFF6D4C41), // 棕色 (Brown.shade600)
+    Color(0xFFF4511E), // 深橙 (DeepOrange.shade600)
+
+    // --- 擴充色系 2 ---
+    Color(0xFFC0CA33), // 萊姆綠 (Lime.shade600)
+    Color(0xFF00ACC1), // 藍綠色 (Cyan.shade600)
+    Color(0xFF7CB342), // 淺綠 (LightGreen.shade600)
+    Color(0xFF673AB7), // 深紫 (DeepPurple)
+    Color(0xFF455A64), // 藍灰色 (BlueGrey.shade700)
   ];
+
+  static const double defaultZoom = 17;
 
   final String appBarTitle;
   final List<Widget>? appBarActions;
@@ -87,11 +97,18 @@ class BaseMapViewState extends State<BaseMapView> {
   LatLng? _currentLocation;
   bool _isLocating = false;
 
-  // --- 變更開始: 新增狀態變數以處理未知路線 ---
   BusRoute? _selectedRoute;
   bool _isFetchingRouteDetail = false;
 
-  // --- 變更結束 ---
+  Map<String, RouteDirectionSelection> _userRouteSelections = {};
+  List<Polyline> _userSelectedPolylines = [];
+  List<Marker> _userSelectedMarkers = [];
+  bool _isProcessingUserRoutes = false;
+
+  (StationEdge, BusRoute, int)? _selectedStation;
+
+  BusRoute? _panelRoute;
+  bool _isFetchingPanelRoute = false;
 
   @override
   void didUpdateWidget(covariant BaseMapView oldWidget) {
@@ -105,36 +122,27 @@ class BaseMapViewState extends State<BaseMapView> {
     }
   }
 
-  // --- 變更開始: 新增獲取路線詳情的方法 ---
-  /// 異步獲取未知路線的詳細資訊並更新狀態。
   Future<void> _fetchAndSetRouteDetail(String routeId) async {
-    // 使用 Static 類別來獲取未知路線的詳細資訊
-    final route = await Static.fetchRouteDetailById(routeId);
+    final route = await Static.getRouteById(routeId);
     if (mounted) {
-      // 確保當前選擇的點仍然是我們正在獲取的那個點
       if (_selectedPoint != null && _selectedPoint!.routeId == routeId) {
         setState(() {
-          _selectedRoute = route; // 如果獲取失敗，route 會是 null
+          _selectedRoute = route;
           _isFetchingRouteDetail = false;
         });
       }
     }
   }
 
-  // --- 變更結束 ---
-
-  // --- 變更開始: 修改 selectPoint 方法以處理未知路線 ---
   void selectPoint(BusPoint point, {String? plate}) {
     setState(() {
       if (_selectedPoint == point) {
-        // --- 取消選擇 ---
         _selectedPoint = null;
         _highlightMarker = null;
         _selectedPlate = null;
-        _selectedRoute = null; // 清除已選擇的路線
-        _isFetchingRouteDetail = false; // 重置加載狀態
+        _selectedRoute = null;
+        _isFetchingRouteDetail = false;
       } else {
-        // --- 選擇新的點 ---
         _selectedPoint = point;
         _selectedPlate = plate;
         _highlightMarker = Marker(
@@ -152,47 +160,46 @@ class BaseMapViewState extends State<BaseMapView> {
           ),
         );
 
-        // --- 處理路線資訊 ---
-        _selectedRoute = null; // 先清除舊的路線
-        _isFetchingRouteDetail = false; // 重置狀態
+        _selectedRoute = null;
+        _isFetchingRouteDetail = false;
+        _selectedStation = null;
 
-        // 在現有資料中尋找路線
-        final routeIndex =
-            Static.routeData.indexWhere((r) => r.id == point.routeId);
-
-        if (routeIndex != -1) {
-          // 在靜態資料中找到了路線
-          _selectedRoute = Static.routeData[routeIndex];
-        } else {
-          // 沒有找到，需要從 API 獲取
-          _isFetchingRouteDetail = true;
-          // 呼叫非同步方法，不要在 setState 中 await
-          _fetchAndSetRouteDetail(point.routeId);
-        }
+        // Use the unified method to get route details
+        _isFetchingRouteDetail = true;
+        _fetchAndSetRouteDetail(point.routeId);
       }
     });
   }
 
-  // --- 變更結束 ---
-
   void _recenterMap() {
-    if (widget.points.isEmpty) {
+    if (widget.points.isEmpty && _userSelectedPolylines.isEmpty) {
+      if (_currentLocation != null) {
+        _mapController.move(_currentLocation!, BaseMapView.defaultZoom);
+      }
       return;
     }
 
-    if (widget.bounds != null) {
-      final bounds = widget.bounds!;
-      if (bounds.southWest == bounds.northEast) {
-        _mapController.move(bounds.center, BaseMapView.defaultZoom);
+    LatLngBounds? boundsToFit = widget.bounds;
+
+    if (_userSelectedPolylines.isNotEmpty) {
+      final allPoints = _userSelectedPolylines.expand((p) => p.points).toList();
+      if (allPoints.isNotEmpty) {
+        boundsToFit = LatLngBounds.fromPoints(allPoints);
+      }
+    }
+
+    if (boundsToFit != null) {
+      if (boundsToFit.southWest == boundsToFit.northEast) {
+        _mapController.move(boundsToFit.center, BaseMapView.defaultZoom);
       } else {
         _mapController.fitCamera(
           CameraFit.bounds(
-              bounds: bounds,
+              bounds: boundsToFit,
               padding: const EdgeInsets.all(50),
               maxZoom: BaseMapView.defaultZoom),
         );
       }
-    } else {
+    } else if (widget.points.isNotEmpty) {
       final lastPoint = widget.points.last;
       _mapController.move(
           LatLng(lastPoint.lat, lastPoint.lon), BaseMapView.defaultZoom);
@@ -201,84 +208,212 @@ class BaseMapViewState extends State<BaseMapView> {
 
   Future<void> _locateMe() async {
     if (_isLocating) return;
+    setState(() => _isLocating = true);
 
-    setState(() {
-      _isLocating = true;
-    });
+    ThemeData theme = Theme.of(context);
 
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('請開啟裝置的定位服務'),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              showCloseIcon: true,
-            ),
-          );
-        }
+      if (!serviceEnabled && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('請開啟裝置的定位服務'),
+          showCloseIcon: true,
+          backgroundColor: theme.colorScheme.primary,
+        ));
         return;
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('您已拒絕位置權限'),
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                showCloseIcon: true,
-              ),
-            );
-          }
+        if (permission == LocationPermission.denied && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('您已拒絕位置權限'),
+            showCloseIcon: true,
+            backgroundColor: theme.colorScheme.primary,
+          ));
           return;
         }
       }
 
-      if (permission == LocationPermission.deniedForever) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('位置權限已被永久拒絕，請至應用程式設定中開啟'),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              showCloseIcon: true,
-            ),
-          );
-        }
+      if (permission == LocationPermission.deniedForever && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('位置權限已被永久拒絕，請至應用程式設定中開啟'),
+          showCloseIcon: true,
+          backgroundColor: theme.colorScheme.primary,
+        ));
         return;
       }
 
       final position = await Geolocator.getCurrentPosition(
           locationSettings:
               const LocationSettings(accuracy: LocationAccuracy.high));
-
       final newLocation = LatLng(position.latitude, position.longitude);
 
-      setState(() {
-        _currentLocation = newLocation;
-      });
-
+      setState(() => _currentLocation = newLocation);
       _mapController.move(newLocation, 17.0);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('無法獲取位置: $e'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            showCloseIcon: true,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('無法獲取位置: $e'),
+          showCloseIcon: true,
+          backgroundColor: theme.colorScheme.primary,
+        ));
       }
     } finally {
       if (mounted) {
-        setState(() {
-          _isLocating = false;
-        });
+        setState(() => _isLocating = false);
       }
     }
+  }
+
+  Future<void> _openRouteSelection() async {
+    final result = await Navigator.push<Map<String, RouteDirectionSelection>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MapRouteSelectionPage(
+          initialSelections: _userRouteSelections,
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _isProcessingUserRoutes = true;
+        _userRouteSelections = result;
+      });
+
+      await _updateUserSelectedLayers();
+
+      if (mounted) {
+        setState(() {
+          _isProcessingUserRoutes = false;
+        });
+        if (_userSelectedPolylines.isNotEmpty) {
+          _recenterMap();
+        }
+      }
+    }
+  }
+
+  Future<void> _updateUserSelectedLayers() async {
+    final newPolylines = <Polyline>[];
+    final newMarkers = <Marker>[];
+    int colorIndex = 0;
+
+    for (final entry in _userRouteSelections.entries) {
+      final routeId = entry.key;
+      final selection = entry.value;
+
+      if (!selection.isSelected) continue;
+
+      final route = await Static.getRouteById(routeId);
+      if (route == BusRoute.unknown) {
+        Static.log("Skipping route $routeId.");
+        continue;
+      }
+      final detail = await Static.fetchRoutePathAndStops(routeId);
+
+      // --- 【修改】為去程和返程分配顏色 ---
+      Color goColor = BaseMapView
+          .segmentColors[colorIndex % BaseMapView.segmentColors.length];
+      colorIndex++;
+      Color backColor = BaseMapView
+          .segmentColors[colorIndex % BaseMapView.segmentColors.length];
+      colorIndex++;
+
+      if (selection.go && detail.goPath.isNotEmpty) {
+        newPolylines.add(Polyline(
+            points: detail.goPath,
+            // 【修改】設定透明度
+            color: goColor.withOpacity(0.7),
+            strokeWidth: 5.0));
+        for (final station in detail.goStations) {
+          // 【修改】傳遞帶有透明度的顏色
+          newMarkers.add(_createStationMarker(
+              station, route, goColor.withOpacity(0.7), 1));
+        }
+      }
+
+      if (selection.back && detail.backPath.isNotEmpty) {
+        newPolylines.add(Polyline(
+            points: detail.backPath,
+            // 【修改】設定透明度
+            color: backColor.withOpacity(0.7),
+            strokeWidth: 5.0));
+        for (final station in detail.backStations) {
+          // 【修改】傳遞帶有透明度的顏色
+          newMarkers.add(_createStationMarker(
+              station, route, backColor.withOpacity(0.7), 2));
+        }
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _userSelectedPolylines = newPolylines;
+        _userSelectedMarkers = newMarkers;
+      });
+    }
+  }
+
+  Future<void> _prepareStationInfoPanel(BusRoute route, String routeId) async {
+    setState(() {
+      _panelRoute = route;
+      _isFetchingPanelRoute = false;
+    });
+  }
+
+  void _selectStation(StationEdge station, BusRoute route, int goBack) {
+    setState(() {
+      final selectionKey =
+          '${station.position.latitude}-${station.position.longitude}-${route.id}-$goBack';
+      final currentKey = _selectedStation != null
+          ? '${_selectedStation!.$1.position.latitude}-${_selectedStation!.$1.position.longitude}-${_selectedStation!.$2.id}-${_selectedStation!.$3}'
+          : null;
+
+      if (selectionKey == currentKey) {
+        _selectedStation = null;
+        _panelRoute = null;
+      } else {
+        _selectedStation = (station, route, goBack);
+        if (_selectedPoint != null) {
+          _selectedPoint = null;
+          _highlightMarker = null;
+        }
+        _prepareStationInfoPanel(route, route.id);
+      }
+    });
+  }
+
+  Marker _createStationMarker(
+      StationEdge station, BusRoute route, Color color, int goBack) {
+    final selectionKey =
+        '${station.position.latitude}-${station.position.longitude}-${route.id}-$goBack';
+    final currentKey = _selectedStation != null
+        ? '${_selectedStation!.$1.position.latitude}-${_selectedStation!.$1.position.longitude}-${_selectedStation!.$2.id}-${_selectedStation!.$3}'
+        : null;
+    final bool isSelected = selectionKey == currentKey;
+    final double iconSize = isSelected ? 40.0 : 30.0;
+
+    return Marker(
+      point: station.position,
+      width: iconSize,
+      height: iconSize,
+      alignment: Alignment.topCenter,
+      child: GestureDetector(
+        onTap: () => _selectStation(station, route, goBack),
+        child: Icon(
+          Icons.location_on,
+          size: iconSize,
+          color: isSelected ? Colors.amber.shade700 : color,
+          shadows: const [
+            BoxShadow(
+                color: Colors.black54, blurRadius: 4, offset: Offset(0, 2))
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -313,32 +448,30 @@ class BaseMapViewState extends State<BaseMapView> {
       }
     }
 
-    final List<Marker> allMarkersToShow = [...interactiveMarkers];
+    final List<Marker> allMarkersToShow = [
+      ..._userSelectedMarkers,
+      ...interactiveMarkers
+    ];
     if (_highlightMarker != null) {
       allMarkersToShow.add(_highlightMarker!);
     }
-
     if (_currentLocation != null) {
-      allMarkersToShow.add(
-        Marker(
+      allMarkersToShow.add(Marker(
           point: _currentLocation!,
-          width: 24,
-          height: 24,
+          width: 20,
+          height: 20,
           child: IgnorePointer(
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.blue,
-                border: Border.all(color: Colors.white, width: 3),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 4)
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
+              child: Container(
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.blue,
+                      border: Border.all(color: Colors.white, width: 3),
+                      boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 4)
+              ])))));
     }
+
+    final allPolylinesToShow = [...widget.polylines, ..._userSelectedPolylines];
 
     final body = Stack(
       children: [
@@ -357,77 +490,71 @@ class BaseMapViewState extends State<BaseMapView> {
                     maxZoom: BaseMapView.defaultZoom)
                 : null,
             onTap: (_, __) {
-              if (_selectedPoint != null) {
-                // selectPoint is now the single source of truth for deselection
-                selectPoint(_selectedPoint!);
-              }
+              setState(() {
+                if (_selectedPoint != null) {
+                  _selectedPoint = null;
+                  _highlightMarker = null;
+                }
+                if (_selectedStation != null) {
+                  _selectedStation = null;
+                }
+              });
             },
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              tileProvider: CancellableNetworkTileProvider(),
-            ),
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                tileProvider: CancellableNetworkTileProvider()),
             Opacity(
-              opacity: _satelliteOpacity,
-              child: TileLayer(
-                urlTemplate:
-                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                tileProvider: CancellableNetworkTileProvider(),
-              ),
-            ),
-            PolylineLayer(polylines: widget.polylines),
+                opacity: _satelliteOpacity,
+                child: TileLayer(
+                    urlTemplate:
+                        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                    tileProvider: CancellableNetworkTileProvider())),
+            PolylineLayer(polylines: allPolylinesToShow),
             MarkerLayer(markers: allMarkersToShow),
           ],
         ),
-        if (widget.isLoading)
+        if (widget.isLoading || _isProcessingUserRoutes)
           const Center(child: CircularProgressIndicator())
         else if (widget.error != null)
           Center(
-            child: Card(
-              color: theme.colorScheme.primaryContainer,
-              margin: const EdgeInsets.symmetric(horizontal: 40),
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      size: 40,
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      widget.error!,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                    if (widget.onErrorDismiss != null) ...[
-                      const SizedBox(height: 20),
-                      TextButton(
-                        onPressed: widget.onErrorDismiss,
-                        style: TextButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primaryFixedDim,
-                          foregroundColor: theme.colorScheme.onPrimaryFixed,
-                        ),
-                        child: const Text('關閉'),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
+              child: Card(
+                  color: theme.colorScheme.primaryContainer,
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
+                  elevation: 4,
+                  child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.warning_amber_rounded,
+                            size: 40,
+                            color: theme.colorScheme.onPrimaryContainer),
+                        const SizedBox(height: 16),
+                        Text(widget.error!,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer)),
+                        if (widget.onErrorDismiss != null) ...[
+                          const SizedBox(height: 20),
+                          TextButton(
+                              onPressed: widget.onErrorDismiss,
+                              style: TextButton.styleFrom(
+                                  backgroundColor:
+                                      theme.colorScheme.primaryFixedDim,
+                                  foregroundColor:
+                                      theme.colorScheme.onPrimaryFixed),
+                              child: const Text('關閉'))
+                        ]
+                      ])))),
         Positioned(
-          bottom: (_selectedPoint != null ? 220 : 0) + 16,
+          bottom:
+              ((_selectedPoint != null || _selectedStation != null) ? 220 : 0) +
+                  16,
           right: 16,
           child: _buildMapControls(),
         ),
         _buildInfoPanel(),
+        _buildStationInfoPanel(),
       ],
     );
 
@@ -442,20 +569,16 @@ class BaseMapViewState extends State<BaseMapView> {
         backgroundColor: theme.colorScheme.surface.withAlpha(220),
         elevation: 1,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(18.0),
-          child: Container(
-            color: theme.colorScheme.surface.withAlpha(200),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Text(
-              'Map data © OpenStreetMap contributors, Imagery © Esri, Maxar, Earthstar Geo',
-              style: TextStyle(
-                fontSize: 9,
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
-              ),
-            ),
-          ),
-        ),
+            preferredSize: const Size.fromHeight(18.0),
+            child: Container(
+                color: theme.colorScheme.surface.withAlpha(200),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                    'Map data © OpenStreetMap contributors, Imagery © Esri, Maxar, Earthstar Geo',
+                    style: TextStyle(
+                        fontSize: 9,
+                        color: theme.colorScheme.onSurface.withOpacity(0.7))))),
       ),
       body: body,
     );
@@ -463,55 +586,52 @@ class BaseMapViewState extends State<BaseMapView> {
 
   Widget _buildMapControls() {
     final theme = Theme.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Card(
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Card(
           elevation: 4,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           child: Container(
-            width: 40,
-            height: 120,
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.satellite_alt_outlined,
-                    size: 18, color: theme.colorScheme.onSurface),
-                Expanded(
-                  child: RotatedBox(
-                    quarterTurns: 3,
-                    child: SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        trackHeight: 2.0,
-                        thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 6.0),
-                        overlayShape:
-                            const RoundSliderOverlayShape(overlayRadius: 12.0),
-                      ),
-                      child: Slider(
-                        value: _satelliteOpacity,
-                        activeColor: theme.colorScheme.primary,
-                        onChanged: (v) => setState(() => _satelliteOpacity = v),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        FloatingActionButton.small(
+              width: 40,
+              height: 120,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.satellite_alt_outlined,
+                        size: 18, color: theme.colorScheme.onSurface),
+                    Expanded(
+                        child: RotatedBox(
+                            quarterTurns: 3,
+                            child: SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                    trackHeight: 2.0,
+                                    thumbShape: const RoundSliderThumbShape(
+                                        enabledThumbRadius: 6.0),
+                                    overlayShape: const RoundSliderOverlayShape(
+                                        overlayRadius: 12.0)),
+                                child: Slider(
+                                    value: _satelliteOpacity,
+                                    activeColor: theme.colorScheme.primary,
+                                    onChanged: (v) => setState(
+                                        () => _satelliteOpacity = v)))))
+                  ]))),
+      const SizedBox(height: 4),
+      FloatingActionButton.small(
+          onPressed: _isProcessingUserRoutes ? null : _openRouteSelection,
+          tooltip: '選擇繪製路線',
+          elevation: 4,
+          heroTag: 'select_route_layer_btn',
+          child: const Icon(Icons.layers_outlined)),
+      const SizedBox(height: 4),
+      FloatingActionButton.small(
           onPressed: _recenterMap,
           tooltip: '重新置中',
           elevation: 4,
           heroTag: 'recenter_btn_nearby',
-          child: const Icon(Icons.center_focus_strong),
-        ),
-        const SizedBox(height: 4),
-        FloatingActionButton.small(
+          child: const Icon(Icons.center_focus_strong)),
+      const SizedBox(height: 4),
+      FloatingActionButton.small(
           onPressed: _isLocating ? null : _locateMe,
           tooltip: '定位我的位置',
           elevation: 4,
@@ -525,19 +645,154 @@ class BaseMapViewState extends State<BaseMapView> {
                   height: 20,
                   child: CircularProgressIndicator(
                       strokeWidth: 2.5, color: Colors.white))
-              : const Icon(Icons.my_location),
+              : const Icon(Icons.my_location))
+    ]);
+  }
+
+  Widget _buildStationInfoPanel() {
+    final theme = Theme.of(context);
+    final isVisible = _selectedStation != null;
+    const double panelHeight = 190.0;
+
+    final station = _selectedStation?.$1;
+    final goBack = _selectedStation?.$3;
+    final BusRoute? routeForDisplay = _panelRoute;
+
+    String direction = "未知";
+    if (routeForDisplay != null) {
+      if (goBack == 1) {
+        direction = routeForDisplay.destination;
+      } else if (goBack == 2) {
+        direction = routeForDisplay.departure;
+      }
+    }
+
+    // 【新增】站序
+    final String stationOrder = station != null ? '第 ${station.orderNo} 站' : '';
+
+    final latLonString = station != null
+        ? '${station.position.latitude.toStringAsFixed(6)}, ${station.position.longitude.toStringAsFixed(6)}'
+        : '';
+
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      bottom: isVisible ? 0 : -(panelHeight + 40),
+      left: 0,
+      right: 0,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          height: panelHeight,
+          margin: const EdgeInsets.all(12.0),
+          decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withAlpha(38),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2))
+              ]),
+          child: !isVisible || station == null
+              ? const SizedBox.shrink()
+              : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
+                      child: Row(children: [
+                        Expanded(
+                            child: Text(station.name,
+                                style: theme.textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis)),
+                        IconButton(
+                            icon: const Icon(Icons.map_sharp),
+                            color: Colors.blueAccent,
+                            tooltip: '在 Google Map 上查看',
+                            onPressed: () async => await launchUrl(Uri.parse(
+                                "https://www.google.com/maps?q=${station.position.latitude},${station.position.longitude}(${Uri.encodeComponent(station.name)})"))),
+                        IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () =>
+                                setState(() => _selectedStation = null))
+                      ])),
+                  const Divider(
+                      height: 1, thickness: 1, indent: 16, endIndent: 16),
+                  if (_isFetchingPanelRoute)
+                    const Expanded(
+                        child: Center(child: CircularProgressIndicator()))
+                  else if (routeForDisplay != null)
+                    Expanded(
+                        child: SingleChildScrollView(
+                            child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 8.0),
+                                child: Wrap(
+                                    spacing: 8.0,
+                                    runSpacing: 6.0,
+                                    children: [
+                                      _buildInfoChip(
+                                          icon: Icons.route_outlined,
+                                          label:
+                                              "${routeForDisplay.name} (${routeForDisplay.id})"),
+                                      // 【新增】路線描述 Chip
+                                      if (routeForDisplay
+                                          .description.isNotEmpty)
+                                        _buildInfoChip(
+                                            icon: Icons.description_outlined,
+                                            label: routeForDisplay.description),
+                                      _buildInfoChip(
+                                          icon: Icons.swap_horiz,
+                                          label: "往 $direction"),
+                                      // 【新增】站序 Chip
+                                      _buildInfoChip(
+                                          icon: Icons.format_list_numbered,
+                                          label: stationOrder),
+                                      InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(16.0),
+                                          onTap: () {
+                                            Clipboard.setData(ClipboardData(
+                                                text: latLonString));
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(SnackBar(
+                                                      content: Text(
+                                                          '已複製經緯度: $latLonString'),
+                                                      duration: const Duration(
+                                                          seconds: 2),
+                                                      backgroundColor: theme
+                                                          .colorScheme.primary,
+                                                      showCloseIcon: true));
+                                            }
+                                          },
+                                          child: _buildInfoChip(
+                                              icon: Icons.gps_fixed,
+                                              label: latLonString))
+                                    ]))))
+                  else
+                    Expanded(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            '無法載入路線 ${_selectedStation?.$2.id} 的詳細資訊。',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: theme.colorScheme.error),
+                          ),
+                        ),
+                      ),
+                    ),
+                ]),
         ),
-      ],
+      ),
     );
   }
 
-  // --- 變更開始: 修改 _buildInfoPanel 以顯示加載和錯誤狀態 ---
   Widget _buildInfoPanel() {
     final theme = Theme.of(context);
     final isVisible = _selectedPoint != null;
     const double panelHeight = 190.0;
-
-    // 現在直接使用狀態變數
     final route = _selectedRoute;
     final String? plate = _selectedPlate;
 
@@ -553,168 +808,135 @@ class BaseMapViewState extends State<BaseMapView> {
           height: panelHeight,
           margin: const EdgeInsets.all(12.0),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainer,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withAlpha(38),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2))
-            ],
-          ),
+              color: theme.colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withAlpha(38),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2))
+              ]),
           child: !isVisible
               ? const SizedBox.shrink()
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // --- Header (一直顯示) ---
-                    Padding(
+              : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Padding(
                       padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                              child: Text(
-                                  Static.displayDateFormat
-                                      .format(_selectedPoint!.dataTime),
-                                  style: theme.textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.bold))),
-                          IconButton(
-                              icon: const Icon(Icons.map_sharp),
-                              color: Colors.blueAccent,
-                              tooltip: '在 Google Map 上查看',
-                              // 當路線資訊還在加載或加載失敗時，禁用此按鈕
-                              onPressed: route == null
-                                  ? null
-                                  : () async {
-                                      final mapTitle = (plate != null
-                                              ? "$plate | "
-                                              : "") +
-                                          "${route.name} | ${route.description} "
-                                              "| 往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'} "
-                                              "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
-                                              "| 駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId} "
-                                              "| ${Static.displayDateFormat.format(_selectedPoint!.dataTime)}";
-
-                                      await launchUrl(Uri.parse(
-                                          "https://www.google.com/maps?q=${_selectedPoint!.lat}"
-                                          ",${_selectedPoint!.lon}($mapTitle)"));
-                                    }),
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => selectPoint(_selectedPoint!),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(
-                        height: 1, thickness: 1, indent: 16, endIndent: 16),
-
-                    // --- Body (根據狀態條件性顯示) ---
-                    if (_isFetchingRouteDetail)
-                      // 狀態 1: 正在加載
-                      const Expanded(
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (route != null)
-                      // 狀態 2: 成功加載路線資訊
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16.0, vertical: 8.0),
-                            child: Wrap(
-                              spacing: 8.0,
-                              runSpacing: 6.0,
-                              children: [
-                                if (plate != null)
-                                  _buildInfoChip(
-                                    icon: Icons.numbers,
-                                    label: "車牌：$plate",
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                _buildInfoChip(
-                                    icon: Icons.route_outlined,
-                                    label: "${route.name} (${route.id})"),
-                                _buildInfoChip(
-                                    icon: Icons.description_outlined,
-                                    label: route.description),
-                                _buildInfoChip(
-                                    icon: Icons.swap_horiz,
-                                    label:
-                                        "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'}"),
-                                _buildInfoChip(
-                                  icon: _selectedPoint!.dutyStatus == 0
-                                      ? Icons.work_outline
-                                      : Icons.work_off_outlined,
-                                  label: _selectedPoint!.dutyStatus == 0
-                                      ? "營運"
-                                      : "非營運",
-                                  color: _selectedPoint!.dutyStatus == 0
-                                      ? Colors.green
-                                      : Colors.orange,
-                                ),
-                                _buildInfoChip(
-                                    icon: Icons.person_pin_circle_outlined,
-                                    label:
-                                        "駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId}"),
-
-                                // 2. 將經緯度 Chip 包裝在 InkWell 中
-                                InkWell(
-                                  borderRadius: BorderRadius.circular(16.0),
-                                  onTap: () {
-                                    // 3. 實作複製邏輯
-                                    final lat = _selectedPoint!.lat;
-                                    final lon = _selectedPoint!.lon;
-                                    final latLonString = '$lat, $lon';
-                                    Clipboard.setData(
-                                        ClipboardData(text: latLonString));
-
-                                    // 4. 顯示提示訊息
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text('已複製經緯度：$latLonString'),
-                                          duration: const Duration(seconds: 2),
-                                          backgroundColor:
-                                              theme.colorScheme.primary,
-                                          showCloseIcon: true,
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  child: _buildInfoChip(
-                                      icon: Icons.gps_fixed,
-                                      label:
-                                          "${_selectedPoint!.lat.toStringAsFixed(5)}, ${_selectedPoint!.lon.toStringAsFixed(5)}"),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      // 狀態 3: 加載失敗 (或無此路線)
-                      Expanded(
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
+                      child: Row(children: [
+                        Expanded(
                             child: Text(
-                              '無法載入路線 ${_selectedPoint!.routeId} 的詳細資訊。',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: theme.colorScheme.error),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                                Static.displayDateFormat
+                                    .format(_selectedPoint!.dataTime),
+                                style: theme.textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold))),
+                        IconButton(
+                            icon: const Icon(Icons.map_sharp),
+                            color: Colors.blueAccent,
+                            tooltip: '在 Google Map 上查看',
+                            onPressed: route == null
+                                ? null
+                                : () async {
+                                    final mapTitle = (plate != null
+                                            ? "$plate | "
+                                            : "") +
+                                        "${route.name} | ${route.description} "
+                                            "| 往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'} "
+                                            "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
+                                            "| 駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId} "
+                                            "| ${Static.displayDateFormat.format(_selectedPoint!.dataTime)}";
+                                    await launchUrl(Uri.parse(
+                                        "https://www.google.com/maps?q=${_selectedPoint!.lat}"
+                                        ",${_selectedPoint!.lon}($mapTitle)"));
+                                  }),
+                        IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => selectPoint(_selectedPoint!))
+                      ])),
+                  const Divider(
+                      height: 1, thickness: 1, indent: 16, endIndent: 16),
+                  if (_isFetchingRouteDetail)
+                    const Expanded(
+                        child: Center(child: CircularProgressIndicator()))
+                  else if (route != null)
+                    Expanded(
+                        child: SingleChildScrollView(
+                            child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 8.0),
+                                child: Wrap(
+                                    spacing: 8.0,
+                                    runSpacing: 6.0,
+                                    children: [
+                                      if (plate != null)
+                                        _buildInfoChip(
+                                            icon: Icons.numbers,
+                                            label: "車牌：$plate",
+                                            color: theme.colorScheme.primary),
+                                      _buildInfoChip(
+                                          icon: Icons.route_outlined,
+                                          label: "${route.name} (${route.id})"),
+                                      _buildInfoChip(
+                                          icon: Icons.description_outlined,
+                                          label: route.description),
+                                      _buildInfoChip(
+                                          icon: Icons.swap_horiz,
+                                          label:
+                                              "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'}"),
+                                      _buildInfoChip(
+                                          icon: _selectedPoint!.dutyStatus == 0
+                                              ? Icons.work_outline
+                                              : Icons.work_off_outlined,
+                                          label: _selectedPoint!.dutyStatus == 0
+                                              ? "營運"
+                                              : "非營運",
+                                          color: _selectedPoint!.dutyStatus == 0
+                                              ? Colors.green
+                                              : Colors.orange),
+                                      _buildInfoChip(
+                                          icon:
+                                              Icons.person_pin_circle_outlined,
+                                          label:
+                                              "駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId}"),
+                                      InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(16.0),
+                                          onTap: () {
+                                            final lat = _selectedPoint!.lat;
+                                            final lon = _selectedPoint!.lon;
+                                            final latLonString = '$lat, $lon';
+                                            Clipboard.setData(ClipboardData(
+                                                text: latLonString));
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(SnackBar(
+                                                      content: Text(
+                                                          '已複製經緯度：$latLonString'),
+                                                      duration: const Duration(
+                                                          seconds: 2),
+                                                      backgroundColor: theme
+                                                          .colorScheme.primary,
+                                                      showCloseIcon: true));
+                                            }
+                                          },
+                                          child: _buildInfoChip(
+                                              icon: Icons.gps_fixed,
+                                              label:
+                                                  "${_selectedPoint!.lat.toStringAsFixed(5)}, ${_selectedPoint!.lon.toStringAsFixed(5)}"))
+                                    ]))))
+                  else
+                    Expanded(
+                        child: Center(
+                            child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Text(
+                                    '無法載入路線 ${_selectedPoint!.routeId} 的詳細資訊。',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        color: theme.colorScheme.error)))))
+                ]),
         ),
       ),
     );
   }
-
-  // --- 變更結束 ---
 
   Widget _buildInfoChip(
       {required IconData icon, required String label, Color? color}) {

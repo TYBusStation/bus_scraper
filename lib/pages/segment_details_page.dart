@@ -16,7 +16,7 @@ class SegmentDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final route = Static.routeData.firstWhere((r) => r.id == segment.routeId);
+    final route = Static.getRouteByIdSync(segment.routeId);
 
     return Scaffold(
       appBar: AppBar(

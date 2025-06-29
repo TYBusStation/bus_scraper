@@ -4,6 +4,14 @@ part 'bus_route.g.dart';
 
 @JsonSerializable()
 class BusRoute {
+  static final unknown = BusRoute(
+    id: "未知",
+    name: '未知',
+    departure: "未知",
+    destination: "未知",
+    description: "未知",
+  );
+
   @JsonKey(name: "id")
   final String id;
   @JsonKey(name: "name")

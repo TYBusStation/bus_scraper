@@ -79,7 +79,6 @@ class FavoritesPage extends StatelessWidget {
           );
         }
 
-        // 使用 Scaffold 包裝，以便添加 AppBar 和 FloatingActionButton
         return body;
       },
     );

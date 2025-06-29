@@ -253,30 +253,20 @@ class _HistoryPageState extends State<HistoryPage> {
         final allHistoryData =
             decodedData.map((item) => BusPoint.fromJson(item)).toList();
         final segments = _processDataIntoSegments(allHistoryData);
-
-        // --- 動態處理路線 ---
         final uniqueRouteIds = segments.map((s) => s.routeId).toSet();
 
-        final knownRoutes = Static.routeData
-            .where((route) => uniqueRouteIds.contains(route.id))
+        // 使用 Future.wait 並行處理所有路線查找
+        final fetchFutures = uniqueRouteIds
+            .map((id) async => await Static.getRouteById(id))
             .toList();
-
-        final unknownRouteIds =
-            uniqueRouteIds.where((id) => !knownRoutes.any((r) => r.id == id));
-
-        List<BusRoute> fetchedUnknownRoutes = [];
-        if (unknownRouteIds.isNotEmpty) {
-          final fetchFutures = unknownRouteIds
-              .map((id) => Static.fetchRouteDetailById(id))
-              .toList();
-          final results = await Future.wait(fetchFutures);
-          fetchedUnknownRoutes = results.whereType<BusRoute>().toList();
-        }
+        final List<BusRoute> fetchedRoutes = await Future.wait(fetchFutures);
 
         setState(() {
           _allHistoryData = allHistoryData;
           _segments = segments;
-          _availableRoutes = [...knownRoutes, ...fetchedUnknownRoutes];
+
+          // 使用獲取到的路線來設置 availableRoutes
+          _availableRoutes = fetchedRoutes;
           _availableRoutes.sort((a, b) => Static.compareRoutes(a.name, b.name));
 
           _availableDrivers = segments.map((s) => s.driverId).toSet().toList();
@@ -735,13 +725,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Widget _buildSegmentCard(TrajectorySegment segment) {
     final theme = Theme.of(context);
-    final route = _availableRoutes.firstWhere((r) => r.id == segment.routeId,
-        orElse: () => BusRoute(
-            id: segment.routeId,
-            name: '未知路線',
-            departure: '?',
-            destination: '?',
-            description: ''));
+    final route = Static.getRouteByIdSync(segment.routeId);
 
     String durationStr = '';
     if (segment.duration.inHours > 0) {

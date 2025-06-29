@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart'; // 新增
 import 'package:flutter/material.dart';
 
 // 假設你的 ThemeProvider 在這裡
@@ -63,11 +64,9 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
   void didUpdateWidget(covariant SearchableList<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // 比較新舊 allItems 是否不同。使用 identityHashCode 是為了高效比較列表實例本身，
-    // 而不是比較列表內容，這樣更高效。
-    if (widget.allItems != oldWidget.allItems) {
-      // 如果資料來源已改變 (例如從我的最愛中移除一項)，
-      // 則重新計算過濾後的列表並觸發 UI 更新。
+    // 新增：若 allItems 內容有變化也要更新
+    if (widget.allItems != oldWidget.allItems ||
+        !listEquals(widget.allItems, oldWidget.allItems)) {
       setState(() {
         filteredItems = _getFilteredAndSortedItems();
       });

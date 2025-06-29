@@ -10,6 +10,9 @@ class EmptyStateIndicator extends StatelessWidget {
     required this.icon,
     required this.title,
     this.subtitle,
+    this.iconSize = 80, // 新增：icon 大小可自訂
+    this.iconColor, // 新增：icon 顏色可自訂
+    this.padding = const EdgeInsets.all(32.0), // 新增：padding 可自訂
   });
 
   /// 要顯示的圖示。
@@ -20,6 +23,15 @@ class EmptyStateIndicator extends StatelessWidget {
 
   /// 可選的次要標題文字。
   final String? subtitle;
+
+  /// 新增：icon 大小
+  final double iconSize;
+
+  /// 新增：icon 顏色
+  final Color? iconColor;
+
+  /// 新增：外部 padding
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
@@ -34,15 +46,16 @@ class EmptyStateIndicator extends StatelessWidget {
       child: SingleChildScrollView(
         child: Padding(
           // 在周圍增加一些間距，避免內容太靠近螢幕邊緣
-          padding: const EdgeInsets.all(32.0),
+          padding: padding,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                size: 80, // 稍微調整大小以適應更多場景
-                color: colorScheme.secondary.withOpacity(0.7), // 使用次要顏色，視覺上更柔和
+                size: iconSize,
+                color: iconColor ??
+                    colorScheme.secondary.withOpacity(0.7), // 使用次要顏色，視覺上更柔和
               ),
               const SizedBox(height: 24),
               Text(

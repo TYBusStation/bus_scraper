@@ -24,8 +24,12 @@ class StorageHelper {
     return _data[key] ?? defaultValue;
   }
 
-  static void set<T>(String key, T value) {
-    _data[key] = value;
+  static void set<T>(String key, T? value) {
+    if (value == null) {
+      _data.remove(key);
+    } else {
+      _data[key] = value;
+    }
     save();
   }
 
