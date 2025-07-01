@@ -6,7 +6,6 @@ import '../data/bus_route.dart';
 import '../static.dart';
 import '../widgets/searchable_list.dart';
 
-/// 用於管理單一路線的去程/返程選擇狀態
 class RouteDirectionSelection {
   bool go;
   bool back;
@@ -17,6 +16,7 @@ class RouteDirectionSelection {
 }
 
 class MapRouteSelectionPage extends StatefulWidget {
+  // [MODIFIED] 參數恢復為只接收路線選擇
   final Map<String, RouteDirectionSelection> initialSelections;
 
   const MapRouteSelectionPage({
@@ -29,7 +29,6 @@ class MapRouteSelectionPage extends StatefulWidget {
 }
 
 class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
-  // --- 新增狀態變數，與 RoutePage 保持一致 ---
   late Map<String, RouteDirectionSelection> _selections;
   bool _showAllRoutes = false;
   bool _isLoading = false;
@@ -43,31 +42,25 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
       (key, value) => MapEntry(
           key, RouteDirectionSelection(go: value.go, back: value.back)),
     );
-    // 預設顯示 Static.routeData
     _displayedRoutes = Static.routeData;
   }
 
-  // --- 新增處理 Switch 變更的邏輯，與 RoutePage 類似 ---
   Future<void> _onSwitchChanged(bool value) async {
     if (_showAllRoutes == value) return;
 
     setState(() {
       _showAllRoutes = value;
-      // 如果關閉 Switch，直接切換回預設路線
       if (!value) {
         _displayedRoutes = Static.routeData;
       }
     });
 
     if (value) {
-      // 如果開啟 Switch
       if (Static.allRouteData != null) {
-        // 使用快取
         setState(() {
           _displayedRoutes = Static.allRouteData!;
         });
       } else {
-        // 從 API 獲取
         setState(() => _isLoading = true);
         final allRoutes = await Static.fetchAllRoutes();
         if (mounted) {
@@ -87,18 +80,6 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
       if (go != null) selection.go = go;
       if (back != null) selection.back = back;
     });
-  }
-
-  void _clearAllSelections() {
-    setState(() {
-      _selections.clear();
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('已清除所有選擇'),
-        duration: Duration(seconds: 2),
-      ),
-    );
   }
 
   @override
@@ -122,7 +103,6 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
           ),
         ],
       ),
-      // --- 使用 Column 組合 Switch 和列表 ---
       body: Column(
         children: [
           Row(
@@ -159,7 +139,6 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
                       final selection =
                           _selections[route.id] ?? RouteDirectionSelection();
 
-                      // --- 模仿 RoutePage 的 Card 樣式 ---
                       return Card(
                         elevation: 2,
                         margin: const EdgeInsets.symmetric(
@@ -180,14 +159,11 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
                                 ),
                               ),
                               const SizedBox(height: 4),
-
-                              // 起站與終站，使用 Row 和 Icon 視覺化呈現
                               Row(
                                 children: [
                                   const Icon(Icons.departure_board,
                                       size: 20, color: Colors.green),
                                   const SizedBox(width: 8),
-                                  // 使用 Flexible 避免文字過長導致排版錯誤
                                   Flexible(
                                     child: Text(
                                       route.departure,

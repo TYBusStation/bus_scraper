@@ -11,6 +11,7 @@ import '../data/bus_point.dart';
 import '../static.dart';
 import '../utils/map_data_processor.dart';
 import '../widgets/base_map_view.dart';
+import '../widgets/point_marker.dart';
 
 const Duration _kRefreshInterval = Duration(seconds: 30);
 

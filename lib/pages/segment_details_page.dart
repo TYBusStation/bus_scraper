@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../static.dart';
 import 'history_osm_page.dart';
-import 'history_page.dart'; // 為了 TrajectorySegment
+import 'history_page.dart';
 
 class SegmentDetailsPage extends StatelessWidget {
   final String plate;
@@ -29,7 +29,6 @@ class SegmentDetailsPage extends StatelessWidget {
         itemCount: segment.points.length,
         itemBuilder: (context, index) {
           final dataPoint = segment.points[index];
-          // 這個 Card 的結構與您舊版的 HistoryPage 列表完全相同
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 5.0),
             child: Padding(
@@ -53,22 +52,28 @@ class SegmentDetailsPage extends StatelessWidget {
                             icon: const Icon(Icons.explore_outlined),
                             color: Theme.of(context).colorScheme.secondary,
                             tooltip: '在地圖上繪製此點',
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => HistoryOsmPage(
-                                  plate: plate,
-                                  points: [dataPoint],
+                            onPressed: () {
+                              final singlePointSegment =
+                                  TrajectorySegment(points: [dataPoint]);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => HistoryOsmPage(
+                                    plate: plate,
+                                    segments: [singlePointSegment],
+                                    isFiltered: true, // 繪製單點時，視為篩選過的
+                                    backgroundSegments: null,
+                                  ),
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
                           IconButton(
                             icon: const Icon(Icons.map_sharp),
                             color: Colors.blueAccent,
                             tooltip: '在 Google Map 上查看',
                             onPressed: () async => await launchUrl(Uri.parse(
-                                "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${route.name} | ${route.description} | 往 ${dataPoint.goBack == 1 ? route.destination : route.departure} | ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 駕駛：${dataPoint.driverId == "0" ? "未知" : dataPoint.driverId} | ${Static.displayDateFormat.format(dataPoint.dataTime)})")),
+                                "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${Uri.encodeComponent('${route.name} | ${route.description} | 往 ${dataPoint.goBack == 1 ? route.destination : route.departure} | ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 駕駛：${dataPoint.driverId == "0" ? "未知" : dataPoint.driverId} | ${Static.displayDateFormat.format(dataPoint.dataTime)}')} )")),
                           ),
                         ],
                       )
@@ -93,7 +98,7 @@ class SegmentDetailsPage extends StatelessWidget {
                         context,
                         icon: Icons.swap_horiz,
                         label:
-                            "往 ${dataPoint.goBack == 1 ? route.destination : route.departure}",
+                            "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (dataPoint.goBack == 1 ? route.destination : route.departure) : '未知'}",
                       ),
                       _buildInfoChip(
                         context,
@@ -115,7 +120,7 @@ class SegmentDetailsPage extends StatelessWidget {
                         context,
                         icon: Icons.gps_fixed,
                         label:
-                            "${dataPoint.lat.toStringAsFixed(5)}, ${dataPoint.lon.toStringAsFixed(5)}",
+                            "${dataPoint.lat.toString()}, ${dataPoint.lon.toString()}",
                       ),
                     ],
                   ),
@@ -128,7 +133,6 @@ class SegmentDetailsPage extends StatelessWidget {
     );
   }
 
-  // 輔助建立資訊 Chip 的 Widget
   Widget _buildInfoChip(BuildContext context,
       {required IconData icon, required String label, Color? color}) {
     final theme = Theme.of(context);

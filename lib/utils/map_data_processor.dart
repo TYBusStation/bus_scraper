@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../data/bus_point.dart';
 import '../widgets/base_map_view.dart';
+import '../widgets/point_marker.dart';
 
 /// 一個用於存儲處理後的地圖數據的容器類。
 class ProcessedMapData {

@@ -5,21 +5,23 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../data/bus_point.dart';
+import '../pages/history_page.dart';
 import '../utils/map_data_processor.dart';
 import '../widgets/base_map_view.dart';
+import '../widgets/point_marker.dart'; // 引入 PointMarker
 
 class HistoryOsmPage extends StatefulWidget {
   final String plate;
-  final List<BusPoint> points;
-
-  // *** NEW ***: 新增可選的背景點位參數
-  final List<BusPoint>? backgroundPoints;
+  final List<TrajectorySegment> segments;
+  final List<TrajectorySegment>? backgroundSegments;
+  final bool isFiltered;
 
   const HistoryOsmPage({
     super.key,
     required this.plate,
-    required this.points,
-    this.backgroundPoints, // *** NEW ***
+    required this.segments,
+    this.backgroundSegments,
+    required this.isFiltered,
   });
 
   @override
@@ -30,6 +32,7 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
   List<Polyline> _polylines = [];
   List<Marker> _markers = [];
   LatLngBounds? _bounds;
+  List<BusPoint> _allPointsForBounds = [];
 
   @override
   void initState() {
@@ -37,64 +40,77 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
     _prepareMapData();
   }
 
-  /// *** MODIFIED ***: 準備 Polyline 和 Marker 數據的完整重構邏輯
   void _prepareMapData() {
-    // 如果主要點位和背景點位都為空，則不執行任何操作
-    if (widget.points.isEmpty && (widget.backgroundPoints?.isEmpty ?? true)) {
-      return;
-    }
-
     final List<Polyline> allPolylines = [];
     final List<Marker> allMarkers = [];
 
-    // --- 1. 處理背景軌跡 (如果存在) ---
-    // 這些是被篩選掉的點位，將繪製成虛線且無標記
-    if (widget.backgroundPoints != null &&
-        widget.backgroundPoints!.isNotEmpty) {
-      final backgroundLatLatLngs =
-          widget.backgroundPoints!.map((p) => LatLng(p.lat, p.lon)).toList();
+    _allPointsForBounds = [
+      ...widget.segments.expand((s) => s.points),
+      ...(widget.backgroundSegments?.expand((s) => s.points) ?? []),
+    ];
 
-      allPolylines.add(
-        Polyline(
-          points: backgroundLatLatLngs,
-          color: Colors.black.withOpacity(0.5),
-          strokeWidth: 3.0,
-          pattern: const StrokePattern.dotted(),
-        ),
-      );
+    if (_allPointsForBounds.isEmpty) {
+      if (mounted) setState(() {});
+      return;
     }
 
-    // --- 2. 處理主要軌跡 (篩選後的結果) ---
-    if (widget.points.isNotEmpty) {
-      // 調用共享處理器來生成主要軌跡線和通用標記 (如速度變化)
-      final processedData = processBusPoints(widget.points);
-
-      // 添加處理器生成的主要軌跡線和標記
-      allPolylines.addAll(processedData.polylines);
-      allMarkers.addAll(processedData.markers);
-
-      // --- 為主要軌跡添加特有的起點和終點標記 ---
-      if (widget.points.length == 1) {
-        allMarkers.add(_createSinglePointMarker(widget.points.first));
-      } else {
-        allMarkers
-            .add(_createStartEndMarker(widget.points.first, isStart: true));
-        allMarkers
-            .add(_createStartEndMarker(widget.points.last, isStart: false));
+    // --- 1. 處理背景軌跡段 ---
+    if (widget.backgroundSegments != null) {
+      for (final segment in widget.backgroundSegments!) {
+        if (segment.points.isEmpty) continue;
+        allPolylines.add(
+          Polyline(
+            points: segment.points.map((p) => LatLng(p.lat, p.lon)).toList(),
+            color: Colors.black.withOpacity(0.5),
+            strokeWidth: 3.0,
+            pattern: const StrokePattern.dotted(),
+          ),
+        );
       }
     }
 
-    // --- 3. 計算包含所有點位的邊界 ---
-    final List<BusPoint> allPointsForBounds = [
-      ...widget.points,
-      ...(widget.backgroundPoints ?? [])
-    ];
-    final LatLngBounds? calculatedBounds = allPointsForBounds.isNotEmpty
-        ? LatLngBounds.fromPoints(
-            allPointsForBounds.map((p) => LatLng(p.lat, p.lon)).toList())
-        : null;
+    // --- 2. 根據是否篩選，選擇不同的繪圖策略 ---
+    if (!widget.isFiltered) {
+      // 情況 A: 未篩選
+      final allMainPoints = widget.segments.expand((s) => s.points).toList();
+      if (allMainPoints.isNotEmpty) {
+        final processedData = processBusPoints(allMainPoints);
+        allPolylines.addAll(processedData.polylines);
+        allMarkers.addAll(processedData.markers);
 
-    // 更新狀態以觸發 build
+        if (allMainPoints.length > 1) {
+          allMarkers
+              .add(_createStartEndMarker(allMainPoints.first, isStart: true));
+          allMarkers
+              .add(_createStartEndMarker(allMainPoints.last, isStart: false));
+        } else {
+          allMarkers.add(_createSinglePointMarker(allMainPoints.first));
+        }
+      }
+    } else {
+      // 情況 B: 已篩選
+      for (final segment in widget.segments) {
+        if (segment.points.isEmpty) continue;
+
+        final processedData = processBusPoints(segment.points);
+        allPolylines.addAll(processedData.polylines);
+        allMarkers.addAll(processedData.markers);
+
+        if (segment.points.length > 1) {
+          allMarkers
+              .add(_createStartEndMarker(segment.points.first, isStart: true));
+          allMarkers
+              .add(_createStartEndMarker(segment.points.last, isStart: false));
+        } else {
+          allMarkers.add(_createSinglePointMarker(segment.points.first));
+        }
+      }
+    }
+
+    // --- 3. 計算邊界 ---
+    final LatLngBounds? calculatedBounds = LatLngBounds.fromPoints(
+        _allPointsForBounds.map((p) => LatLng(p.lat, p.lon)).toList());
+
     setState(() {
       _polylines = allPolylines;
       _markers = allMarkers;
@@ -102,63 +118,44 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
     });
   }
 
-  // --- Marker 創建方法 (無需修改) ---
-  PointMarker _createSinglePointMarker(BusPoint point) {
-    return PointMarker(
-      busPoint: point,
-      width: 40,
-      height: 40,
-      child: const Icon(Icons.directions_bus, color: Colors.pink, size: 40),
-    );
-  }
-
+  // [MODIFIED] 完全參照 live_osm_page.dart 的樣式，移除 Stack 和背景 Container
   PointMarker _createStartEndMarker(BusPoint point, {required bool isStart}) {
     return PointMarker(
       busPoint: point,
-      width: 48,
-      height: 48,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: (isStart ? Colors.green : Colors.red).withAlpha(50),
-            ),
-          ),
-          Icon(
-            isStart ? Icons.flag_circle_rounded : Icons.stop_circle_rounded,
-            color: isStart
-                ? Colors.greenAccent.shade700
-                : Colors.redAccent.shade700,
-            size: 32,
-            shadows: const [Shadow(color: Colors.black45, blurRadius: 5)],
-          ),
-        ],
+      width: 32, // 與 live_osm_page 一致
+      height: 32, // 與 live_osm_page 一致
+      child: Icon(
+        isStart ? Icons.flag_circle_rounded : Icons.stop_circle_rounded,
+        color: isStart ? Colors.greenAccent : Colors.redAccent,
+        // 顏色也與 live_osm_page 相似
+        size: 32, // 與 live_osm_page 一致
+        // 暈影已被移除，此處不再有 shadows 屬性
       ),
     );
   }
 
+  // 單點軌跡段使用與一般軌跡段一樣的小圓點
+  PointMarker _createSinglePointMarker(BusPoint point) {
+    // 讓單點標記也使用與起點標記相同的樣式
+    return _createStartEndMarker(point, isStart: true);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // *** MODIFIED ***: 檢查所有可能的點位
-    final bool hasData = widget.points.isNotEmpty ||
-        (widget.backgroundPoints?.isNotEmpty ?? false);
+    final bool hasData = _allPointsForBounds.isNotEmpty;
 
     if (!hasData) {
       return Scaffold(
         appBar: AppBar(title: Text('${widget.plate} 軌跡')),
-        body: const Center(child: Text('沒有可顯示的點位數據。')),
+        body: const Center(child: Text('沒有可顯示的軌跡數據。')),
       );
     }
 
-    // 將所有準備好的數據傳遞給 BaseMapView
     return BaseMapView(
       appBarTitle: '${widget.plate} 軌跡地圖',
       isLoading: false,
       error: null,
-      // *** MODIFIED ***: 傳遞所有點位給 BaseMapView, 方便其內部可能的功能使用
-      points: [...widget.points, ...(widget.backgroundPoints ?? [])],
+      points: _allPointsForBounds,
       polylines: _polylines,
       markers: _markers,
       bounds: _bounds,

@@ -1,5 +1,6 @@
 // lib/widgets/base_map_view.dart
 
+import 'package:bus_scraper/widgets/point_marker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -14,58 +15,36 @@ import '../data/route_detail.dart';
 import '../pages/map_route_selection_page.dart';
 import '../static.dart';
 
-// PointMarker class (無變更)
-class PointMarker extends Marker {
-  final BusPoint busPoint;
-
-  PointMarker({
-    required this.busPoint,
-    required super.child,
-    super.width = 30.0,
-    super.height = 30.0,
-    super.alignment,
-  }) : super(point: LatLng(busPoint.lat, busPoint.lon));
-}
-
-// BaseMapView class (無變更)
 class BaseMapView extends StatefulWidget {
   static const List<Color> segmentColors = [
-    // --- 常用基本色 ---
-    Color(0xFFE53935), // 鮮紅 (Red.shade600)
-    Color(0xFF1E88E5), // 鮮藍 (Blue.shade600)
-    Color(0xFF43A047), // 翠綠 (Green.shade600)
-    Color(0xFFFB8C00), // 橙色 (Orange.shade600)
-    Color(0xFF00897B), // 青色 (Teal.shade600)
-
-    // --- 擴充色系 1 ---
-    Color(0xFF5E35B1), // 靛藍 (DeepPurple.shade600)
-    Color(0xFFFFB300), // 琥珀色 (Amber.shade700)
-    Color(0xFF039BE5), // 亮藍 (LightBlue.shade600)
-    Color(0xFF6D4C41), // 棕色 (Brown.shade600)
-    Color(0xFFF4511E), // 深橙 (DeepOrange.shade600)
-
-    // --- 擴充色系 2 ---
-    Color(0xFFC0CA33), // 萊姆綠 (Lime.shade600)
-    Color(0xFF00ACC1), // 藍綠色 (Cyan.shade600)
-    Color(0xFF7CB342), // 淺綠 (LightGreen.shade600)
-    Color(0xFF673AB7), // 深紫 (DeepPurple)
-    Color(0xFF455A64), // 藍灰色 (BlueGrey.shade700)
+    Color(0xFFE53935),
+    Color(0xFF1E88E5),
+    Color(0xFF43A047),
+    Color(0xFFFB8C00),
+    Color(0xFF00897B),
+    Color(0xFF5E35B1),
+    Color(0xFFFFB300),
+    Color(0xFF039BE5),
+    Color(0xFF6D4C41),
+    Color(0xFFF4511E),
+    Color(0xFFC0CA33),
+    Color(0xFF00ACC1),
+    Color(0xFF7CB342),
+    Color(0xFF673AB7),
+    Color(0xFF455A64),
   ];
-
   static const double defaultZoom = 17;
 
   final String appBarTitle;
   final List<Widget>? appBarActions;
   final bool isLoading;
   final String? error;
-
   final List<BusPoint> points;
   final List<Polyline> polylines;
   final List<Marker> markers;
   final LatLngBounds? bounds;
   final bool hideAppBar;
   final VoidCallback? onErrorDismiss;
-
   final Function(BusPoint, String?)? onPointSelected;
 
   const BaseMapView({
@@ -93,20 +72,15 @@ class BaseMapViewState extends State<BaseMapView> {
   BusPoint? _selectedPoint;
   Marker? _highlightMarker;
   String? _selectedPlate;
-
   LatLng? _currentLocation;
   bool _isLocating = false;
-
   BusRoute? _selectedRoute;
   bool _isFetchingRouteDetail = false;
-
   Map<String, RouteDirectionSelection> _userRouteSelections = {};
   List<Polyline> _userSelectedPolylines = [];
   List<Marker> _userSelectedMarkers = [];
   bool _isProcessingUserRoutes = false;
-
   (StationEdge, BusRoute, int)? _selectedStation;
-
   BusRoute? _panelRoute;
   bool _isFetchingPanelRoute = false;
 
@@ -159,12 +133,9 @@ class BaseMapViewState extends State<BaseMapView> {
             ),
           ),
         );
-
         _selectedRoute = null;
         _isFetchingRouteDetail = false;
         _selectedStation = null;
-
-        // Use the unified method to get route details
         _isFetchingRouteDetail = true;
         _fetchAndSetRouteDetail(point.routeId);
       }
@@ -178,16 +149,13 @@ class BaseMapViewState extends State<BaseMapView> {
       }
       return;
     }
-
     LatLngBounds? boundsToFit = widget.bounds;
-
     if (_userSelectedPolylines.isNotEmpty) {
       final allPoints = _userSelectedPolylines.expand((p) => p.points).toList();
       if (allPoints.isNotEmpty) {
         boundsToFit = LatLngBounds.fromPoints(allPoints);
       }
     }
-
     if (boundsToFit != null) {
       if (boundsToFit.southWest == boundsToFit.northEast) {
         _mapController.move(boundsToFit.center, BaseMapView.defaultZoom);
@@ -209,9 +177,7 @@ class BaseMapViewState extends State<BaseMapView> {
   Future<void> _locateMe() async {
     if (_isLocating) return;
     setState(() => _isLocating = true);
-
     ThemeData theme = Theme.of(context);
-
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled && mounted) {
@@ -222,7 +188,6 @@ class BaseMapViewState extends State<BaseMapView> {
         ));
         return;
       }
-
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -235,7 +200,6 @@ class BaseMapViewState extends State<BaseMapView> {
           return;
         }
       }
-
       if (permission == LocationPermission.deniedForever && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text('位置權限已被永久拒絕，請至應用程式設定中開啟'),
@@ -244,12 +208,10 @@ class BaseMapViewState extends State<BaseMapView> {
         ));
         return;
       }
-
       final position = await Geolocator.getCurrentPosition(
           locationSettings:
               const LocationSettings(accuracy: LocationAccuracy.high));
       final newLocation = LatLng(position.latitude, position.longitude);
-
       setState(() => _currentLocation = newLocation);
       _mapController.move(newLocation, 17.0);
     } catch (e) {
@@ -276,15 +238,12 @@ class BaseMapViewState extends State<BaseMapView> {
         ),
       ),
     );
-
     if (result != null && mounted) {
       setState(() {
         _isProcessingUserRoutes = true;
         _userRouteSelections = result;
       });
-
       await _updateUserSelectedLayers();
-
       if (mounted) {
         setState(() {
           _isProcessingUserRoutes = false;
@@ -300,55 +259,43 @@ class BaseMapViewState extends State<BaseMapView> {
     final newPolylines = <Polyline>[];
     final newMarkers = <Marker>[];
     int colorIndex = 0;
-
     for (final entry in _userRouteSelections.entries) {
       final routeId = entry.key;
       final selection = entry.value;
-
       if (!selection.isSelected) continue;
-
       final route = await Static.getRouteById(routeId);
       if (route == BusRoute.unknown) {
         Static.log("Skipping route $routeId.");
         continue;
       }
       final detail = await Static.fetchRoutePathAndStops(routeId);
-
-      // --- 【修改】為去程和返程分配顏色 ---
       Color goColor = BaseMapView
           .segmentColors[colorIndex % BaseMapView.segmentColors.length];
       colorIndex++;
       Color backColor = BaseMapView
           .segmentColors[colorIndex % BaseMapView.segmentColors.length];
       colorIndex++;
-
       if (selection.go && detail.goPath.isNotEmpty) {
         newPolylines.add(Polyline(
             points: detail.goPath,
-            // 【修改】設定透明度
             color: goColor.withOpacity(0.7),
             strokeWidth: 5.0));
         for (final station in detail.goStations) {
-          // 【修改】傳遞帶有透明度的顏色
           newMarkers.add(_createStationMarker(
               station, route, goColor.withOpacity(0.7), 1));
         }
       }
-
       if (selection.back && detail.backPath.isNotEmpty) {
         newPolylines.add(Polyline(
             points: detail.backPath,
-            // 【修改】設定透明度
             color: backColor.withOpacity(0.7),
             strokeWidth: 5.0));
         for (final station in detail.backStations) {
-          // 【修改】傳遞帶有透明度的顏色
           newMarkers.add(_createStationMarker(
               station, route, backColor.withOpacity(0.7), 2));
         }
       }
     }
-
     if (mounted) {
       setState(() {
         _userSelectedPolylines = newPolylines;
@@ -395,7 +342,6 @@ class BaseMapViewState extends State<BaseMapView> {
         : null;
     final bool isSelected = selectionKey == currentKey;
     final double iconSize = isSelected ? 40.0 : 30.0;
-
     return Marker(
       point: station.position,
       width: iconSize,
@@ -425,7 +371,6 @@ class BaseMapViewState extends State<BaseMapView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     final List<Marker> interactiveMarkers = [];
     for (final marker in widget.markers) {
       if (marker.child is GestureDetector) {
@@ -447,7 +392,6 @@ class BaseMapViewState extends State<BaseMapView> {
         interactiveMarkers.add(marker);
       }
     }
-
     final List<Marker> allMarkersToShow = [
       ..._userSelectedMarkers,
       ...interactiveMarkers
@@ -470,9 +414,7 @@ class BaseMapViewState extends State<BaseMapView> {
                 BoxShadow(color: Colors.black26, blurRadius: 4)
               ])))));
     }
-
     final allPolylinesToShow = [...widget.polylines, ..._userSelectedPolylines];
-
     final body = Stack(
       children: [
         FlutterMap(
@@ -557,11 +499,9 @@ class BaseMapViewState extends State<BaseMapView> {
         _buildStationInfoPanel(),
       ],
     );
-
     if (widget.hideAppBar) {
       return body;
     }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.appBarTitle),
@@ -653,11 +593,9 @@ class BaseMapViewState extends State<BaseMapView> {
     final theme = Theme.of(context);
     final isVisible = _selectedStation != null;
     const double panelHeight = 190.0;
-
     final station = _selectedStation?.$1;
     final goBack = _selectedStation?.$3;
     final BusRoute? routeForDisplay = _panelRoute;
-
     String direction = "未知";
     if (routeForDisplay != null) {
       if (goBack == 1) {
@@ -666,14 +604,10 @@ class BaseMapViewState extends State<BaseMapView> {
         direction = routeForDisplay.departure;
       }
     }
-
-    // 【新增】站序
     final String stationOrder = station != null ? '第 ${station.orderNo} 站' : '';
-
     final latLonString = station != null
         ? '${station.position.latitude.toStringAsFixed(6)}, ${station.position.longitude.toStringAsFixed(6)}'
         : '';
-
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -735,7 +669,6 @@ class BaseMapViewState extends State<BaseMapView> {
                                           icon: Icons.route_outlined,
                                           label:
                                               "${routeForDisplay.name} (${routeForDisplay.id})"),
-                                      // 【新增】路線描述 Chip
                                       if (routeForDisplay
                                           .description.isNotEmpty)
                                         _buildInfoChip(
@@ -744,7 +677,6 @@ class BaseMapViewState extends State<BaseMapView> {
                                       _buildInfoChip(
                                           icon: Icons.swap_horiz,
                                           label: "往 $direction"),
-                                      // 【新增】站序 Chip
                                       _buildInfoChip(
                                           icon: Icons.format_list_numbered,
                                           label: stationOrder),
@@ -795,7 +727,6 @@ class BaseMapViewState extends State<BaseMapView> {
     const double panelHeight = 190.0;
     final route = _selectedRoute;
     final String? plate = _selectedPlate;
-
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,

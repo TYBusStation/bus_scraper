@@ -18,6 +18,7 @@ import '../data/bus_point.dart';
 import '../data/bus_route.dart';
 import '../static.dart';
 import '../widgets/base_map_view.dart';
+import '../widgets/point_marker.dart';
 import 'history_page.dart';
 
 class NearbyVehiclesPage extends StatefulWidget {
@@ -83,8 +84,8 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   }
 
   void _updateCenterText() {
-    final lat = _currentMapCenter.latitude.toStringAsFixed(6);
-    final lon = _currentMapCenter.longitude.toStringAsFixed(6);
+    final lat = _currentMapCenter.latitude.toString();
+    final lon = _currentMapCenter.longitude.toString();
     _centerLatLngController.text = '$lat, $lon';
   }
 
@@ -1010,7 +1011,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                 child: _buildInfoChip(
                                     icon: Icons.gps_fixed,
                                     label:
-                                        "${_selectedPoint!.lat.toStringAsFixed(5)}, ${_selectedPoint!.lon.toStringAsFixed(5)}"),
+                                        "${_selectedPoint!.lat.toString()}, ${_selectedPoint!.lon.toString()}"),
                               ),
                             ],
                           ),

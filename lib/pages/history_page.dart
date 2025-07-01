@@ -9,6 +9,7 @@ import '../static.dart';
 import 'history_osm_page.dart';
 import 'segment_details_page.dart';
 
+// TrajectorySegment class and HistoryPage StatefulWidget remain unchanged...
 class TrajectorySegment {
   final List<BusPoint> points;
   final DateTime startTime;
@@ -62,6 +63,7 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
+  // ... all methods until _buildSegmentCard remain unchanged ...
   bool _isLoading = false;
   List<BusPoint> _allHistoryData = [];
   List<TrajectorySegment> _segments = [];
@@ -158,9 +160,6 @@ class _HistoryPageState extends State<HistoryPage> {
       _segments = [];
       _filteredSegments = [];
       _error = null;
-      // 保留已選的篩選條件，以便在重新查詢時恢復
-      // final routesToKeep = List<String>.from(_selectedRouteIds);
-      // final driversToKeep = List<String>.from(_selectedDriverIds);
       _selectedRouteIds = [];
       _selectedDriverIds = [];
       _availableDrivers = [];
@@ -169,6 +168,7 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   List<TrajectorySegment> _processDataIntoSegments(List<BusPoint> points) {
+    if (points.isEmpty) return [];
     final List<TrajectorySegment> segments = [];
     List<BusPoint> currentSegmentPoints = [points.first];
 
@@ -212,7 +212,6 @@ class _HistoryPageState extends State<HistoryPage> {
       return;
     }
 
-    // 在查詢前保留篩選條件
     final routesToKeep = List<String>.from(_selectedRouteIds);
     final driversToKeep = List<String>.from(_selectedDriverIds);
 
@@ -255,7 +254,6 @@ class _HistoryPageState extends State<HistoryPage> {
         final segments = _processDataIntoSegments(allHistoryData);
         final uniqueRouteIds = segments.map((s) => s.routeId).toSet();
 
-        // 使用 Future.wait 並行處理所有路線查找
         final fetchFutures = uniqueRouteIds
             .map((id) async => await Static.getRouteById(id))
             .toList();
@@ -264,18 +262,12 @@ class _HistoryPageState extends State<HistoryPage> {
         setState(() {
           _allHistoryData = allHistoryData;
           _segments = segments;
-
-          // 使用獲取到的路線來設置 availableRoutes
           _availableRoutes = fetchedRoutes;
           _availableRoutes.sort((a, b) => Static.compareRoutes(a.name, b.name));
-
           _availableDrivers = segments.map((s) => s.driverId).toSet().toList();
           _availableDrivers.sort();
-
-          // 恢復篩選條件
           _selectedRouteIds = routesToKeep;
           _selectedDriverIds = driversToKeep;
-
           _applyFilters();
           _isLoading = false;
         });
@@ -404,26 +396,29 @@ class _HistoryPageState extends State<HistoryPage> {
                           ? null
                           : () {
                               final filteredSet = _filteredSegments.toSet();
-                              final backgroundSegments = _segments.where(
-                                  (segment) => !filteredSet.contains(segment));
 
-                              final mainPoints = _filteredSegments
-                                  .expand((s) => s.points)
+                              final backgroundSegments = _segments
+                                  .where((segment) =>
+                                      !filteredSet.contains(segment))
                                   .toList();
-                              final backgroundPoints = backgroundSegments
-                                  .expand((s) => s.points)
-                                  .toList();
+
+                              final bool isFiltered =
+                                  _filteredSegments.length !=
+                                          _segments.length ||
+                                      _selectedRouteIds.isNotEmpty ||
+                                      _selectedDriverIds.isNotEmpty;
 
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => HistoryOsmPage(
                                     plate: widget.plate,
-                                    points: mainPoints,
-                                    backgroundPoints:
-                                        backgroundPoints.isNotEmpty
-                                            ? backgroundPoints
+                                    segments: _filteredSegments,
+                                    backgroundSegments:
+                                        backgroundSegments.isNotEmpty
+                                            ? backgroundSegments
                                             : null,
+                                    isFiltered: isFiltered,
                                   ),
                                 ),
                               );
@@ -497,7 +492,6 @@ class _HistoryPageState extends State<HistoryPage> {
     required List<String> selectedOptions,
     required ValueChanged<List<String>> onSelectionChanged,
   }) {
-    // 確保即使 selectedOptions 包含一個不在 allOptions 中的 key，也能顯示（例如，在數據加載前）
     String getDisplayName(String key) {
       return allOptions[key] ?? key;
     }
@@ -505,7 +499,7 @@ class _HistoryPageState extends State<HistoryPage> {
     String displayText = selectedOptions.isEmpty
         ? '所有$label'
         : (selectedOptions.length == 1
-            ? getDisplayName(selectedOptions.first)
+            ? getDisplayName(selectedOptions.first).split('\n').first
             : '${selectedOptions.length} 個$label');
 
     return InkWell(
@@ -546,7 +540,6 @@ class _HistoryPageState extends State<HistoryPage> {
     return showDialog<List<String>>(
       context: context,
       builder: (BuildContext context) {
-        final theme = Theme.of(context);
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
@@ -752,6 +745,7 @@ class _HistoryPageState extends State<HistoryPage> {
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 4,
+              runSpacing: 4,
               children: [
                 Chip(
                   avatar: Icon(Icons.route_outlined,
@@ -765,7 +759,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   avatar: Icon(Icons.swap_horiz,
                       size: 18, color: theme.colorScheme.primary),
                   label: Text(
-                      "往 ${segment.goBack == 1 ? route.destination : route.departure}",
+                      "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (segment.goBack == 1 ? route.destination : route.departure) : '未知'}",
                       style: theme.textTheme.labelMedium),
                   backgroundColor:
                       theme.colorScheme.primaryContainer.withOpacity(0.4),
@@ -814,8 +808,9 @@ class _HistoryPageState extends State<HistoryPage> {
                         MaterialPageRoute(
                             builder: (context) => HistoryOsmPage(
                                   plate: widget.plate,
-                                  points: segment.points.toList(),
-                                  backgroundPoints: null,
+                                  segments: [segment],
+                                  isFiltered: true, // 繪製單段時，視為篩選過的
+                                  backgroundSegments: null,
                                 )));
                   },
                 ),
