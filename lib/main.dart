@@ -41,7 +41,7 @@ class _AppLoaderState extends State<AppLoader> {
     _tapCount++;
     _lastTapTime = now;
 
-    if (_tapCount >= 10) {
+    if (_tapCount >= 5) {
       _tapCount = 0;
 
       // [MODIFIED] 使用傳入的 scaffoldContext，這是有效的 context

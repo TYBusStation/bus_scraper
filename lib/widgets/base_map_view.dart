@@ -415,103 +415,127 @@ class BaseMapViewState extends State<BaseMapView> {
               ])))));
     }
     final allPolylinesToShow = [...widget.polylines, ..._userSelectedPolylines];
-    final body = Stack(
-      children: [
-        FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: widget.points.isNotEmpty
-                ? LatLng(widget.points.last.lat, widget.points.last.lon)
-                : const LatLng(24.986763, 121.314007),
-            initialZoom: BaseMapView.defaultZoom,
-            initialCameraFit: (widget.bounds != null &&
-                    widget.bounds!.southWest != widget.bounds!.northEast)
-                ? CameraFit.bounds(
-                    bounds: widget.bounds!,
-                    padding: const EdgeInsets.all(50.0),
-                    maxZoom: BaseMapView.defaultZoom)
-                : null,
-            onTap: (_, __) {
-              setState(() {
-                if (_selectedPoint != null) {
-                  _selectedPoint = null;
-                  _highlightMarker = null;
-                }
-                if (_selectedStation != null) {
-                  _selectedStation = null;
-                }
-              });
-            },
-          ),
+
+    final body = LayoutBuilder(
+      builder: (context, constraints) {
+        // --- [MODIFICATION START] ---
+        final isLandscape = constraints.maxWidth > constraints.maxHeight &&
+            constraints.maxWidth > 800;
+        final double panelHeight = isLandscape ? 140.0 : 190.0;
+        const double panelMargin = 12.0;
+        const double controlsPadding = 16.0;
+
+        final bool isPanelVisible =
+            _selectedPoint != null || _selectedStation != null;
+        final double controlsBottom =
+            (isPanelVisible ? panelHeight + panelMargin : 0.0) +
+                controlsPadding;
+        // --- [MODIFICATION END] ---
+
+        return Stack(
           children: [
-            TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                tileProvider: CancellableNetworkTileProvider()),
-            Opacity(
-                opacity: _satelliteOpacity,
-                child: TileLayer(
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: widget.points.isNotEmpty
+                    ? LatLng(widget.points.last.lat, widget.points.last.lon)
+                    : const LatLng(24.986763, 121.314007),
+                initialZoom: BaseMapView.defaultZoom,
+                initialCameraFit: (widget.bounds != null &&
+                        widget.bounds!.southWest != widget.bounds!.northEast)
+                    ? CameraFit.bounds(
+                        bounds: widget.bounds!,
+                        padding: const EdgeInsets.all(50.0),
+                        maxZoom: BaseMapView.defaultZoom)
+                    : null,
+                onTap: (_, __) {
+                  setState(() {
+                    if (_selectedPoint != null) {
+                      _selectedPoint = null;
+                      _highlightMarker = null;
+                    }
+                    if (_selectedStation != null) {
+                      _selectedStation = null;
+                    }
+                  });
+                },
+              ),
+              children: [
+                TileLayer(
                     urlTemplate:
-                        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                    tileProvider: CancellableNetworkTileProvider())),
-            PolylineLayer(polylines: allPolylinesToShow),
-            MarkerLayer(markers: allMarkersToShow),
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    tileProvider: CancellableNetworkTileProvider()),
+                Opacity(
+                    opacity: _satelliteOpacity,
+                    child: TileLayer(
+                        urlTemplate:
+                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                        tileProvider: CancellableNetworkTileProvider())),
+                PolylineLayer(polylines: allPolylinesToShow),
+                MarkerLayer(markers: allMarkersToShow),
+              ],
+            ),
+            if (widget.isLoading || _isProcessingUserRoutes)
+              const Center(child: CircularProgressIndicator())
+            else if (widget.error != null)
+              Center(
+                  child: Card(
+                      color: theme.colorScheme.primaryContainer,
+                      margin: const EdgeInsets.symmetric(horizontal: 40),
+                      elevation: 4,
+                      child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child:
+                              Column(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.warning_amber_rounded,
+                                size: 40,
+                                color: theme.colorScheme.onPrimaryContainer),
+                            const SizedBox(height: 16),
+                            Text(widget.error!,
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                    color:
+                                        theme.colorScheme.onPrimaryContainer)),
+                            if (widget.onErrorDismiss != null) ...[
+                              const SizedBox(height: 20),
+                              TextButton(
+                                  onPressed: widget.onErrorDismiss,
+                                  style: TextButton.styleFrom(
+                                      backgroundColor:
+                                          theme.colorScheme.primaryFixedDim,
+                                      foregroundColor:
+                                          theme.colorScheme.onPrimaryFixed),
+                                  child: const Text('關閉'))
+                            ]
+                          ])))),
+            Positioned(
+              // --- [MODIFICATION] Use dynamic bottom value ---
+              bottom: controlsBottom,
+              right: 16,
+              child: _buildMapControls(),
+            ),
+            // --- [MODIFICATION] Pass isLandscape flag ---
+            _buildInfoPanel(isLandscape: isLandscape),
+            _buildStationInfoPanel(isLandscape: isLandscape),
           ],
-        ),
-        if (widget.isLoading || _isProcessingUserRoutes)
-          const Center(child: CircularProgressIndicator())
-        else if (widget.error != null)
-          Center(
-              child: Card(
-                  color: theme.colorScheme.primaryContainer,
-                  margin: const EdgeInsets.symmetric(horizontal: 40),
-                  elevation: 4,
-                  child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.warning_amber_rounded,
-                            size: 40,
-                            color: theme.colorScheme.onPrimaryContainer),
-                        const SizedBox(height: 16),
-                        Text(widget.error!,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.onPrimaryContainer)),
-                        if (widget.onErrorDismiss != null) ...[
-                          const SizedBox(height: 20),
-                          TextButton(
-                              onPressed: widget.onErrorDismiss,
-                              style: TextButton.styleFrom(
-                                  backgroundColor:
-                                      theme.colorScheme.primaryFixedDim,
-                                  foregroundColor:
-                                      theme.colorScheme.onPrimaryFixed),
-                              child: const Text('關閉'))
-                        ]
-                      ])))),
-        Positioned(
-          bottom:
-              ((_selectedPoint != null || _selectedStation != null) ? 220 : 0) +
-                  16,
-          right: 16,
-          child: _buildMapControls(),
-        ),
-        _buildInfoPanel(),
-        _buildStationInfoPanel(),
-      ],
+        );
+      },
     );
+
     if (widget.hideAppBar) {
       return body;
     }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.appBarTitle),
         actions: widget.appBarActions,
-        backgroundColor: theme.colorScheme.surface.withAlpha(220),
+        backgroundColor: theme.colorScheme.surface,
         elevation: 1,
         bottom: PreferredSize(
             preferredSize: const Size.fromHeight(18.0),
             child: Container(
-                color: theme.colorScheme.surface.withAlpha(200),
+                color: theme.colorScheme.surface,
                 alignment: Alignment.center,
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
@@ -589,10 +613,11 @@ class BaseMapViewState extends State<BaseMapView> {
     ]);
   }
 
-  Widget _buildStationInfoPanel() {
+  // --- [MODIFICATION] Add isLandscape parameter and use it ---
+  Widget _buildStationInfoPanel({required bool isLandscape}) {
     final theme = Theme.of(context);
     final isVisible = _selectedStation != null;
-    const double panelHeight = 190.0;
+    final double panelHeight = isLandscape ? 140.0 : 190.0;
     final station = _selectedStation?.$1;
     final goBack = _selectedStation?.$3;
     final BusRoute? routeForDisplay = _panelRoute;
@@ -721,10 +746,11 @@ class BaseMapViewState extends State<BaseMapView> {
     );
   }
 
-  Widget _buildInfoPanel() {
+  // --- [MODIFICATION] Add isLandscape parameter and use it ---
+  Widget _buildInfoPanel({required bool isLandscape}) {
     final theme = Theme.of(context);
     final isVisible = _selectedPoint != null;
-    const double panelHeight = 190.0;
+    final double panelHeight = isLandscape ? 140.0 : 190.0;
     final route = _selectedRoute;
     final String? plate = _selectedPlate;
     return AnimatedPositioned(

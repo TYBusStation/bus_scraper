@@ -12,8 +12,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// wakelock_plus 已經不再需要，您可以將其從 pubspec.yaml 中移除
-
 import '../data/bus_point.dart';
 import '../data/bus_route.dart';
 import '../static.dart';
@@ -30,7 +28,9 @@ class NearbyVehiclesPage extends StatefulWidget {
 
 class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   final MapController _mapController = MapController();
-  final TextEditingController _centerLatLngController = TextEditingController();
+  final TextEditingController _latController = TextEditingController();
+  final TextEditingController _lonController = TextEditingController();
+
   LatLng _currentMapCenter = const LatLng(24.986763, 121.314007);
   StreamSubscription<MapEvent>? _mapEventSubscription;
   bool _isProgrammaticMove = false;
@@ -79,38 +79,35 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   void dispose() {
     _mapEventSubscription?.cancel();
     _mapController.dispose();
-    _centerLatLngController.dispose();
+    _latController.dispose();
+    _lonController.dispose();
     super.dispose();
   }
 
   void _updateCenterText() {
-    final lat = _currentMapCenter.latitude.toString();
-    final lon = _currentMapCenter.longitude.toString();
-    _centerLatLngController.text = '$lat, $lon';
+    if (!mounted) return;
+    _latController.text = _currentMapCenter.latitude.toStringAsFixed(6);
+    _lonController.text = _currentMapCenter.longitude.toStringAsFixed(6);
   }
 
-  void _parseAndSetCenter(String value) {
+  void _parseAndSetCenter() {
     if (_isSearched) return;
-    final parts = value.split(',').map((e) => e.trim()).toList();
-    if (parts.length == 2) {
-      final lat = double.tryParse(parts[0]);
-      final lon = double.tryParse(parts[1]);
-      if (lat != null &&
-          lon != null &&
-          (lat.abs() <= 90) &&
-          (lon.abs() <= 180)) {
-        final newCenter = LatLng(lat, lon);
-        if (newCenter == _currentMapCenter) return;
 
-        setState(() {
-          _currentMapCenter = newCenter;
-        });
+    final lat = double.tryParse(_latController.text);
+    final lon = double.tryParse(_lonController.text);
 
-        _isProgrammaticMove = true;
-        _mapController.move(newCenter, _mapController.camera.zoom);
-        Future.delayed(const Duration(milliseconds: 500))
-            .whenComplete(() => _isProgrammaticMove = false);
-      }
+    if (lat != null && lon != null && (lat.abs() <= 90) && (lon.abs() <= 180)) {
+      final newCenter = LatLng(lat, lon);
+      if (newCenter == _currentMapCenter) return;
+
+      setState(() {
+        _currentMapCenter = newCenter;
+      });
+
+      _isProgrammaticMove = true;
+      _mapController.move(newCenter, _mapController.camera.zoom);
+      Future.delayed(const Duration(milliseconds: 500))
+          .whenComplete(() => _isProgrammaticMove = false);
     }
   }
 
@@ -119,20 +116,27 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
     final text = clipboardData?.text;
     if (text != null && text.isNotEmpty) {
-      _centerLatLngController.text = text;
-      _parseAndSetCenter(text);
+      final parts =
+          text.split(RegExp(r'[,;\s]+')).map((e) => e.trim()).toList();
+      if (parts.length == 2) {
+        _latController.text = parts[0];
+        _lonController.text = parts[1];
+        _parseAndSetCenter();
+      } else {
+        _latController.text = text;
+        _lonController.text = '';
+      }
     }
   }
 
-  // --- 變更: 移除 Wakelock 相關程式碼 ---
   Future<void> _performSearch() async {
     if (_isLoading) return;
+    FocusScope.of(context).unfocus(); // 收起鍵盤
     setState(() {
       _isLoading = true;
       _searchCenterWhenSearched = _currentMapCenter;
     });
 
-    // Wakelock.enable() 已被移除
     try {
       final double effectiveRadius =
           _searchRadiusKm > 0 ? _searchRadiusKm : 0.01;
@@ -171,10 +175,12 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
         });
       }
     } catch (e) {
-      // Handle error silently
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('搜尋失敗: ${e.toString()}')));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
-      // Wakelock.disable() 已被移除
     }
   }
 
@@ -396,170 +402,409 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
     }
   }
 
-  // --- 變更: TextField 改用 onChanged 事件 ---
-  Widget _buildLatLngInput(ThemeData theme) {
-    return SizedBox(
-      height: 44, // Tweak height to align with button
-      child: TextField(
-        controller: _centerLatLngController,
-        enabled: !_isSearched,
-        style: theme.textTheme.bodyMedium
-            ?.copyWith(fontFeatures: [const FontFeature.tabularFigures()]),
-        decoration: InputDecoration(
-          labelText: '中心點經緯度(可直接移動地圖)',
-          labelStyle: theme.textTheme.labelMedium,
-          prefixIcon: Icon(Icons.pin_drop_outlined,
-              size: 20,
-              color: _isSearched
-                  ? Colors.grey
-                  : theme.colorScheme.onSurfaceVariant),
-          suffixIcon: _isSearched
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.content_paste_go_outlined),
-                  iconSize: 20,
-                  tooltip: '貼上經緯度',
-                  onPressed: _pasteLatLng,
-                ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
-          border: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(12))),
-          isDense: true,
-          disabledBorder: OutlineInputBorder(
-            borderRadius: const BorderRadius.all(Radius.circular(12)),
-            borderSide: BorderSide(color: Colors.grey.shade400),
-          ),
-        ),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        // 將 onEditingComplete 改為 onChanged
-        onChanged: (value) {
-          _parseAndSetCenter(value);
-        },
-      ),
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isLandscape = constraints.maxWidth > constraints.maxHeight &&
+            constraints.maxWidth > 800;
+
+        // 【修改】將共用的 MapView 抽離出來
+        final mapView = _buildMapView(isLandscape);
+
+        if (isLandscape) {
+          return Row(
+            children: [
+              Expanded(child: mapView), // 左側是地圖
+              SizedBox(
+                width: 220, // 右側控制面板的寬度
+                child: _buildControlPanel(isLandscape), // 右側是控制面板
+              ),
+            ],
+          );
+        } else {
+          return Column(
+            children: [
+              _buildControlPanel(isLandscape), // 頂部是控制面板
+              Expanded(child: mapView), // 下方是地圖
+            ],
+          );
+        }
+      },
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget _buildMapView(bool isLandscape) {
+    final theme = Theme.of(context); // 獲取主題以上色
     final allMarkers = [..._resultMarkers];
     if (_highlightMarker != null) allMarkers.add(_highlightMarker!);
     if (_myLocation != null) allMarkers.add(_buildMyLocationMarker());
 
-    return Column(
+    return Stack(
       children: [
-        Text(
-          'Map data © OpenStreetMap contributors, Imagery © Esri, Maxar, Earthstar Geo',
-          style: TextStyle(
-            fontSize: 9,
-            color: theme.colorScheme.onSurface.withOpacity(0.7),
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: _currentMapCenter,
+            initialZoom: 15,
+            onMapReady: () {
+              if (mounted && !_isSearched) {
+                setState(() {
+                  _currentMapCenter = _mapController.camera.center;
+                  _updateCenterText();
+                });
+              }
+            },
+            onTap: (_, __) {
+              if (_selectedPoint != null) _selectPoint(_selectedPoint!);
+            },
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              tileProvider: CancellableNetworkTileProvider(),
+            ),
+            Opacity(
+              opacity: _satelliteOpacity,
+              child: TileLayer(
+                urlTemplate:
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                tileProvider: CancellableNetworkTileProvider(),
+              ),
+            ),
+            CircleLayer(
+              circles: [
+                CircleMarker(
+                    point: _isSearched
+                        ? _searchCenterWhenSearched
+                        : _currentMapCenter,
+                    radius: _searchRadiusKm * 1000,
+                    useRadiusInMeter: true,
+                    color: Colors.red.withOpacity(0.2),
+                    borderColor: Colors.red.withOpacity(0.6),
+                    borderStrokeWidth: 3)
+              ],
+            ),
+            PolylineLayer(polylines: _resultPolylines),
+            MarkerLayer(markers: allMarkers),
+          ],
+        ),
+
+        // 【核心修改】將版權資訊加回 Stack 的頂部
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            color: theme.colorScheme.surface,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Text(
+              'Map data © OpenStreetMap contributors, Imagery © Esri, Maxar, Earthstar Geo',
+              style: TextStyle(
+                fontSize: 9,
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+              ),
+            ),
           ),
         ),
-        _buildTopControlPanel(theme),
-        Expanded(
-          child: Stack(
-            children: [
-              FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: _currentMapCenter,
-                  initialZoom: 15,
-                  onMapReady: () {
-                    if (mounted && !_isSearched) {
-                      setState(() {
-                        _currentMapCenter = _mapController.camera.center;
-                        _updateCenterText();
-                      });
-                    }
-                  },
-                  onTap: (_, __) {
-                    if (_selectedPoint != null) _selectPoint(_selectedPoint!);
-                  },
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    tileProvider: CancellableNetworkTileProvider(),
-                  ),
-                  Opacity(
-                    opacity: _satelliteOpacity,
-                    child: TileLayer(
-                      urlTemplate:
-                          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                      tileProvider: CancellableNetworkTileProvider(),
-                    ),
-                  ),
-                  CircleLayer(
-                    circles: [
-                      CircleMarker(
-                          point: _isSearched
-                              ? _searchCenterWhenSearched
-                              : _currentMapCenter,
-                          radius: _searchRadiusKm * 1000,
-                          useRadiusInMeter: true,
-                          color: Colors.red.withOpacity(0.2),
-                          borderColor: Colors.red.withOpacity(0.6),
-                          borderStrokeWidth: 3)
-                    ],
-                  ),
-                  PolylineLayer(polylines: _resultPolylines),
-                  MarkerLayer(markers: allMarkers),
-                ],
-              ),
-              Positioned(
-                bottom: (_selectedPoint != null ? 190.0 : 0) + 16,
-                right: 16,
-                child: _buildFloatingMapControls(theme),
-              ),
-              _buildInfoPanel(),
-            ],
-          ),
+
+        Positioned(
+          bottom:
+              (_selectedPoint != null ? (isLandscape ? 140.0 : 190.0) : 0) + 16,
+          right: 16,
+          child: _buildFloatingMapControls(Theme.of(context)),
         ),
+
+        _buildInfoPanel(isLandscape: isLandscape),
       ],
     );
   }
 
-  Widget _buildTopControlPanel(ThemeData theme) {
-    return Card(
-      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildTimeButton(theme, "開始時間：", _startTime, true),
-                const SizedBox(width: 8),
-                _buildTimeButton(theme, "結束時間：", _endTime, false),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(children: [Expanded(child: _buildRadiusSlider(theme))]),
-            const SizedBox(height: 8),
-            // ** MODIFIED ROW for input and search button **
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(child: _buildLatLngInput(theme)),
-                const SizedBox(width: 8),
-                _buildSearchAndClearButton(theme)
-              ],
-            ),
-            if (_availablePlates.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: _buildPlateFilterChip(),
-              )
-          ],
+  Widget _buildControlPanel(bool isLandscape) {
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      child: Card(
+        margin: const EdgeInsets.all(4.0),
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildTimeButtonSection(theme, isLandscape: isLandscape),
+              const SizedBox(height: 4),
+              _buildRadiusSlider(theme, isLandscape: isLandscape),
+              const SizedBox(height: 4),
+              _buildLatLngAndSearchSection(theme, isLandscape: isLandscape),
+              if (_availablePlates.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: _buildPlateFilterChip(),
+                )
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildTimeButtonSection(ThemeData theme, {required bool isLandscape}) {
+    final startButton = _buildTimeButton(theme, "開始時間：", _startTime, true,
+        isLandscape: isLandscape);
+    final endButton = _buildTimeButton(theme, "結束時間：", _endTime, false,
+        isLandscape: isLandscape);
+
+    if (isLandscape) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [startButton, const SizedBox(height: 8), endButton],
+      );
+    }
+    return Row(
+      children: [startButton, const SizedBox(width: 8), endButton],
+    );
+  }
+
+  Widget _buildLatLngAndSearchSection(ThemeData theme,
+      {required bool isLandscape}) {
+    final latLngInput = _buildLatLngInput(theme, isLandscape: isLandscape);
+    final searchButton = _buildSearchAndClearButton(theme);
+    final pasteButton = _isSearched
+        ? const SizedBox.shrink()
+        : IconButton(
+            icon: const Icon(Icons.content_paste_go_outlined),
+            iconSize: 20,
+            tooltip: '貼上經緯度',
+            onPressed: _pasteLatLng,
+          );
+
+    if (isLandscape) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Icon(Icons.pin_drop_outlined, size: 20, color: Colors.grey),
+              // 在橫向模式下，貼上按鈕空間更小，所以用 Transform 縮小一點
+              Transform.scale(scale: 0.8, child: pasteButton),
+            ],
+          ),
+          const SizedBox(height: 4),
+          latLngInput,
+          const SizedBox(height: 8),
+          searchButton,
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(child: latLngInput),
+        pasteButton,
+        const SizedBox(width: 4),
+        searchButton
+      ],
+    );
+  }
+
+  Widget _buildLatLngInput(ThemeData theme, {required bool isLandscape}) {
+    final latField = TextField(
+      controller: _latController,
+      enabled: !_isSearched,
+      style: theme.textTheme.bodyMedium
+          ?.copyWith(fontFeatures: [const FontFeature.tabularFigures()]),
+      decoration: InputDecoration(
+        labelText: '緯度',
+        labelStyle: theme.textTheme.labelSmall,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+        border: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12))),
+        isDense: true,
+        disabledBorder: OutlineInputBorder(
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+      ),
+      keyboardType:
+          const TextInputType.numberWithOptions(decimal: true, signed: true),
+      onEditingComplete: _parseAndSetCenter,
+    );
+
+    final lonField = TextField(
+      controller: _lonController,
+      enabled: !_isSearched,
+      style: theme.textTheme.bodyMedium
+          ?.copyWith(fontFeatures: [const FontFeature.tabularFigures()]),
+      decoration: InputDecoration(
+        labelText: '經度',
+        labelStyle: theme.textTheme.labelSmall,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+        border: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12))),
+        isDense: true,
+        disabledBorder: OutlineInputBorder(
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+      ),
+      keyboardType:
+          const TextInputType.numberWithOptions(decimal: true, signed: true),
+      onEditingComplete: _parseAndSetCenter,
+    );
+
+    if (isLandscape) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          latField,
+          const SizedBox(height: 8),
+          lonField,
+        ],
+      );
+    } else {
+      return Row(
+        children: [
+          Expanded(child: latField),
+          const SizedBox(width: 8),
+          Expanded(child: lonField),
+        ],
+      );
+    }
+  }
+
+  // 【核心修改】修正拉桿文字旋轉問題
+  Widget _buildRadiusSlider(ThemeData theme, {required bool isLandscape}) {
+    final slider = Slider(
+      value: _searchRadiusKm,
+      min: 0.0,
+      max: 0.3,
+      divisions: 30,
+      label: '${(_searchRadiusKm * 1000).toInt()}公尺',
+      onChanged: _isSearched
+          ? null
+          : (double value) {
+              setState(() => _searchRadiusKm = value);
+            },
+    );
+
+    final label = Text(
+      '${(_searchRadiusKm * 1000).toInt()}m',
+      style: theme.textTheme.labelMedium?.copyWith(
+          color: _isSearched ? Colors.grey : theme.colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          fontFeatures: [const FontFeature.tabularFigures()]),
+      textAlign: TextAlign.center,
+    );
+
+    if (isLandscape) {
+      return SizedBox(
+        height: 200,
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.social_distance_outlined,
+                    size: 18,
+                    color: _isSearched ? Colors.grey : Colors.grey.shade600),
+                const SizedBox(width: 8),
+                label, // 文字標籤現在在 Row 裡，不會被旋轉
+              ],
+            ),
+            Expanded(
+              child: RotatedBox(
+                quarterTurns: 3, // 只旋轉 Slider
+                child: slider,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        Icon(Icons.social_distance_outlined,
+            size: 18, color: _isSearched ? Colors.grey : Colors.grey.shade600),
+        Expanded(child: slider),
+        SizedBox(width: 50, child: label),
+      ],
+    );
+  }
+
+  Widget _buildTimeButton(
+      ThemeData theme, String label, DateTime time, bool isStart,
+      {required bool isLandscape}) {
+    final formatter = Static.displayDateFormatNoSec;
+
+    final buttonContent = Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextButton(
+        onPressed: _isSearched ? null : () => _pickTime(isStart),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          visualDensity: VisualDensity.compact,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: Text("$label\n${formatter.format(time)}",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelLarge?.copyWith(
+                color:
+                    _isSearched ? Colors.grey : theme.colorScheme.onSurface)),
+      ),
+    );
+
+    // 【修復】只有在非橫向模式下才使用 Expanded
+    if (!isLandscape) {
+      return Expanded(child: buttonContent);
+    }
+    return buttonContent;
+  }
+
+  Widget _buildSearchAndClearButton(ThemeData theme) {
+    final button = _isSearched
+        ? FilledButton.icon(
+            onPressed: () => _clearLayers(keepFilters: false),
+            icon: const Icon(Icons.clear, size: 18),
+            label: const Text('清除'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red.shade400,
+              foregroundColor: Colors.white,
+              visualDensity: VisualDensity.compact,
+            ),
+          )
+        : FilledButton.icon(
+            onPressed: _performSearch,
+            icon: _isLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.search, size: 18),
+            label: const Text('搜尋'),
+            style: FilledButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+            ),
+          );
+
+    // 【修復】移除 SizedBox(width: double.infinity)，因為 Column 的
+    // crossAxisAlignment: CrossAxisAlignment.stretch 已經處理了寬度
+    return button;
+  }
+
+  // ... (所有剩餘的 _build... 輔助函式保持不變) ...
+  // ... (此處省略了 _buildFloatingMapControls, _buildMyLocationMarker, _buildPlateFilterChip, _showMultiSelectDialog, _buildInfoPanel, _buildInfoChip)
+  // ... (它們的程式碼與您之前的版本相同)
 
   Widget _buildFloatingMapControls(ThemeData theme) {
     return Column(
@@ -790,108 +1035,26 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
     }
   }
 
-  Widget _buildTimeButton(
-      ThemeData theme, String label, DateTime time, bool isStart) {
-    final formatter = Static.displayDateFormatNoSec;
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: TextButton(
-          onPressed: _isSearched ? null : () => _pickTime(isStart),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            visualDensity: VisualDensity.compact,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text("$label\n${formatter.format(time)}",
-              textAlign: TextAlign.center,
-              style: theme.textTheme.labelLarge?.copyWith(
-                  color:
-                      _isSearched ? Colors.grey : theme.colorScheme.onSurface)),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRadiusSlider(ThemeData theme) {
-    return Row(
-      children: [
-        Icon(Icons.social_distance_outlined,
-            size: 18, color: _isSearched ? Colors.grey : Colors.grey.shade600),
-        Expanded(
-          child: Slider(
-            value: _searchRadiusKm,
-            min: 0.0,
-            max: 0.3,
-            divisions: 30,
-            label: '${(_searchRadiusKm * 1000).toInt()}公尺',
-            onChanged: _isSearched
-                ? null
-                : (double value) {
-                    setState(() => _searchRadiusKm = value);
-                  },
-          ),
-        ),
-        SizedBox(
-          width: 50,
-          child: Text(
-            '${(_searchRadiusKm * 1000).toInt()}m',
-            style: theme.textTheme.labelMedium?.copyWith(
-                color: _isSearched ? Colors.grey : theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                fontFeatures: [const FontFeature.tabularFigures()]),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchAndClearButton(ThemeData theme) {
-    if (_isSearched) {
-      return FilledButton.icon(
-        onPressed: () => _clearLayers(keepFilters: false),
-        icon: const Icon(Icons.clear, size: 18),
-        label: const Text('清除'),
-        style: FilledButton.styleFrom(
-          backgroundColor: Colors.red.shade400,
-          foregroundColor: Colors.white,
-          visualDensity: VisualDensity.compact,
-        ),
-      );
-    } else {
-      return FilledButton.icon(
-        onPressed: _performSearch,
-        icon: _isLoading
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white))
-            : const Icon(Icons.search, size: 18),
-        label: const Text('搜尋'),
-        style: FilledButton.styleFrom(
-          visualDensity: VisualDensity.compact,
-        ),
-      );
-    }
-  }
-
-  Widget _buildInfoPanel() {
+  Widget _buildInfoPanel({required bool isLandscape}) {
     final theme = Theme.of(context);
     final isVisible = _selectedPoint != null;
-    const double panelHeight = 190.0;
+
+    // 【核心修改 1】根據佈局模式動態設定面板高度
+    final double panelHeight = isLandscape ? 140.0 : 190.0;
+
     final route = _selectedRoute;
     final String plate = _selectedPoint?.plate ?? '未知';
+
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       bottom: isVisible ? 0 : -(panelHeight + 40),
+
+      // 【核心修改 2】無論是橫向還是縱向，都讓面板的左右兩邊貼齊螢幕邊緣
       left: 0,
       right: 0,
+      // <--- 將 right 設為 0
+
       child: SafeArea(
         top: false,
         child: Container(
@@ -1011,7 +1174,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                 child: _buildInfoChip(
                                     icon: Icons.gps_fixed,
                                     label:
-                                        "${_selectedPoint!.lat.toString()}, ${_selectedPoint!.lon.toString()}"),
+                                        "${_selectedPoint!.lat}, ${_selectedPoint!.lon}"),
                               ),
                             ],
                           ),

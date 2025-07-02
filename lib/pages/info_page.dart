@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:share_plus/share_plus.dart'; // <-- 步驟 1: 導入 share_plus 套件
 import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/theme_provider.dart';
@@ -7,41 +8,46 @@ import '../widgets/theme_provider.dart';
 class InfoPage extends StatelessWidget {
   const InfoPage({super.key});
 
+  // 處理分享功能的函式
+  void _shareWebsite(BuildContext context) {
+    // 獲取按鈕的位置，用於 iPad 上的分享彈出視窗
+    final box = context.findRenderObject() as RenderBox?;
+
+    Share.share(
+      'https://myster7494.github.io/bus_scraper/', // 要分享的內容 (網址)
+      subject: '分享一個好用的公車動態網站！', // 分享的主題 (主要用於 Email)
+      sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ThemeProvider(
       builder: (BuildContext context, ThemeData themeData) =>
           SingleChildScrollView(
-        // 確保內容在較小螢幕上可以滾動
-        padding: const EdgeInsets.all(20.0), // 設定整體內邊距
+        padding: const EdgeInsets.all(20.0),
         child: Center(
-          // 水平置中 Column 的內容
           child: ConstrainedBox(
-            // 在較大螢幕上限制內容的寬度
             constraints: const BoxConstraints(maxWidth: 600),
-            // 最大寬度設為 600
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              // 主軸居中對齊 (垂直方向)
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              // 交叉軸延展 (使按鈕等填滿寬度)
               children: [
-                const SizedBox(height: 20), // 頂部間距
+                const SizedBox(height: 20),
                 Text(
                   "如有任何問題或建議\n請聯繫作者",
                   style: themeData.textTheme.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.bold, fontSize: 32),
-                  textAlign: TextAlign.center, // 文字置中對齊
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 30), // 標題與卡片間的間距
+                const SizedBox(height: 30),
                 Card(
-                  elevation: 2, // 卡片陰影深度
+                  elevation: 2,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12), // 卡片圓角
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    // 卡片內部垂直方向的邊距
                     child: Column(
                       children: List.generate(contactItems.length, (index) {
                         final item = contactItems[index];
@@ -49,50 +55,61 @@ class InfoPage extends StatelessWidget {
                           children: [
                             ListTile(
                               leading: FaIcon(
-                                // 左側圖示
                                 item.icon,
                                 size: 28,
-                                color:
-                                    themeData.colorScheme.primary, // 使用主題的主要顏色
+                                color: themeData.colorScheme.primary,
                               ),
                               title: Text(
-                                // 標題文字
                                 item.title,
                                 style: themeData.textTheme.titleMedium,
                               ),
                               trailing: OutlinedButton(
-                                // 右側按鈕
                                 onPressed: () async =>
                                     await launchUrl(Uri.parse(item.url)),
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(
-                                      color: themeData
-                                          .colorScheme.primary), // 按鈕邊框顏色
+                                      color: themeData.colorScheme.primary),
                                 ),
                                 child: const Text("前往"),
                               ),
-                              // 提示文字
-                              onTap: () async => await launchUrl(
-                                  Uri.parse(item.url)), // 使整個 ListTile 可點擊
+                              onTap: () async =>
+                                  await launchUrl(Uri.parse(item.url)),
                             ),
-                            if (index < contactItems.length - 1) // 如果不是最後一個項目
+                            if (index < contactItems.length - 1)
                               const Divider(
                                   indent: 20, endIndent: 20, height: 1),
-                            // 加入分隔線
                           ],
                         );
                       }),
                     ),
                   ),
                 ),
-                const SizedBox(height: 30), // 標題與卡片間的間距
+                const SizedBox(height: 30),
+
+                // --- 新增的分享按鈕 ---
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.share),
+                  label: const Text('分享此網站'),
+                  onPressed: () => _shareWebsite(context), // 呼叫分享函式
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    textStyle: const TextStyle(fontSize: 18),
+                    backgroundColor: themeData.colorScheme.primary,
+                    // 主題主要顏色
+                    foregroundColor:
+                        themeData.colorScheme.onPrimary, // 在主要顏色上的文字顏色
+                  ),
+                ),
+                // --- 分享按鈕結束 ---
+
+                const SizedBox(height: 30),
                 Text(
                   "資料皆為爬蟲爬取\n並儲存於自架伺服器\n\n歡迎分享此網站",
                   style:
                       themeData.textTheme.headlineSmall?.copyWith(fontSize: 20),
-                  textAlign: TextAlign.center, // 文字置中對齊
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 20), // 底部間距
+                const SizedBox(height: 20),
               ],
             ),
           ),
