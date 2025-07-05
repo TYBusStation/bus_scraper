@@ -365,26 +365,59 @@ class _CompanyPageState extends State<CompanyPage> {
       final List<String> list1 = List<String>.from(_filteredData1 as List);
       final List<String> list2 = List<String>.from(_filteredData2 as List);
 
-      final Set<String> set1 = list1.toSet();
-      final Set<String> set2 = list2.toSet();
+      // --- 修改開始: 使用頻率計數(Map)來處理重複項目 ---
 
-      final List<Map<String, dynamic>> added =
-          set2.difference(set1).map((s) => {'value': s}).toList();
-      final List<Map<String, dynamic>> removed =
-          set1.difference(set2).map((s) => {'value': s}).toList();
+      // 1. 建立兩個列表的頻率計數 Map
+      final Map<String, int> counts1 = {};
+      for (final item in list1) {
+        counts1[item] = (counts1[item] ?? 0) + 1;
+      }
+
+      final Map<String, int> counts2 = {};
+      for (final item in list2) {
+        counts2[item] = (counts2[item] ?? 0) + 1;
+      }
+
+      final List<Map<String, dynamic>> added = [];
+      final List<Map<String, dynamic>> removed = [];
+
+      // 2. 獲取所有唯一的鍵（項目）以進行比較
+      final allKeys = (counts1.keys.toSet())..addAll(counts2.keys);
+
+      // 3. 遍歷所有鍵，比較其計數
+      for (final key in allKeys) {
+        final count1 = counts1[key] ?? 0;
+        final count2 = counts2[key] ?? 0;
+        final diff = count2 - count1;
+
+        if (diff > 0) {
+          // 資料集 2 比資料集 1 多了 'diff' 個 'key'
+          for (int i = 0; i < diff; i++) {
+            added.add({'value': key});
+          }
+        } else if (diff < 0) {
+          // 資料集 1 比資料集 2 多了 'abs(diff)' 個 'key'
+          for (int i = 0; i < -diff; i++) {
+            removed.add({'value': key});
+          }
+        }
+        // 如果 diff == 0，則數量相同，不處理
+      }
+
+      // --- 修改結束 ---
 
       if (mounted) {
         setState(() {
           _comparisonResult = {
             'added': added,
             'removed': removed,
-            'modified': [],
+            'modified': [], // 保持此鍵以確保UI相容性
           };
           _error = null;
         });
       }
     } else {
-      // 如果資料不是預期的 List<String> 格式，則進行通用比較或顯示錯誤
+      // 如果資料不是預期的 List<String> 格式，則進行通用比較或顯示錯誤 (此部分邏輯不變)
       if (!const DeepCollectionEquality()
           .equals(_filteredData1, _filteredData2)) {
         if (mounted) {
