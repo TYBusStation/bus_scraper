@@ -631,7 +631,7 @@ class BaseMapViewState extends State<BaseMapView> {
     }
     final String stationOrder = station != null ? '第 ${station.orderNo} 站' : '';
     final latLonString = station != null
-        ? '${station.position.latitude.toStringAsFixed(6)}, ${station.position.longitude.toStringAsFixed(6)}'
+        ? '${station.position.latitude.toString()}, ${station.position.longitude.toString()}'
         : '';
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
@@ -877,7 +877,7 @@ class BaseMapViewState extends State<BaseMapView> {
                                           child: _buildInfoChip(
                                               icon: Icons.gps_fixed,
                                               label:
-                                                  "${_selectedPoint!.lat.toStringAsFixed(5)}, ${_selectedPoint!.lon.toStringAsFixed(5)}"))
+                                                  "${_selectedPoint!.lat.toString()}, ${_selectedPoint!.lon.toString()}"))
                                     ]))))
                   else
                     Expanded(

@@ -86,8 +86,8 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
 
   void _updateCenterText() {
     if (!mounted) return;
-    _latController.text = _currentMapCenter.latitude.toStringAsFixed(6);
-    _lonController.text = _currentMapCenter.longitude.toStringAsFixed(6);
+    _latController.text = _currentMapCenter.latitude.toString();
+    _lonController.text = _currentMapCenter.longitude.toString();
   }
 
   void _parseAndSetCenter() {
