@@ -1095,7 +1095,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                           "${route.name} | ${route.description} "
                                           "| 往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'} "
                                           "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
-                                          "| 駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId} "
+                                          "| 駕駛：${Static.getDriverText(_selectedPoint!.driverId)} "
                                           "| ${Static.displayDateFormat.format(_selectedPoint!.dataTime)}";
                                       await launchUrl(Uri.parse(
                                           "https://www.google.com/maps?q=${_selectedPoint!.lat}"
@@ -1150,7 +1150,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                               _buildInfoChip(
                                   icon: Icons.person_pin_circle_outlined,
                                   label:
-                                      "駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId}"),
+                                      "駕駛：${Static.getDriverText(_selectedPoint!.driverId)}"),
                               InkWell(
                                 borderRadius: BorderRadius.circular(16.0),
                                 onTap: () {

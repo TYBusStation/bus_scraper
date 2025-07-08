@@ -1,10 +1,12 @@
-// lib/main_page.dart
-
-import 'package:bus_scraper/pages/company_page.dart';
-import 'package:bus_scraper/pages/favorite_page.dart';
-import 'package:bus_scraper/pages/nearby_vehicles_page.dart';
+import 'dart:convert';
+import 'package:bus_scraper/static.dart'; // 假設您的 Static 類在此
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:package_info_plus/package_info_plus.dart';
 
+import 'company_page.dart';
+import 'favorite_page.dart';
+import 'nearby_vehicles_page.dart';
 import 'cars_page.dart';
 import 'driver_plates_page.dart';
 import 'info_page.dart';
@@ -20,8 +22,8 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int selectedIndex = 0;
+  Map<String, String>? _updateNotes;
 
-  // 將導航項目抽離出來，方便在 NavigationBar 和 NavigationRail 中共用
   final List<NavigationDestination> destinations = const [
     NavigationDestination(
       icon: Icon(Icons.info_outline),
@@ -65,7 +67,82 @@ class _MainPageState extends State<MainPage> {
     ),
   ];
 
-  // 將頁面內容抽離出來，方便共用
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAndUpdateCheck();
+    });
+  }
+
+  Future<void> _loadAndUpdateCheck() async {
+    await _loadUpdateNotes();
+    if (mounted) {
+      _checkForUpdates();
+    }
+  }
+
+  Future<void> _loadUpdateNotes() async {
+    try {
+      final jsonString = await rootBundle.loadString('assets/versions.json');
+      final decodedJson = jsonDecode(jsonString) as Map<String, dynamic>;
+      setState(() {
+        _updateNotes = decodedJson.map(
+              (key, value) => MapEntry(key, value.toString()),
+        );
+      });
+    } catch (e) {
+      debugPrint('Failed to load version notes: $e');
+      setState(() {
+        _updateNotes = {};
+      });
+    }
+  }
+
+  Future<void> _checkForUpdates() async {
+    if (_updateNotes == null || _updateNotes!.isEmpty) {
+      return;
+    }
+
+    final packageInfo = await PackageInfo.fromPlatform();
+    final currentVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
+    final lastShownVersion = Static.localStorage.lastShownVersion;
+
+    if (currentVersion != lastShownVersion && _updateNotes!.containsKey(currentVersion)) {
+      if (mounted) {
+        _showUpdateDialog(
+          context,
+          currentVersion,
+          _updateNotes![currentVersion]!,
+        );
+      }
+      Static.localStorage.lastShownVersion = currentVersion;
+    }
+  }
+
+  void _showUpdateDialog(BuildContext context, String version, String notes) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('應用程式更新資訊 (v$version)'),
+          content: SingleChildScrollView(
+            child: Text(notes),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('我知道了'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildPageContent(int index) {
     return switch (index) {
       0 => const InfoPage(),
@@ -80,7 +157,6 @@ class _MainPageState extends State<MainPage> {
     };
   }
 
-  // 將 AppBar 標題抽離出來，方便共用
   String _getAppBarTitle(int index) {
     return switch (index) {
       0 => "資訊",
@@ -97,42 +173,33 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 【修改】使用 LayoutBuilder 來偵測螢幕尺寸
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 判斷條件：當寬度大於高度時，視為橫向模式
         final isLandscape = constraints.maxWidth > constraints.maxHeight;
 
-        // 【修改】將 Scaffold 包在判斷邏輯內，根據模式返回不同結構
         return Scaffold(
           appBar: AppBar(
-            // 標題和頁面內容的邏輯保持不變
             title: Text(_getAppBarTitle(selectedIndex)),
           ),
-          // 【修改】根據 isLandscape 決定是否顯示 body
           body: isLandscape
-              ? _buildLandscapeLayout() // 橫向佈局
-              : _buildPageContent(selectedIndex), // 縱向佈局（原始佈局）
-
-          // 【修改】根據 isLandscape 決定是否顯示 bottomNavigationBar
+              ? _buildLandscapeLayout()
+              : _buildPageContent(selectedIndex),
           bottomNavigationBar: isLandscape
-              ? null // 橫向模式下，不顯示底部導航欄
+              ? null
               : NavigationBar(
-                  onDestinationSelected: (index) =>
-                      setState(() => selectedIndex = index),
-                  selectedIndex: selectedIndex,
-                  destinations: destinations, // 使用抽離出的 destinations
-                ),
+            onDestinationSelected: (index) =>
+                setState(() => selectedIndex = index),
+            selectedIndex: selectedIndex,
+            destinations: destinations,
+          ),
         );
       },
     );
   }
 
-  // 【新增】建立一個專門用於橫向佈局的 Widget
   Widget _buildLandscapeLayout() {
     return Row(
       children: [
-        // 左側的 NavigationRail
         NavigationRail(
           selectedIndex: selectedIndex,
           onDestinationSelected: (index) {
@@ -140,10 +207,8 @@ class _MainPageState extends State<MainPage> {
               selectedIndex = index;
             });
           },
-          // labelType 決定是否顯示標籤，可根據需求調整
           labelType: NavigationRailLabelType.all,
           destinations: destinations.map((dest) {
-            // NavigationRail 需要 NavigationRailDestination
             return NavigationRailDestination(
               icon: dest.icon,
               selectedIcon: dest.selectedIcon,
@@ -151,9 +216,7 @@ class _MainPageState extends State<MainPage> {
             );
           }).toList(),
         ),
-        // 右側和 NavigationRail 之間的垂直分隔線，讓介面更清晰
         const VerticalDivider(thickness: 1, width: 1),
-        // 右側的頁面內容
         Expanded(
           child: _buildPageContent(selectedIndex),
         ),

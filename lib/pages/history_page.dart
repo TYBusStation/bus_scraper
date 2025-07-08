@@ -470,7 +470,7 @@ class _HistoryPageState extends State<HistoryPage> {
             label: '駕駛',
             allOptions: {
               for (var driverId in _availableDrivers)
-                driverId: driverId == "0" ? "未知駕駛" : driverId
+                driverId: Static.getDriverText(driverId)
             },
             selectedOptions: _selectedDriverIds,
             onSelectionChanged: (newSelection) {
@@ -729,7 +729,7 @@ class _HistoryPageState extends State<HistoryPage> {
     }
     durationStr += '${segment.duration.inSeconds.remainder(60)}秒';
 
-    final String driverText = segment.driverId == "0" ? "未知" : segment.driverId;
+    final String driverText = Static.getDriverText(segment.driverId);
     final String dutyText = segment.dutyStatus == 0 ? "營運" : "非營運";
     final Color dutyColor = segment.dutyStatus == 0
         ? Colors.green.shade700

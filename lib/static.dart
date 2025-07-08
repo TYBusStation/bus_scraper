@@ -526,4 +526,21 @@ class Static {
     }
     return a.compareTo(b);
   }
+
+  static bool hasDriverRemark(String driverId) {
+    return localStorage.driverRemarks.containsKey(driverId);
+  }
+
+  static String? getDriverRemark(String driverId) {
+    return localStorage.driverRemarks[driverId];
+  }
+
+  static String getDriverText(String driverId) {
+    if (driverId == "0") {
+      return "未知駕駛";
+    }
+    return hasDriverRemark(driverId)
+        ? "$driverId(${getDriverRemark(driverId)})"
+        : driverId;
+  }
 }

@@ -1,45 +1,156 @@
+import 'package:bus_scraper/static.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:provider/provider.dart'; // *** 新增：導入 provider 套件 ***
+import 'package:provider/provider.dart';
 
 import '../storage/app_theme.dart';
-import '../widgets/theme_provider.dart'; // 這裡的 ThemeProvider 僅用於獲取 of() 方法和類型
+import '../widgets/theme_provider.dart';
 
-class SettingsPage extends StatelessWidget {
-  // *** 修改：改為 StatelessWidget，因為我們不再需要管理本地狀態 ***
+// 【修改】將頁面轉換為 StatefulWidget 以管理 TextEditingController
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
   @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  // 【新增】為駕駛員備註編輯框創建一個 Controller
+  late final TextEditingController _remarksController;
+
+  @override
+  void initState() {
+    super.initState();
+    // 初始化 Controller
+    _remarksController = TextEditingController();
+    // 從 LocalStorage 加載現有數據並填充到編輯框中
+    _loadRemarksIntoController();
+  }
+
+  @override
+  void dispose() {
+    // 【重要】在頁面銷毀時，務必釋放 Controller 以避免內存洩漏
+    _remarksController.dispose();
+    super.dispose();
+  }
+
+  /// 從 LocalStorage 加載數據，並將其轉換為 CSV 格式的字串顯示在編輯框中
+  void _loadRemarksIntoController() {
+    final remarksMap = Static.localStorage.driverRemarks;
+    // 將 Map 轉換為 CSV 字符串
+    final csvText =
+        remarksMap.entries.map((e) => '${e.key},${e.value}').join('\n');
+    _remarksController.text = csvText;
+  }
+
+  /// 格式化編輯框中的文本
+  void _formatTextInController() {
+    final formattedText = _formatCsvString(_remarksController.text);
+    _remarksController.text = formattedText;
+  }
+
+  /// 保存數據
+  void _saveRemarks() {
+    // 【要求】保存時自動格式化
+    final formattedText = _formatCsvString(_remarksController.text);
+    _remarksController.text = formattedText; // 將格式化後的文本更新回 UI
+
+    // 將格式化的 CSV 文本解析回 Map<String, String>
+    final remarksMap = _parseCsvToMap(formattedText);
+
+    // 使用 LocalStorage 進行保存
+    Static.localStorage.driverRemarks = remarksMap;
+
+    // 顯示一個提示，告知用戶保存成功
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('駕駛員備註已保存'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+          showCloseIcon: true,
+        ),
+      );
+    }
+  }
+
+  /// 核心邏輯：將凌亂的 CSV 文本格式化
+  String _formatCsvString(String rawText) {
+    final lines = rawText.split('\n');
+    final validEntries = <List<String>>[];
+
+    for (final line in lines) {
+      final trimmedLine = line.trim();
+      if (trimmedLine.isEmpty) continue; // 跳過空行
+
+      final parts = trimmedLine.split(',');
+      if (parts.length < 2) continue; // 跳過格式不正確的行
+
+      final driverId = parts[0].trim();
+      if (driverId.isEmpty) continue; // 跳過沒有駕駛員 ID 的行
+
+      // 處理備註中可能包含逗號的情況
+      final remark = parts.sublist(1).join(',').trim();
+      validEntries.add([driverId, remark]);
+    }
+
+    // 按駕駛員 ID 進行排序，使格式更整潔
+    validEntries.sort((a, b) => a[0].compareTo(b[0]));
+
+    // 將處理好的條目重新組合成 CSV 字符串
+    return validEntries.map((e) => '${e[0]},${e[1]}').join('\n');
+  }
+
+  /// 核心邏輯：將 CSV 文本解析為 Map
+  Map<String, String> _parseCsvToMap(String csvText) {
+    final remarksMap = <String, String>{};
+    final lines = csvText.split('\n');
+
+    for (final line in lines) {
+      final trimmedLine = line.trim();
+      if (trimmedLine.isEmpty) continue;
+
+      final parts = trimmedLine.split(',');
+      if (parts.length < 2) continue;
+
+      final driverId = parts[0].trim();
+      final remark = parts.sublist(1).join(',').trim();
+
+      if (driverId.isNotEmpty) {
+        remarksMap[driverId] = remark;
+      }
+    }
+    return remarksMap;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // *** 核心修改：使用 Consumer 來監聽全局 ThemeChangeNotifier 的變化 ***
-    // Consumer 會在 notifier.notifyListeners() 被調用時自動重繪其 builder 內的內容。
+    // Consumer 仍然用於處理主題變更，這部分邏輯不變
     return Consumer<ThemeChangeNotifier>(
       builder: (context, notifier, child) {
-        // 獲取當前的主題，用於顯示顏色等
         final theme = Theme.of(context);
 
         return ListView(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
           children: [
+            // 主題與色系區塊 (保持不變)
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ExpansionTile(
                 title: const Text('主題與色系'),
-                initiallyExpanded: true,
                 leading: const Icon(Icons.display_settings),
                 shape: Border.all(color: Colors.transparent),
                 children: [
                   SegmentedButton(
-                      segments: AppTheme.values
-                          .map((e) => ButtonSegment(
-                              value: e, label: Text(e.uiName), icon: e.icon))
-                          .toList(),
-                      // 從 notifier 直接讀取當前主題，確保 UI 同步
-                      selected: {notifier.theme},
-                      onSelectionChanged: (value) {
-                        final theme = value.first;
-                        // 直接呼叫 notifier 的方法來更新全局主題，不需要 setState
-                        notifier.setTheme(theme);
-                      }),
+                    segments: AppTheme.values
+                        .map((e) => ButtonSegment(
+                            value: e, label: Text(e.uiName), icon: e.icon))
+                        .toList(),
+                    selected: {notifier.theme},
+                    onSelectionChanged: (value) {
+                      notifier.setTheme(value.first);
+                    },
+                  ),
                   const SizedBox(height: 12),
                   ListTile(
                     leading: const Icon(Icons.colorize),
@@ -47,12 +158,8 @@ class SettingsPage extends StatelessWidget {
                     trailing: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: ColoredBox(
-                        // 直接使用來自主題的強調色，確保顏色總是正確的
                         color: theme.colorScheme.primary,
-                        child: const SizedBox(
-                          width: 48,
-                          height: 48,
-                        ),
+                        child: const SizedBox(width: 48, height: 48),
                       ),
                     ),
                     onTap: () {
@@ -62,31 +169,74 @@ class SettingsPage extends StatelessWidget {
                 ],
               ),
             ),
+
+            // 【新增】駕駛員備註編輯區塊
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ExpansionTile(
+                title: const Text('駕駛員備註'),
+                leading: const Icon(Icons.edit_note),
+                initiallyExpanded: false,
+                // 默認不展開
+                shape: Border.all(color: Colors.transparent),
+                children: [
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: TextField(
+                      controller: _remarksController,
+                      maxLines: 10, // 允許多行輸入
+                      minLines: 5,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: '駕駛員ID,備註',
+                        hintText: '12345,備註1\n67890,備註2',
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      FilledButton.icon(
+                        icon: const Icon(Icons.format_align_left),
+                        label: const Text('格式化'),
+                        onPressed: _formatTextInController,
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton.icon(
+                        icon: const Icon(Icons.save),
+                        label: const Text('儲存'),
+                        onPressed: _saveRemarks,
+                      ),
+                      const SizedBox(width: 16),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            )
           ],
         );
       },
     );
   }
 
-  // 將對話框邏輯提取為一個獨立的方法，使 build 方法更乾淨
+  // 顏色選擇對話框邏輯 (保持不變)
   void _showColorPickerDialog(
       BuildContext context, ThemeChangeNotifier notifier) {
-    // 臨時變數，用於在對話框中追蹤用戶選擇的顏色
     Color pickerColor = Theme.of(context).colorScheme.primary;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('請選擇強調色'),
         content: SingleChildScrollView(
-          // *** 使用 StatefulBuilder 來管理對話框內部的狀態 ***
-          // 這讓我們可以在不重繪整個頁面的情況下，即時更新顏色選擇器的預覽
           child: StatefulBuilder(
             builder: (BuildContext context, StateSetter dialogSetState) {
               return ColorPicker(
                 pickerColor: pickerColor,
                 onColorChanged: (color) {
-                  // 使用 dialogSetState 來僅僅重繪對話框的內容
                   dialogSetState(() {
                     pickerColor = color;
                   });
@@ -97,14 +247,11 @@ class SettingsPage extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
           ),
           TextButton(
             onPressed: () {
-              // 呼叫 notifier 來設定為預設顏色
               notifier.setAccentColor(null);
               Navigator.of(context).pop();
             },
@@ -112,7 +259,6 @@ class SettingsPage extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              // 呼叫 notifier 來設定用戶選擇的新顏色
               notifier.setAccentColor(pickerColor);
               Navigator.of(context).pop();
             },

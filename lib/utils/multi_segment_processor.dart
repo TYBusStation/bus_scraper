@@ -1,5 +1,6 @@
 // lib/utils/multi_segment_processor.dart
 
+import 'package:bus_scraper/widgets/base_map_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -10,25 +11,6 @@ import '../widgets/point_marker.dart'; // 為了 TrajectorySegment
 
 /// 一個帶有狀態的處理器，用於為多個獨立的軌跡段生成帶有不同顏色的地圖元素。
 class MultiSegmentProcessor {
-  // 複製 BaseMapView 中的顏色列表，使其自成一體
-  static const List<Color> _segmentColors = [
-    Color(0xFFE53935),
-    Color(0xFF1E88E5),
-    Color(0xFF43A047),
-    Color(0xFFFB8C00),
-    Color(0xFF00897B),
-    Color(0xFF5E35B1),
-    Color(0xFFFFB300),
-    Color(0xFF039BE5),
-    Color(0xFF6D4C41),
-    Color(0xFFF4511E),
-    Color(0xFFC0CA33),
-    Color(0xFF00ACC1),
-    Color(0xFF7CB342),
-    Color(0xFF673AB7),
-    Color(0xFF455A64),
-  ];
-
   int _colorIndex = 0;
 
   /// 處理單個軌跡段，並將生成的 Polyline 和 Marker 添加到傳入的列表中。
@@ -42,7 +24,7 @@ class MultiSegmentProcessor {
     }
 
     // 1. 為整個軌跡段創建一條單色的 Polyline
-    final color = _segmentColors[_colorIndex % _segmentColors.length];
+    final color = BaseMapView.segmentColors[_colorIndex % BaseMapView.segmentColors.length];
     polylines.add(
       Polyline(
         points: segment.points.map((p) => LatLng(p.lat, p.lon)).toList(),

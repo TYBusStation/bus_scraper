@@ -31,75 +31,82 @@ ProcessedMapData processBusPoints(List<BusPoint> points) {
   // 計算邊界
   final bounds = points.length > 1
       ? LatLngBounds.fromPoints(
-          points.map((p) => LatLng(p.lat, p.lon)).toList())
+      points.map((p) => LatLng(p.lat, p.lon)).toList())
       : null;
 
   final List<Polyline> segmentedPolylines = [];
   final List<Marker> trackPointMarkers = [];
 
-  // --- 軌跡線和軌跡點 ---
+  // --- [MODIFICATION START] ---
+  // 重構軌跡線和軌跡點的處理邏輯，以確保每個斷開的段都有獨立的顏色。
   if (points.length > 1) {
     int colorIndex = 0;
     List<LatLng> currentSegmentPoints = [
       LatLng(points.first.lat, points.first.lon)
     ];
 
+    // 為第一個點創建標記，使用初始顏色
+    trackPointMarkers.add(_createTrackPointMarker(points.first,
+        BaseMapView.segmentColors[colorIndex % BaseMapView.segmentColors.length]));
+
     for (int i = 1; i < points.length; i++) {
       final currentPoint = points[i];
       final previousPoint = points[i - 1];
-      final segmentColor = BaseMapView
-          .segmentColors[colorIndex % BaseMapView.segmentColors.length];
-
-      // 為前一個點創建軌跡點標記
-      trackPointMarkers
-          .add(_createTrackPointMarker(previousPoint, segmentColor));
 
       final timeDifference =
-          currentPoint.dataTime.difference(previousPoint.dataTime);
+      currentPoint.dataTime.difference(previousPoint.dataTime);
 
       // 當路線ID、方向、營運狀態、駕駛員ID改變，或時間間隔過長時，切分新段
-      bool isSegmentEnd = (currentPoint.routeId != previousPoint.routeId ||
+      final bool isNewSegment = (currentPoint.routeId != previousPoint.routeId ||
           currentPoint.goBack != previousPoint.goBack ||
           currentPoint.dutyStatus != previousPoint.dutyStatus ||
           currentPoint.driverId != previousPoint.driverId ||
           timeDifference.inMinutes >= 10);
 
-      if (isSegmentEnd) {
-        // 結束當前段
+      if (isNewSegment) {
+        // 1. 結束並繪製上一個軌跡段
         if (currentSegmentPoints.length > 1) {
+          final color = BaseMapView.segmentColors[colorIndex % BaseMapView.segmentColors.length];
           segmentedPolylines.add(Polyline(
             points: List.from(currentSegmentPoints),
-            color: segmentColor,
+            color: color,
             strokeWidth: 4,
           ));
         }
-        // 開始新段
+
+        // 2. 為新軌跡段更新顏色索引
         colorIndex++;
+
+        // 3. 開始一個新的軌跡段，從上一個點連接到當前點
         currentSegmentPoints = [
-          LatLng(previousPoint.lat, previousPoint.lon), // 連接斷點
+          LatLng(previousPoint.lat, previousPoint.lon),
           LatLng(currentPoint.lat, currentPoint.lon),
         ];
       } else {
-        // 繼續當前段
+        // 繼續當前的軌跡段
         currentSegmentPoints.add(LatLng(currentPoint.lat, currentPoint.lon));
       }
+
+      // 為每個點創建標記，使用其所屬軌跡段的顏色
+      final markerColor = BaseMapView.segmentColors[colorIndex % BaseMapView.segmentColors.length];
+      trackPointMarkers.add(_createTrackPointMarker(currentPoint, markerColor));
     }
 
-    // 添加最後一段軌跡線
-    final lastSegmentColor = BaseMapView
-        .segmentColors[colorIndex % BaseMapView.segmentColors.length];
+    // 添加最後一段正在累積的軌跡線
     if (currentSegmentPoints.length > 1) {
+      final lastSegmentColor = BaseMapView.segmentColors[colorIndex % BaseMapView.segmentColors.length];
       segmentedPolylines.add(Polyline(
         points: currentSegmentPoints,
         color: lastSegmentColor,
         strokeWidth: 4,
       ));
     }
-
-    // 為最後一個點創建軌跡點標記
-    trackPointMarkers
-        .add(_createTrackPointMarker(points.last, lastSegmentColor));
+  } else {
+    // 只有一個點的情況
+    final color = BaseMapView.segmentColors[0];
+    trackPointMarkers.add(_createTrackPointMarker(points.first, color));
   }
+  // --- [MODIFICATION END] ---
 
   return ProcessedMapData(
     polylines: segmentedPolylines,

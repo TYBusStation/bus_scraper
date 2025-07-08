@@ -269,32 +269,37 @@ class BaseMapViewState extends State<BaseMapView> {
         continue;
       }
       final detail = await Static.fetchRoutePathAndStops(routeId);
-      Color goColor = BaseMapView
-          .segmentColors[colorIndex % BaseMapView.segmentColors.length];
-      colorIndex++;
-      Color backColor = BaseMapView
-          .segmentColors[colorIndex % BaseMapView.segmentColors.length];
-      colorIndex++;
+
+      // --- [MODIFICATION START] ---
+      // Logic changed to assign colors only for visible paths to ensure
+      // better color distribution and prevent premature color repetition.
       if (selection.go && detail.goPath.isNotEmpty) {
+        final color = BaseMapView
+            .segmentColors[colorIndex % BaseMapView.segmentColors.length];
+        colorIndex++; // Consume a color only when a polyline is added
         newPolylines.add(Polyline(
             points: detail.goPath,
-            color: goColor.withOpacity(0.7),
+            color: color.withOpacity(0.7),
             strokeWidth: 5.0));
         for (final station in detail.goStations) {
-          newMarkers.add(_createStationMarker(
-              station, route, goColor.withOpacity(0.7), 1));
+          newMarkers.add(
+              _createStationMarker(station, route, color.withOpacity(0.7), 1));
         }
       }
       if (selection.back && detail.backPath.isNotEmpty) {
+        final color = BaseMapView
+            .segmentColors[colorIndex % BaseMapView.segmentColors.length];
+        colorIndex++; // Consume a color only when a polyline is added
         newPolylines.add(Polyline(
             points: detail.backPath,
-            color: backColor.withOpacity(0.7),
+            color: color.withOpacity(0.7),
             strokeWidth: 5.0));
         for (final station in detail.backStations) {
-          newMarkers.add(_createStationMarker(
-              station, route, backColor.withOpacity(0.7), 2));
+          newMarkers.add(
+              _createStationMarker(station, route, color.withOpacity(0.7), 2));
         }
       }
+      // --- [MODIFICATION END] ---
     }
     if (mounted) {
       setState(() {
@@ -798,7 +803,7 @@ class BaseMapViewState extends State<BaseMapView> {
                                         "${route.name} | ${route.description} "
                                             "| 往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'} "
                                             "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
-                                            "| 駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId} "
+                                            "| 駕駛：${Static.getDriverText(_selectedPoint!.driverId)} "
                                             "| ${Static.displayDateFormat.format(_selectedPoint!.dataTime)}";
                                     await launchUrl(Uri.parse(
                                         "https://www.google.com/maps?q=${_selectedPoint!.lat}"
@@ -852,7 +857,7 @@ class BaseMapViewState extends State<BaseMapView> {
                                           icon:
                                               Icons.person_pin_circle_outlined,
                                           label:
-                                              "駕駛：${_selectedPoint!.driverId == "0" ? "未知" : _selectedPoint!.driverId}"),
+                                              "駕駛：${Static.getDriverText(_selectedPoint!.driverId)}"),
                                       InkWell(
                                           borderRadius:
                                               BorderRadius.circular(16.0),

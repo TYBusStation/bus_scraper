@@ -73,7 +73,7 @@ class SegmentDetailsPage extends StatelessWidget {
                             color: Colors.blueAccent,
                             tooltip: '在 Google Map 上查看',
                             onPressed: () async => await launchUrl(Uri.parse(
-                                "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${Uri.encodeComponent('${route.name} | ${route.description} | 往 ${dataPoint.goBack == 1 ? route.destination : route.departure} | ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 駕駛：${dataPoint.driverId == "0" ? "未知" : dataPoint.driverId} | ${Static.displayDateFormat.format(dataPoint.dataTime)}')} )")),
+                                "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${Uri.encodeComponent('${route.name} | ${route.description} | 往 ${dataPoint.goBack == 1 ? route.destination : route.departure} | ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 駕駛：${Static.getDriverText(dataPoint.driverId)} | ${Static.displayDateFormat.format(dataPoint.dataTime)}')} )")),
                           ),
                         ],
                       )
@@ -113,8 +113,7 @@ class SegmentDetailsPage extends StatelessWidget {
                       _buildInfoChip(
                         context,
                         icon: Icons.person_pin_circle_outlined,
-                        label:
-                            "駕駛：${dataPoint.driverId == "0" ? "未知" : dataPoint.driverId}",
+                        label: "駕駛：${Static.getDriverText(dataPoint.driverId)}",
                       ),
                       _buildInfoChip(
                         context,
