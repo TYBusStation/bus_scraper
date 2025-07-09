@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../widgets/driving_record_list.dart';
-import '../widgets/empty_state_indicator.dart'; // 【修改】1. 引入 EmptyStateIndicator
+import '../widgets/empty_state_indicator.dart';
 import '../widgets/theme_provider.dart';
 
 class DriverPlatesPage extends StatefulWidget {
@@ -20,6 +20,16 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
 
   bool _hasSearched = false;
   String _currentDriverId = '';
+
+  // 【新增】1. 用於顯示提示訊息的狀態變數
+  String? _promptMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // 【新增】2. 初始化頁面時設定預設的提示訊息
+    _promptMessage = "請輸入駕駛員 ID 並選擇日期範圍\n然後點擊查詢按鈕\n(註：ID 前方若有 0 可能需去除)";
+  }
 
   @override
   void dispose() {
@@ -44,15 +54,30 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
           _endDate = pickedDate;
           if (_endDate.isBefore(_startDate)) _startDate = _endDate;
         }
+        // 【修改】3. 日期變更後，隱藏舊結果並顯示提示
+        _hasSearched = false;
+        _promptMessage = "日期已更新，請重新點擊「查詢」。";
       });
     }
   }
 
   void _triggerSearch() {
     FocusScope.of(context).unfocus();
+    if (_driverIdController.text.isEmpty) {
+      // 可以在此處增加一個提示，如果需要的話
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('請先輸入駕駛員 ID'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     setState(() {
       _hasSearched = true;
       _currentDriverId = _driverIdController.text;
+      // 【修改】4. 查詢時清除提示訊息，以便顯示結果列表
+      _promptMessage = null;
     });
   }
 
@@ -67,6 +92,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
             _buildInputCard(),
             const SizedBox(height: 8),
             Expanded(
+              // 【修改】5. 根據 _hasSearched 狀態決定顯示列表還是提示
               child: _hasSearched
                   ? DrivingRecordList(
                       key: ValueKey('driver_$_currentDriverId'),
@@ -76,7 +102,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
                       endDate: _endDate,
                       driverIdForListItem: _currentDriverId,
                     )
-                  : _buildInitialMessage(), // <-- 這個方法現在更簡潔了
+                  : _buildPromptArea(), // 顯示提示訊息的區域
             ),
           ],
         ),
@@ -85,7 +111,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
   }
 
   Widget _buildInputCard() {
-    // ... 此處程式碼不變 ...
     return Card(
       elevation: 1,
       margin: const EdgeInsets.only(top: 12),
@@ -103,6 +128,15 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
           children: [
             TextField(
               controller: _driverIdController,
+              // 【新增】6. 當文字變更時，如果已經有查詢結果，則提示使用者重新查詢
+              onChanged: (value) {
+                if (_hasSearched) {
+                  setState(() {
+                    _hasSearched = false;
+                    _promptMessage = "駕駛員 ID 已變更，請重新點擊「查詢」。";
+                  });
+                }
+              },
               decoration: const InputDecoration(
                 isDense: true,
                 labelText: "駕駛員 ID",
@@ -156,7 +190,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     required DateTime value,
     required VoidCallback onPressed,
   }) {
-    // ... 此處程式碼不變 ...
     final theme = Theme.of(context);
     final displayText = _displayDateFormat.format(value);
 
@@ -194,12 +227,16 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     );
   }
 
-  // 【修改】2. 將此方法的實作替換為 EmptyStateIndicator
-  Widget _buildInitialMessage() {
-    return const EmptyStateIndicator(
-      icon: Icons.person_search_outlined, // 也可以用 Icons.search_off_rounded
-      title: "開始查詢",
-      subtitle: "請輸入駕駛員 ID 並選擇日期範圍\n然後點擊查詢按鈕\n(註：ID 前方若有 0 可能需去除)",
+  // 【修改】7. 將 _buildInitialMessage 更名為 _buildPromptArea 並使其動態化
+  Widget _buildPromptArea() {
+    // 根據是否有提示訊息決定標題
+    final title = _promptMessage?.contains("更新") ?? false ? "請重新查詢" : "開始查詢";
+
+    return EmptyStateIndicator(
+      icon: Icons.person_search_outlined,
+      title: title,
+      // 直接使用 _promptMessage 狀態變數
+      subtitle: _promptMessage ?? '',
     );
   }
 }

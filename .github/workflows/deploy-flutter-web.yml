@@ -59,46 +59,46 @@ jobs:
           # commit_message: 'Deploy Flutter Web to GitHub Pages' # 可選：自定義 commit 訊息
           # force_orphan: true # 強烈建議用於 gh-pages 分支，以保持其乾淨
 
-      # --- 新增：建置 Android APK 並上傳 Artifact ---
-
-      # 步驟 7: 設定 Java (JDK) 環境 - Android 建置需要
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4 # 使用較新版本的 action
-        with:
-          java-version: '21' # Flutter/Android Gradle Plugin 通常需要較新的 JDK 版本
-          distribution: 'temurin' # Temurin (前身 AdoptOpenJDK) 是一個可靠的 JDK 發行版
-          cache: 'gradle' # 快取 Gradle 相關檔案以加速後續建置
-
-      # 步驟 8: (可選) 清理 Flutter 專案 (有助於避免某些建置問題)
-      # 如果在獲取依賴後進行了大量更改，或者遇到奇怪的建置錯誤，可以取消註解此步驟
-      # - name: Clean Flutter project (before APK build)
-      #   run: flutter clean
-      # - name: Get Flutter dependencies again (if cleaned)
-      #   run: flutter pub get
-
-      # 步驟 9: 建置 Flutter Android APK (Release 版本)
-      - name: Build Flutter Android APK (Release)
-        run: flutter build apk --release
-        # 注意：這將生成一個未簽名的 Release APK。
-        # 如果您需要簽名的 APK (例如用於發布到商店)，您需要在專案中配置簽名，
-        # 或者在此步驟中使用 -- chìa-khóa-mật-khẩu, --chìa-khóa-bí-danh, --kho-khóa 等參數，
-        # 並將簽名檔案和密碼安全地存儲在 GitHub Secrets 中。
-        # 例如 (概念性，需要您設定好 secrets 和 keystore 檔案):
-        # run: |
-        #   echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
-        #   flutter build apk --release \
-        #     --keystore-password "${{ secrets.KEYSTORE_PASSWORD }}" \
-        #     --key-alias "${{ secrets.KEY_ALIAS }}" \
-        #     --key-password "${{ secrets.KEY_PASSWORD }}" \
-        #     --build-name=1.0.0 \ # 您的應用版本名稱
-        #     --build-number=1     # 您的應用建置號
-
-      # 步驟 10: 上傳 Android APK 作為 Artifact
-      - name: Upload Android APK Artifact
-        uses: actions/upload-artifact@v4 # 使用較新版本的 action
-        with:
-          name: android-apk-release # Artifact 的名稱，在 GitHub Actions 頁面會顯示此名稱
-          path: build/app/outputs/flutter-apk/app-release.apk # 指定要上傳的 APK 檔案路徑
-          if-no-files-found: error # 如果找不到檔案，則讓 Workflow 失敗
-          retention-days: 7 # (可選) Artifact 保留天數，預設 90 天
-      # --- 結束新增部分 ---
+#      # --- 新增：建置 Android APK 並上傳 Artifact ---
+#
+#      # 步驟 7: 設定 Java (JDK) 環境 - Android 建置需要
+#      - name: Set up JDK 21
+#        uses: actions/setup-java@v4 # 使用較新版本的 action
+#        with:
+#          java-version: '21' # Flutter/Android Gradle Plugin 通常需要較新的 JDK 版本
+#          distribution: 'temurin' # Temurin (前身 AdoptOpenJDK) 是一個可靠的 JDK 發行版
+#          cache: 'gradle' # 快取 Gradle 相關檔案以加速後續建置
+#
+#      # 步驟 8: (可選) 清理 Flutter 專案 (有助於避免某些建置問題)
+#      # 如果在獲取依賴後進行了大量更改，或者遇到奇怪的建置錯誤，可以取消註解此步驟
+#      # - name: Clean Flutter project (before APK build)
+#      #   run: flutter clean
+#      # - name: Get Flutter dependencies again (if cleaned)
+#      #   run: flutter pub get
+#
+#      # 步驟 9: 建置 Flutter Android APK (Release 版本)
+#      - name: Build Flutter Android APK (Release)
+#        run: flutter build apk --release
+#        # 注意：這將生成一個未簽名的 Release APK。
+#        # 如果您需要簽名的 APK (例如用於發布到商店)，您需要在專案中配置簽名，
+#        # 或者在此步驟中使用 -- chìa-khóa-mật-khẩu, --chìa-khóa-bí-danh, --kho-khóa 等參數，
+#        # 並將簽名檔案和密碼安全地存儲在 GitHub Secrets 中。
+#        # 例如 (概念性，需要您設定好 secrets 和 keystore 檔案):
+#        # run: |
+#        #   echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+#        #   flutter build apk --release \
+#        #     --keystore-password "${{ secrets.KEYSTORE_PASSWORD }}" \
+#        #     --key-alias "${{ secrets.KEY_ALIAS }}" \
+#        #     --key-password "${{ secrets.KEY_PASSWORD }}" \
+#        #     --build-name=1.0.0 \ # 您的應用版本名稱
+#        #     --build-number=1     # 您的應用建置號
+#
+#      # 步驟 10: 上傳 Android APK 作為 Artifact
+#      - name: Upload Android APK Artifact
+#        uses: actions/upload-artifact@v4 # 使用較新版本的 action
+#        with:
+#          name: android-apk-release # Artifact 的名稱，在 GitHub Actions 頁面會顯示此名稱
+#          path: build/app/outputs/flutter-apk/app-release.apk # 指定要上傳的 APK 檔案路徑
+#          if-no-files-found: error # 如果找不到檔案，則讓 Workflow 失敗
+#          retention-days: 7 # (可選) Artifact 保留天數，預設 90 天
+#      # --- 結束新增部分 ---

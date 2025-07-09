@@ -614,7 +614,8 @@ class BaseMapViewState extends State<BaseMapView> {
                   height: 20,
                   child: CircularProgressIndicator(
                       strokeWidth: 2.5, color: Colors.white))
-              : const Icon(Icons.my_location))
+              : const Icon(Icons.my_location)),
+      const SizedBox(height: 4),
     ]);
   }
 
