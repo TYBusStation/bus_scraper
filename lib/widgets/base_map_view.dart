@@ -467,15 +467,18 @@ class BaseMapViewState extends State<BaseMapView> {
               ),
               children: [
                 TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    tileProvider: CancellableNetworkTileProvider()),
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  tileProvider: CancellableNetworkTileProvider(),
+                  userAgentPackageName: "me.myster.bus_scraper",
+                ),
                 Opacity(
                     opacity: _satelliteOpacity,
                     child: TileLayer(
-                        urlTemplate:
-                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                        tileProvider: CancellableNetworkTileProvider())),
+                      urlTemplate:
+                          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                      tileProvider: CancellableNetworkTileProvider(),
+                      userAgentPackageName: "me.myster.bus_scraper",
+                    )),
                 PolylineLayer(polylines: allPolylinesToShow),
                 MarkerLayer(markers: allMarkersToShow),
               ],
