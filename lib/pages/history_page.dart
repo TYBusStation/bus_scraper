@@ -232,7 +232,7 @@ class _HistoryPageState extends State<HistoryPage> {
       final String formattedEndTime =
           Static.apiDateFormat.format(_selectedEndTime);
       final url = Uri.parse(
-          "${Static.apiBaseUrl}/bus_data/${widget.plate}?start_time=$formattedStartTime&end_time=$formattedEndTime");
+          "${Static.apiBaseUrl}/${Static.localStorage.city}/bus_data/${widget.plate}?start_time=$formattedStartTime&end_time=$formattedEndTime");
 
       final response = await Static.dio.getUri(url);
 

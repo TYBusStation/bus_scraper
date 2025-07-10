@@ -132,7 +132,7 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
         final formattedEndTime = Static.apiDateFormat.format(endTime);
 
         final url = Uri.parse(
-            "${Static.apiBaseUrl}/bus_data/$plate?start_time=$formattedStartTime&end_time=$formattedEndTime");
+            "${Static.apiBaseUrl}/${Static.localStorage.city}/bus_data/$plate?start_time=$formattedStartTime&end_time=$formattedEndTime");
 
         try {
           final response = await Static.dio.getUri(url);

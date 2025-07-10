@@ -31,7 +31,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   final TextEditingController _latController = TextEditingController();
   final TextEditingController _lonController = TextEditingController();
 
-  LatLng _currentMapCenter = const LatLng(24.986763, 121.314007);
+  LatLng _currentMapCenter = BaseMapView.getDefaultCenter();
   StreamSubscription<MapEvent>? _mapEventSubscription;
   bool _isProgrammaticMove = false;
 
@@ -141,7 +141,8 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       final double effectiveRadius =
           _searchRadiusKm > 0 ? _searchRadiusKm : 0.01;
       final dio = Static.dio;
-      final url = "${Static.apiBaseUrl}/tools/find_nearby_vehicles";
+      final url =
+          "${Static.apiBaseUrl}/${Static.localStorage.city}/tools/find_nearby_vehicles";
       final queryParameters = {
         'lat': _searchCenterWhenSearched.latitude.toString(),
         'lon': _searchCenterWhenSearched.longitude.toString(),

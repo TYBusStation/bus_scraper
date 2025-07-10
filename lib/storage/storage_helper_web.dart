@@ -1,5 +1,5 @@
+// storage_helper_web.dart
 import 'dart:convert';
-// ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 
 class StorageHelper {
@@ -9,7 +9,14 @@ class StorageHelper {
     final value = html.window.localStorage[key];
 
     if (value != null) {
-      return jsonDecode(value) as T;
+      try {
+        // 解碼並直接返回，讓類型檢查在外部進行
+        return jsonDecode(value);
+      } catch (e) {
+        print('Error decoding JSON from localStorage for key "$key": $e');
+        // 解碼失敗，視為沒有值，返回 defaultValue
+        return defaultValue as T;
+      }
     } else {
       return defaultValue as T;
     }
@@ -20,11 +27,8 @@ class StorageHelper {
       html.window.localStorage.remove(key);
       return;
     }
-
     html.window.localStorage[key] = jsonEncode(value);
   }
 
-  static Future<void> save() async {
-    // No-op.
-  }
+  static Future<void> save() async {}
 }

@@ -16,6 +16,14 @@ import '../pages/map_route_selection_page.dart';
 import '../static.dart';
 
 class BaseMapView extends StatefulWidget {
+  static LatLng getDefaultCenter() {
+    if (Static.localStorage.city == "kaohsiung") {
+      return const LatLng(22.639502555782638, 120.30258514756802);
+    }
+
+    return const LatLng(24.98893444390252, 121.31443803557084);
+  }
+
   static const List<Color> segmentColors = [
     Color(0xFFE53935),
     Color(0xFF1E88E5),
@@ -444,7 +452,7 @@ class BaseMapViewState extends State<BaseMapView> {
               options: MapOptions(
                 initialCenter: widget.points.isNotEmpty
                     ? LatLng(widget.points.last.lat, widget.points.last.lon)
-                    : const LatLng(24.986763, 121.314007),
+                    : BaseMapView.getDefaultCenter(),
                 initialZoom: BaseMapView.defaultZoom,
                 initialCameraFit: (widget.bounds != null &&
                         widget.bounds!.southWest != widget.bounds!.northEast)

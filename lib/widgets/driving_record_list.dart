@@ -81,8 +81,8 @@ class _DrivingRecordListState extends State<DrivingRecordList> {
 
     try {
       final String endpoint = widget.queryType == QueryType.byDriver
-          ? '/tools/find_driver_dates'
-          : '/tools/find_route_vehicles';
+          ? '/${Static.localStorage.city}/tools/find_driver_dates'
+          : '/${Static.localStorage.city}/tools/find_route_vehicles';
       final String paramName =
           widget.queryType == QueryType.byDriver ? 'driver_id' : 'route_id';
       final apiStartTime = DateTime(

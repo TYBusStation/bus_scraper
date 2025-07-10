@@ -1,3 +1,4 @@
+// storage_helper_io.dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -5,36 +6,60 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
 class StorageHelper {
-  // [MODIFIED] 將 'late final' 改為可選類型 '?'
-  // 這讓我們可以檢查它是否已經被初始化。
-  static Map? _data;
+  static Map<String, dynamic>? _data;
 
   static Future<void> init() async {
-    // [MODIFIED] 冪等性檢查：如果 _data 已經被載入，就直接返回。
     if (_data != null) {
       return;
     }
 
     final file = await _getFile();
-    final String jsonString;
-
     if (file.existsSync()) {
-      jsonString = file.readAsStringSync();
+      final jsonString = file.readAsStringSync();
+      if (jsonString.isNotEmpty) {
+        _data = jsonDecode(jsonString);
+      } else {
+        _data = {};
+      }
     } else {
-      jsonString = '{}';
+      _data = {};
     }
-
-    _data = jsonDecode(jsonString);
   }
 
   static T get<T>(String key, [T? defaultValue]) {
-    // [MODIFIED] 使用 '!' 斷言 _data 在此處不為 null。
-    // 這是安全的，因為我們的 App 流程確保了 init() 會先被呼叫。
-    return _data![key] ?? defaultValue;
+    // 【關鍵修正】在使用前檢查 _data 是否為 null
+    if (_data == null) {
+      // 這是個嚴重問題，表示 init() 還沒被呼叫
+      // 在這種情況下，返回 defaultValue 是最安全的選擇
+      if (defaultValue != null) {
+        return defaultValue;
+      }
+      // 如果連 defaultValue 都沒有，就只能拋出錯誤了
+      throw StateError(
+          'StorageHelper.get() called before StorageHelper.init() was complete, and no defaultValue was provided.');
+    }
+
+    // 如果 _data 存在，則安全地返回值
+    final value = _data![key];
+
+    // 如果 key 不存在，返回 defaultValue
+    if (value == null) {
+      return defaultValue as T;
+    }
+
+    // 如果 key 存在，但類型不匹配，也返回 defaultValue
+    if (value is T) {
+      return value;
+    }
+
+    return defaultValue as T;
   }
 
   static void set<T>(String key, T? value) {
-    // [MODIFIED] 使用 '!'
+    if (_data == null) {
+      throw StateError(
+          'StorageHelper.set() called before StorageHelper.init() was complete.');
+    }
     if (value == null) {
       _data!.remove(key);
     } else {
@@ -44,11 +69,8 @@ class StorageHelper {
   }
 
   static Future<void> save() async {
-    // [MODIFIED] 如果 _data 為 null（雖然理論上不應該發生），則不做任何事。
     if (_data == null) return;
-
     final file = await _getFile();
-    // [MODIFIED] 使用 '!'
     file.writeAsStringSync(jsonEncode(_data!));
   }
 

@@ -192,7 +192,7 @@ class _RoutePageState extends State<RoutePage> {
                                 OutlinedButton.icon(
                                   onPressed: () async {
                                     final url = Uri.parse(
-                                        "https://ebus.tycg.gov.tw/ebus/driving-map/${route.id}");
+                                        "${Static.govWebUrl}/driving-map/${route.id}");
                                     if (await canLaunchUrl(url)) {
                                       await launchUrl(url);
                                     }

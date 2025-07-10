@@ -124,7 +124,8 @@ class _CompanyPageState extends State<CompanyPage> {
       _clearFetchedData();
     });
     try {
-      final response = await Static.dio.get('${Static.apiBaseUrl}/companies');
+      final response = await Static.dio
+          .get('${Static.apiBaseUrl}/${Static.localStorage.city}/companies');
       if (response.statusCode == 200 && response.data is List) {
         _cache[_companiesCacheKey] = response.data;
         Static.log("公司列表從 API 獲取並快取。");

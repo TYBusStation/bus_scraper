@@ -1,3 +1,7 @@
+// settings_page.dart
+
+import 'dart:ui'; // 用於 BackdropFilter
+
 import 'package:bus_scraper/static.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -6,7 +10,6 @@ import 'package:provider/provider.dart';
 import '../storage/app_theme.dart';
 import '../widgets/theme_provider.dart';
 
-// 【修改】將頁面轉換為 StatefulWidget 以管理 TextEditingController
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -15,53 +18,42 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  // 【新增】為駕駛員備註編輯框創建一個 Controller
   late final TextEditingController _remarksController;
+  late String _currentCityForRemarks;
 
   @override
   void initState() {
     super.initState();
-    // 初始化 Controller
     _remarksController = TextEditingController();
-    // 從 LocalStorage 加載現有數據並填充到編輯框中
+    _currentCityForRemarks = Static.localStorage.city;
     _loadRemarksIntoController();
   }
 
   @override
   void dispose() {
-    // 【重要】在頁面銷毀時，務必釋放 Controller 以避免內存洩漏
     _remarksController.dispose();
     super.dispose();
   }
 
-  /// 從 LocalStorage 加載數據，並將其轉換為 CSV 格式的字串顯示在編輯框中
   void _loadRemarksIntoController() {
-    final remarksMap = Static.localStorage.driverRemarks;
-    // 將 Map 轉換為 CSV 字符串
+    final remarksMap =
+        Static.localStorage.getRemarksForCity(_currentCityForRemarks);
     final csvText =
         remarksMap.entries.map((e) => '${e.key},${e.value}').join('\n');
     _remarksController.text = csvText;
   }
 
-  /// 格式化編輯框中的文本
   void _formatTextInController() {
     final formattedText = _formatCsvString(_remarksController.text);
     _remarksController.text = formattedText;
   }
 
-  /// 保存數據
   void _saveRemarks() {
-    // 【要求】保存時自動格式化
     final formattedText = _formatCsvString(_remarksController.text);
-    _remarksController.text = formattedText; // 將格式化後的文本更新回 UI
-
-    // 將格式化的 CSV 文本解析回 Map<String, String>
+    _remarksController.text = formattedText;
     final remarksMap = _parseCsvToMap(formattedText);
+    Static.localStorage.setRemarksForCity(_currentCityForRemarks, remarksMap);
 
-    // 使用 LocalStorage 進行保存
-    Static.localStorage.driverRemarks = remarksMap;
-
-    // 顯示一個提示，告知用戶保存成功
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -74,48 +66,33 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  /// 核心邏輯：將凌亂的 CSV 文本格式化
   String _formatCsvString(String rawText) {
     final lines = rawText.split('\n');
     final validEntries = <List<String>>[];
-
-    for (final line in lines) {
-      final trimmedLine = line.trim();
-      if (trimmedLine.isEmpty) continue; // 跳過空行
-
-      final parts = trimmedLine.split(',');
-      if (parts.length < 2) continue; // 跳過格式不正確的行
-
-      final driverId = parts[0].trim();
-      if (driverId.isEmpty) continue; // 跳過沒有駕駛員 ID 的行
-
-      // 處理備註中可能包含逗號的情況
-      final remark = parts.sublist(1).join(',').trim();
-      validEntries.add([driverId, remark]);
-    }
-
-    // 按駕駛員 ID 進行排序，使格式更整潔
-    validEntries.sort((a, b) => a[0].compareTo(b[0]));
-
-    // 將處理好的條目重新組合成 CSV 字符串
-    return validEntries.map((e) => '${e[0]},${e[1]}').join('\n');
-  }
-
-  /// 核心邏輯：將 CSV 文本解析為 Map
-  Map<String, String> _parseCsvToMap(String csvText) {
-    final remarksMap = <String, String>{};
-    final lines = csvText.split('\n');
-
     for (final line in lines) {
       final trimmedLine = line.trim();
       if (trimmedLine.isEmpty) continue;
-
       final parts = trimmedLine.split(',');
       if (parts.length < 2) continue;
+      final driverId = parts[0].trim();
+      if (driverId.isEmpty) continue;
+      final remark = parts.sublist(1).join(',').trim();
+      validEntries.add([driverId, remark]);
+    }
+    validEntries.sort((a, b) => a[0].compareTo(b[0]));
+    return validEntries.map((e) => '${e[0]},${e[1]}').join('\n');
+  }
 
+  Map<String, String> _parseCsvToMap(String csvText) {
+    final remarksMap = <String, String>{};
+    final lines = csvText.split('\n');
+    for (final line in lines) {
+      final trimmedLine = line.trim();
+      if (trimmedLine.isEmpty) continue;
+      final parts = trimmedLine.split(',');
+      if (parts.length < 2) continue;
       final driverId = parts[0].trim();
       final remark = parts.sublist(1).join(',').trim();
-
       if (driverId.isNotEmpty) {
         remarksMap[driverId] = remark;
       }
@@ -123,25 +100,68 @@ class _SettingsPageState extends State<SettingsPage> {
     return remarksMap;
   }
 
+  void _showForceRestartDialog(String newCityName) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return PopScope(
+          canPop: false,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Text('需要重新啟動'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('城市已切換為「$newCityName」。'),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '為確保所有資料正確載入，請重新整理網頁。',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              actions: const [],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Consumer 仍然用於處理主題變更，這部分邏輯不變
     return Consumer<ThemeChangeNotifier>(
       builder: (context, notifier, child) {
         final theme = Theme.of(context);
+        // 獲取當前城市名稱用於顯示
+        final currentCityName = Static.availableCities
+            .firstWhere((c) => c.code == _currentCityForRemarks,
+                orElse: () => Static.availableCities.first)
+            .name;
 
         return ListView(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           children: [
-            // 主題與色系區塊 (保持不變)
+            // 主題與色系區塊
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ExpansionTile(
                 title: const Text('主題與色系'),
+                subtitle: Text('當前設定：${notifier.theme.uiName}'),
                 leading: const Icon(Icons.display_settings),
                 shape: Border.all(color: Colors.transparent),
                 children: [
-                  SegmentedButton(
+                  const SizedBox(height: 12),
+                  SegmentedButton<AppTheme>(
                     segments: AppTheme.values
                         .map((e) => ButtonSegment(
                             value: e, label: Text(e.uiName), icon: e.icon))
@@ -165,19 +185,60 @@ class _SettingsPageState extends State<SettingsPage> {
                     onTap: () {
                       _showColorPickerDialog(context, notifier);
                     },
-                  )
+                  ),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
 
-            // 【新增】駕駛員備註編輯區塊
+            // 城市選擇區塊
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ExpansionTile(
+                title: const Text('當前城市'),
+                subtitle: Text(currentCityName),
+                // 顯示當前選擇的城市名稱
+                leading: const Icon(Icons.location_city),
+                shape: Border.all(color: Colors.transparent),
+                children: [
+                  const SizedBox(height: 12),
+                  SegmentedButton<String>(
+                    segments: Static.availableCities.map((city) {
+                      return ButtonSegment<String>(
+                        value: city.code,
+                        label: Text(city.name),
+                      );
+                    }).toList(),
+                    selected: {_currentCityForRemarks},
+                    onSelectionChanged: (Set<String> newSelection) {
+                      final newValue = newSelection.first;
+                      if (newValue != _currentCityForRemarks) {
+                        setState(() {
+                          Static.localStorage.city = newValue;
+                          _currentCityForRemarks = newValue;
+                        });
+
+                        final newCityName = Static.availableCities
+                            .firstWhere((c) => c.code == newValue)
+                            .name;
+                        _showForceRestartDialog(newCityName);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+
+            // 駕駛員備註區塊
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ExpansionTile(
                 title: const Text('駕駛員備註'),
+                subtitle: Text('正在編輯 $currentCityName 的備註'),
+                // 標題顯示當前城市
                 leading: const Icon(Icons.edit_note),
                 initiallyExpanded: false,
-                // 默認不展開
                 shape: Border.all(color: Colors.transparent),
                 children: [
                   const SizedBox(height: 12),
@@ -185,7 +246,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: TextField(
                       controller: _remarksController,
-                      maxLines: 10, // 允許多行輸入
+                      maxLines: 10,
                       minLines: 5,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
@@ -223,7 +284,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // 顏色選擇對話框邏輯 (保持不變)
   void _showColorPickerDialog(
       BuildContext context, ThemeChangeNotifier notifier) {
     Color pickerColor = Theme.of(context).colorScheme.primary;

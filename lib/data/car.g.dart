@@ -8,7 +8,8 @@ part of 'car.dart';
 
 Car _$CarFromJson(Map<String, dynamic> json) => Car(
       plate: json['plate'] as String,
-      type: $enumDecode(_$TypeEnumMap, json['type']),
+      type:
+          $enumDecode(_$TypeEnumMap, json['type'], unknownValue: Type.unknown),
     );
 
 Map<String, dynamic> _$CarToJson(Car instance) => <String, dynamic>{
@@ -17,8 +18,17 @@ Map<String, dynamic> _$CarToJson(Car instance) => <String, dynamic>{
     };
 
 const _$TypeEnumMap = {
+  Type.NO_S: 'no_s',
   Type.CITY_S: 'city_s',
   Type.EV: 'ev',
   Type.LFV: 'lfv',
-  Type.NO_S: 'no_s',
+  Type.WIFI_LFV: 'wifilfv',
+  Type.LFV_M_L_BUS: 'lfvmlbus',
+  Type.LFV_EV_BUS: 'lfvevbus',
+  Type.GEN_M_BUS: 'genmbus',
+  Type.GEN_L_BUS: 'genlbus',
+  Type.GEN_M_L_BUS: 'genmlbus',
+  Type.DRTS: 'DRTS',
+  Type.KLRT: 'KLRT',
+  Type.unknown: 'unknown',
 };
