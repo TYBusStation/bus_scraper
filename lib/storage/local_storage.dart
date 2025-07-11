@@ -44,7 +44,8 @@ class LocalStorage {
   static const String defaultCity = 'taoyuan';
 
   String get city {
-    return StorageHelper.get<String>('selected_city', defaultCity);
+    // return StorageHelper.get<String>('selected_city', defaultCity);
+    return defaultCity;
   }
 
   set city(String value) {
