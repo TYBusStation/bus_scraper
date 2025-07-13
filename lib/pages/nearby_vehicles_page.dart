@@ -464,6 +464,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               tileProvider: CancellableNetworkTileProvider(),
+              userAgentPackageName: "me.myster.bus_scraper",
             ),
             Opacity(
               opacity: _satelliteOpacity,
@@ -471,6 +472,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                 urlTemplate:
                     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
                 tileProvider: CancellableNetworkTileProvider(),
+                userAgentPackageName: "me.myster.bus_scraper",
               ),
             ),
             CircleLayer(
