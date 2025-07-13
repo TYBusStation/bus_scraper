@@ -4,7 +4,7 @@ const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
 const RESOURCES = {"assets/AssetManifest.bin": "be9375653a84ff4dd36e8704e604f346",
-"assets/assets/versions.json": "faefde31770f4437950e248e6a8d41ab",
+"assets/assets/versions.json": "21868fc8d729abf93b1049e16ce866ef",
 "assets/shaders/ink_sparkle.frag": "ecc85a2e95f5e9f53123dcaf8cb9b6ce",
 "assets/FontManifest.json": "f9364a0a4c41e752b0f31aba245f9d16",
 "assets/AssetManifest.json": "9f8d66695cbe5a8e3500177c93eede32",
@@ -18,9 +18,9 @@ const RESOURCES = {"assets/AssetManifest.bin": "be9375653a84ff4dd36e8704e604f346
 "assets/packages/font_awesome_flutter/lib/fonts/fa-solid-900.ttf": "a2eb084b706ab40c90610942d98886ec",
 "assets/packages/font_awesome_flutter/lib/fonts/fa-regular-400.ttf": "3ca5dc7621921b901d513cc1ce23788c",
 "assets/packages/font_awesome_flutter/lib/fonts/fa-brands-400.ttf": "d67ace504ccc3d1357387a082b16ed71",
-"version.json": "8c090d87db30fb7c29aed3444024a5c3",
+"version.json": "56ca8e2ecc6924612ce8e397fe1cd650",
 "manifest.json": "80b4378b70eceb7fd9465f2ef527afd4",
-"flutter_bootstrap.js": "cebbcd0b90ff57e0aa15a6d1b7bafeff",
+"flutter_bootstrap.js": "516004fa65beac8434a8b0b335af873a",
 "canvaskit/skwasm.wasm": "39dd80367a4e71582d234948adc521c0",
 "canvaskit/canvaskit.wasm": "7a3f4ae7d65fc1de6a6e7ddd3224bc93",
 "canvaskit/skwasm.js.symbols": "e72c79950c8a8483d826a7f0560573a1",
