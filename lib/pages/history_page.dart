@@ -113,7 +113,7 @@ class _HistoryPageState extends State<HistoryPage> {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
-      firstDate: DateTime(2020),
+      firstDate: DateTime(2025, 6, 8),
       lastDate: DateTime.now().add(const Duration(days: 1)),
       helpText: isStartTime ? '選擇開始日期' : '選擇結束日期',
     );

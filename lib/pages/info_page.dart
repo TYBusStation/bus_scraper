@@ -13,11 +13,12 @@ class InfoPage extends StatelessWidget {
     // 獲取按鈕的位置，用於 iPad 上的分享彈出視窗
     final box = context.findRenderObject() as RenderBox?;
 
-    Share.share(
-      'https://myster7494.github.io/bus_scraper/', // 要分享的內容 (網址)
-      subject: '分享一個好用的公車動態網站！', // 分享的主題 (主要用於 Email)
+    SharePlus.instance.share(ShareParams(
+      uri: Uri.parse('https://myster7494.github.io/bus_scraper/'),
+      subject: '桃園公車動態資訊監測程式 (Bus Scraper)',
+      text: '桃園公車動態資訊監測程式 (Bus Scraper)',
       sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
-    );
+    ));
   }
 
   @override
@@ -104,7 +105,7 @@ class InfoPage extends StatelessWidget {
 
                 const SizedBox(height: 30),
                 Text(
-                  "資料皆為爬蟲爬取\n並儲存於自架伺服器\n\n歡迎分享此網站",
+                  "資料皆為爬蟲爬取\n並儲存於自架伺服器\n最早資料時間為 2025-06-08\n\n歡迎分享此網站給有興趣的人",
                   style:
                       themeData.textTheme.headlineSmall?.copyWith(fontSize: 20),
                   textAlign: TextAlign.center,

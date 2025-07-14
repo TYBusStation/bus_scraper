@@ -6,18 +6,16 @@ import 'package:latlong2/latlong.dart';
 
 import '../data/bus_point.dart';
 import '../pages/history_page.dart';
-// import '../utils/map_data_processor.dart'; // 不再需要
 import '../widgets/base_map_view.dart';
 import '../widgets/point_marker.dart';
-
-// 不再需要 _SegmentGroup
-// class _SegmentGroup { ... }
 
 /// 一個簡單的顏色循環器，以確保所有線條顏色連續且獨立。
 class _ColorCycler {
   int _index = 0;
+
   Color get nextColor {
-    final color = BaseMapView.segmentColors[_index % BaseMapView.segmentColors.length];
+    final color =
+        BaseMapView.segmentColors[_index % BaseMapView.segmentColors.length];
     _index++;
     return color;
   }
@@ -84,42 +82,64 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
     }
 
     // --- [MODIFICATION START] ---
-    // 簡化邏輯：每個 segment 都是一個獨立的視覺單元
-
+    // 邏輯調整：
+    // - 遍歷所有 segment，為每個 segment 生成彩色線條和軌跡點。
+    // - 根據 isFiltered 狀態，決定如何添加起/終點旗幟。
+    // - 如果未篩選，則在 segment 之間添加實線連接，形成連續軌跡。
     if (widget.segments.isNotEmpty) {
-      // --- 步驟 2: 遍歷所有 segment，生成線條、顏色和所有標記 ---
       for (int i = 0; i < widget.segments.length; i++) {
         final segment = widget.segments[i];
         if (segment.points.isEmpty) continue;
 
         final segmentColor = _colorCycler.nextColor;
 
-        // 創建線條
+        // 1. 為當前軌跡段創建彩色的 Polyline
         allPolylines.add(Polyline(
           points: segment.points.map((p) => LatLng(p.lat, p.lon)).toList(),
           color: segmentColor,
           strokeWidth: 4,
         ));
 
-        // 創建小圓點軌跡標記
+        // 2. 為當前軌跡段的所有點創建彩色的軌跡點標記 (小圓點)
         for (final point in segment.points) {
           allMarkers.add(_createTrackPointMarker(point, segmentColor));
         }
 
-        // --- 步驟 3: 根據篩選狀態添加旗幟標記 ---
+        // 3. 根據篩選狀態添加起/終點旗幟標記
         if (widget.isFiltered) {
-          // 已篩選：每個 segment 都有自己的起終點旗幟
-          allMarkers.add(_createStartEndMarker(segment.points.first, isStart: true));
-          allMarkers.add(_createStartEndMarker(segment.points.last, isStart: false));
+          // A. 已篩選：每個軌跡段都有自己的起點和終點旗幟
+          allMarkers
+              .add(_createStartEndMarker(segment.points.first, isStart: true));
+          allMarkers
+              .add(_createStartEndMarker(segment.points.last, isStart: false));
         } else {
-          // 未篩選：只為總行程的起點和終點添加旗幟
+          // B. 未篩選：只為整個行程的絕對起點和終點添加旗幟
           if (i == 0) {
-            // 這是第一個 segment，添加總起點
-            allMarkers.add(_createStartEndMarker(segment.points.first, isStart: true));
+            // 這是第一個軌跡段，添加總起點旗幟
+            allMarkers.add(
+                _createStartEndMarker(segment.points.first, isStart: true));
           }
           if (i == widget.segments.length - 1) {
-            // 這是最後一個 segment，添加總終點
-            allMarkers.add(_createStartEndMarker(segment.points.last, isStart: false));
+            // 這是最後一個軌跡段，添加總終點旗幟
+            allMarkers.add(
+                _createStartEndMarker(segment.points.last, isStart: false));
+          }
+
+          // C. 未篩選：在當前軌跡段和下一個軌跡段之間畫一條同色的實線，以形成連續視覺效果
+          if (i < widget.segments.length - 1) {
+            final nextSegment = widget.segments[i + 1];
+            if (nextSegment.points.isNotEmpty) {
+              final lastPoint = segment.points.last;
+              final nextPoint = nextSegment.points.first;
+              allPolylines.add(Polyline(
+                points: [
+                  LatLng(lastPoint.lat, lastPoint.lon),
+                  LatLng(nextPoint.lat, nextPoint.lon),
+                ],
+                color: segmentColor, // 使用當前軌跡段的顏色進行連接
+                strokeWidth: 4, // 保持與主軌跡線相同的寬度
+              ));
+            }
           }
         }
       }

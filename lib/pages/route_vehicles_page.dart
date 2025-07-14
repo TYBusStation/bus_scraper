@@ -33,8 +33,9 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: isStart ? _startDate : _endDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      firstDate: DateTime(2025, 6, 8),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+      helpText: isStart ? '選擇開始日期' : '選擇結束日期',
     );
 
     if (pickedDate != null) {

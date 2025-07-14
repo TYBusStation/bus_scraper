@@ -302,8 +302,9 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
     final newDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
-      firstDate: now.subtract(const Duration(days: 30)),
-      lastDate: now,
+      firstDate: DateTime(2025, 6, 8),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+      helpText: isStart ? '選擇開始日期' : '選擇結束日期',
     );
     if (newDate == null || !mounted) return;
     final newTime = await showTimePicker(
@@ -805,10 +806,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
     return button;
   }
 
-  // ... (所有剩餘的 _build... 輔助函式保持不變) ...
-  // ... (此處省略了 _buildFloatingMapControls, _buildMyLocationMarker, _buildPlateFilterChip, _showMultiSelectDialog, _buildInfoPanel, _buildInfoChip)
-  // ... (它們的程式碼與您之前的版本相同)
-
   Widget _buildFloatingMapControls(ThemeData theme) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -849,7 +846,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         FloatingActionButton.small(
           onPressed: _recenterMap,
           tooltip: '重新置中',
@@ -857,7 +854,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
           heroTag: 'recenter_btn_nearby',
           child: const Icon(Icons.center_focus_strong),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         FloatingActionButton.small(
           onPressed: _isLocating ? null : _locateMe,
           tooltip: '定位我的位置',
