@@ -4,6 +4,7 @@ import 'package:bus_scraper/storage/local_storage.dart';
 import 'package:bus_scraper/storage/storage.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
+import 'package:random_user_agents/random_user_agents.dart';
 
 import 'data/bus_route.dart';
 import 'data/car.dart';
@@ -112,7 +113,14 @@ class Static {
     connectTimeout: const Duration(seconds: 15),
     sendTimeout: const Duration(seconds: 15),
     receiveTimeout: const Duration(seconds: 15),
-    headers: {"Content-Type": "application/json"},
+    headers: {
+      'User-Agent': RandomUserAgents.random(),
+      'Content-Type': 'application/json',
+      'Accept':
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
+    },
   ));
 
   // --- Local Storage ---
