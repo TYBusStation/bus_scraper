@@ -41,6 +41,7 @@ class BaseMapView extends StatefulWidget {
     Color(0xFF673AB7),
     Color(0xFF455A64),
   ];
+  static List<Color> segmentColorsReverse = segmentColors.reversed.toList();
   static const double defaultZoom = 17;
 
   final String appBarTitle;
@@ -282,8 +283,8 @@ class BaseMapViewState extends State<BaseMapView> {
       // Logic changed to assign colors only for visible paths to ensure
       // better color distribution and prevent premature color repetition.
       if (selection.go && detail.goPath.isNotEmpty) {
-        final color = BaseMapView
-            .segmentColors[colorIndex % BaseMapView.segmentColors.length];
+        final color = BaseMapView.segmentColorsReverse[
+            colorIndex % BaseMapView.segmentColorsReverse.length];
         colorIndex++; // Consume a color only when a polyline is added
         newPolylines.add(Polyline(
             points: detail.goPath,
@@ -295,8 +296,8 @@ class BaseMapViewState extends State<BaseMapView> {
         }
       }
       if (selection.back && detail.backPath.isNotEmpty) {
-        final color = BaseMapView
-            .segmentColors[colorIndex % BaseMapView.segmentColors.length];
+        final color = BaseMapView.segmentColorsReverse[
+            colorIndex % BaseMapView.segmentColorsReverse.length];
         colorIndex++; // Consume a color only when a polyline is added
         newPolylines.add(Polyline(
             points: detail.backPath,
