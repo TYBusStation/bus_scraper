@@ -20,7 +20,7 @@ const RESOURCES = {"assets/AssetManifest.bin": "be9375653a84ff4dd36e8704e604f346
 "assets/packages/font_awesome_flutter/lib/fonts/fa-brands-400.ttf": "d67ace504ccc3d1357387a082b16ed71",
 "version.json": "14348ddb48efb1fd8c91c2682ce14611",
 "manifest.json": "80b4378b70eceb7fd9465f2ef527afd4",
-"flutter_bootstrap.js": "a3c541d6bf54a99886d34dc0890c3a36",
+"flutter_bootstrap.js": "b9ae01b65532d94bf0dbad1d1b59b286",
 "canvaskit/skwasm.wasm": "39dd80367a4e71582d234948adc521c0",
 "canvaskit/canvaskit.wasm": "7a3f4ae7d65fc1de6a6e7ddd3224bc93",
 "canvaskit/skwasm.js.symbols": "e72c79950c8a8483d826a7f0560573a1",
@@ -38,7 +38,7 @@ const RESOURCES = {"assets/AssetManifest.bin": "be9375653a84ff4dd36e8704e604f346
 "icons/Icon-192.png": "fcb65ac535a945ab6e03deccf0a3ac95",
 "icons/Icon-maskable-512.png": "736fb164147cbac5806511778f44d66a",
 "icons/Icon-maskable-192.png": "fcb65ac535a945ab6e03deccf0a3ac95",
-"main.dart.js": "4084cc63129f275568c37f0540a2f03b"};
+"main.dart.js": "46847434dc904e7e0e70d493dd5acb35"};
 // The application shell files that are downloaded before a service worker can
 // start.
 const CORE = ["main.dart.js",
