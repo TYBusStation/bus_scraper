@@ -12,9 +12,13 @@ class Car {
   @JsonKey(name: "type", unknownEnumValue: Type.unknown)
   final Type type;
 
+  @JsonKey(name: "last_seen")
+  final DateTime lastSeen;
+
   Car({
     required this.plate,
     required this.type,
+    required this.lastSeen,
   });
 
   factory Car.fromJson(Map<String, dynamic> json) => _$CarFromJson(json);

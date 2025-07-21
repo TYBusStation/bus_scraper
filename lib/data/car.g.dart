@@ -10,11 +10,13 @@ Car _$CarFromJson(Map<String, dynamic> json) => Car(
       plate: json['plate'] as String,
       type:
           $enumDecode(_$TypeEnumMap, json['type'], unknownValue: Type.unknown),
+      lastSeen: DateTime.parse(json['last_seen'] as String),
     );
 
 Map<String, dynamic> _$CarToJson(Car instance) => <String, dynamic>{
       'plate': instance.plate,
       'type': _$TypeEnumMap[instance.type]!,
+      'last_seen': instance.lastSeen.toIso8601String(),
     };
 
 const _$TypeEnumMap = {

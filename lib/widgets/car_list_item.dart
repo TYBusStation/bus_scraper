@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../data/car.dart';
 import '../pages/history_page.dart';
+import '../static.dart';
 import 'favorite_button.dart';
 import 'favorite_provider.dart';
 
@@ -82,8 +83,13 @@ class CarListItem extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          car.type.chinese,
+                          "${car.type.chinese} (${car.type.name})",
                           style: textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "最後上線：${Static.displayDateFormat.format(car.lastSeen)}",
+                          style: textTheme.bodySmall,
                         ),
                       ],
                     ),
