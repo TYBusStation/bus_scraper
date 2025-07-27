@@ -15,7 +15,7 @@ class InfoPage extends StatelessWidget {
 
     SharePlus.instance.share(ShareParams(
       uri: Uri.parse('https://myster7494.github.io/bus_scraper/'),
-      subject: '桃園公車動態資訊監測程式 (Bus Scraper)',
+      subject: '桃園公車站',
       sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
     ));
   }
@@ -104,7 +104,7 @@ class InfoPage extends StatelessWidget {
 
                 const SizedBox(height: 30),
                 Text(
-                  "資料皆為爬蟲爬取\n並儲存於自架伺服器\n最早資料時間為 2025-06-08\n\n歡迎分享此網站給有興趣的人",
+                  "主要為桃園市公車資料\n及部分行經桃園之非桃園公車\n最早資料時間為 2025-06-08\n\n歡迎分享此網站給有興趣的人",
                   style:
                       themeData.textTheme.headlineSmall?.copyWith(fontSize: 20),
                   textAlign: TextAlign.center,

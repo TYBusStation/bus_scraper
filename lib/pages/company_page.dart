@@ -1,10 +1,65 @@
-import 'package:collection/collection.dart'; // 用於 deepEq (深度相等比較)
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // 用於剪貼簿功能
+import 'package:flutter/services.dart';
 
-import '../data/company.dart'; // 公司資料模型 (假設仍然需要用於公司選擇)
-import '../static.dart'; // 靜態資源，例如 API URL 和 dio 實例
-import '../widgets/theme_provider.dart'; // 主題提供者
+import '../data/company.dart';
+import '../static.dart';
+import '../widgets/theme_provider.dart';
+
+// --- 通用的彈出式選擇對話框 (已移除搜尋框) ---
+class SelectionDialog<T> extends StatelessWidget {
+  final String title;
+  final List<T> items;
+  final T? initialValue;
+  final String Function(T item) itemBuilder;
+
+  const SelectionDialog({
+    super.key,
+    required this.title,
+    required this.items,
+    this.initialValue,
+    required this.itemBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final themeData = Theme.of(context);
+    return AlertDialog(
+      title: Text(title, style: themeData.textTheme.titleLarge),
+      contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 16),
+      content: SizedBox(
+        width: double.maxFinite,
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: items.isEmpty
+            ? Center(
+                child: Text('沒有可選擇的項目', style: themeData.textTheme.bodySmall))
+            : ListView.builder(
+                shrinkWrap: true,
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return ListTile(
+                    title: Text(itemBuilder(item),
+                        overflow: TextOverflow.ellipsis),
+                    selected: item == initialValue,
+                    selectedTileColor:
+                        themeData.colorScheme.primary.withOpacity(0.1),
+                    onTap: () {
+                      Navigator.of(context).pop(item);
+                    },
+                  );
+                },
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(), // 返回 null
+          child: const Text('取消'),
+        ),
+      ],
+    );
+  }
+}
 
 class CompanyPage extends StatefulWidget {
   const CompanyPage({super.key});
@@ -18,15 +73,10 @@ class _CompanyPageState extends State<CompanyPage> {
   List<Company> _companies = [];
   Company? _selectedCompany;
 
-  // 資料類型選擇仍然保留，因為它可能影響 API 端點
-  // 但我們假設所有選定的資料類型最終都會返回 List<String> 格式的資料
-  final List<String> _dataTypes = [
-    'cars',
-    'drivers',
-  ]; // 示例：可增加實際的資料類型
+  final List<String> _dataTypes = ['cars', 'drivers'];
   final Map<String, String> _dataTypeDisplayNames = {
-    'cars': '車輛', // 更新顯示名稱以反映預期格式
-    'drivers': '駕駛員',
+    'cars': '車輛',
+    'drivers': '駕駛員'
   };
   String? _selectedDataType;
 
@@ -35,11 +85,10 @@ class _CompanyPageState extends State<CompanyPage> {
   String? _selectedTimestamp2;
 
   dynamic _fetchedData1;
-  dynamic _filteredData1; // 現在預期主要是 List<String>
+  dynamic _filteredData1;
   dynamic _fetchedData2;
-  dynamic _filteredData2; // 現在預期主要是 List<String>
+  dynamic _filteredData2;
 
-  // 比較結果將只包含 'added' 和 'removed'
   Map<String, List<Map<String, dynamic>>>? _comparisonResult;
 
   bool _isLoadingCompanies = false;
@@ -54,14 +103,12 @@ class _CompanyPageState extends State<CompanyPage> {
   final Map<String, dynamic> _cache = <String, dynamic>{};
   static const String _companiesCacheKey = 'companies_list';
 
-  String _getTimestampsCacheKey(String companyCode, String dataType) {
-    return 'timestamps_${companyCode}_$dataType';
-  }
+  String _getTimestampsCacheKey(String companyCode, String dataType) =>
+      'timestamps_${companyCode}_$dataType';
 
   String _getDataCacheKey(
-      String companyCode, String dataType, String timestamp) {
-    return 'data_${companyCode}_${dataType}_$timestamp';
-  }
+          String companyCode, String dataType, String timestamp) =>
+      'data_${companyCode}_${dataType}_$timestamp';
 
   @override
   void initState() {
@@ -292,7 +339,6 @@ class _CompanyPageState extends State<CompanyPage> {
           '${Static.apiBaseUrl}/company_data/file/${_selectedCompany!.code}/$_selectedDataType/$selectedTimestamp';
       final response = await Static.dio.get(url);
       if (response.statusCode == 200) {
-        // 假設 API 對於這種類型總是返回 List<dynamic>，其中元素是 String
         if (response.data is List) {
           _cache[cacheKey] = response.data;
           Static.log(
@@ -340,12 +386,10 @@ class _CompanyPageState extends State<CompanyPage> {
     if (query.isEmpty) return fetchedData;
 
     if (fetchedData is List) {
-      // 主要處理 List<String>
       return fetchedData.where((item) {
         if (item is String) {
           return item.toLowerCase().contains(query);
         }
-        // 跳過非字串元素
         return false;
       }).toList();
     }
@@ -358,7 +402,6 @@ class _CompanyPageState extends State<CompanyPage> {
       return;
     }
 
-    // 主要處理兩個 List<String> 的比較
     if (_filteredData1 is List &&
         (_filteredData1.isEmpty || _filteredData1.first is String) &&
         _filteredData2 is List &&
@@ -366,59 +409,43 @@ class _CompanyPageState extends State<CompanyPage> {
       final List<String> list1 = List<String>.from(_filteredData1 as List);
       final List<String> list2 = List<String>.from(_filteredData2 as List);
 
-      // --- 修改開始: 使用頻率計數(Map)來處理重複項目 ---
-
-      // 1. 建立兩個列表的頻率計數 Map
-      final Map<String, int> counts1 = {};
+      final counts1 = <String, int>{};
       for (final item in list1) {
         counts1[item] = (counts1[item] ?? 0) + 1;
       }
 
-      final Map<String, int> counts2 = {};
+      final counts2 = <String, int>{};
       for (final item in list2) {
         counts2[item] = (counts2[item] ?? 0) + 1;
       }
 
-      final List<Map<String, dynamic>> added = [];
-      final List<Map<String, dynamic>> removed = [];
-
-      // 2. 獲取所有唯一的鍵（項目）以進行比較
+      final added = <Map<String, dynamic>>[];
+      final removed = <Map<String, dynamic>>[];
       final allKeys = (counts1.keys.toSet())..addAll(counts2.keys);
 
-      // 3. 遍歷所有鍵，比較其計數
       for (final key in allKeys) {
         final count1 = counts1[key] ?? 0;
         final count2 = counts2[key] ?? 0;
         final diff = count2 - count1;
 
         if (diff > 0) {
-          // 資料集 2 比資料集 1 多了 'diff' 個 'key'
-          for (int i = 0; i < diff; i++) {
-            added.add({'value': key});
-          }
+          added.add({'value': key, 'count': diff});
         } else if (diff < 0) {
-          // 資料集 1 比資料集 2 多了 'abs(diff)' 個 'key'
-          for (int i = 0; i < -diff; i++) {
-            removed.add({'value': key});
-          }
+          removed.add({'value': key, 'count': -diff});
         }
-        // 如果 diff == 0，則數量相同，不處理
       }
-
-      // --- 修改結束 ---
 
       if (mounted) {
         setState(() {
           _comparisonResult = {
             'added': added,
             'removed': removed,
-            'modified': [], // 保持此鍵以確保UI相容性
+            'modified': [],
           };
           _error = null;
         });
       }
     } else {
-      // 如果資料不是預期的 List<String> 格式，則進行通用比較或顯示錯誤 (此部分邏輯不變)
       if (!const DeepCollectionEquality()
           .equals(_filteredData1, _filteredData2)) {
         if (mounted) {
@@ -427,7 +454,9 @@ class _CompanyPageState extends State<CompanyPage> {
               'general_diff': [
                 {'message': '資料內容不同，或資料格式非預期的純字串列表。'}
               ],
-              'added': [], 'removed': [], 'modified': [], // 確保UI有預期鍵
+              'added': [],
+              'removed': [],
+              'modified': [],
             };
           });
         }
@@ -441,9 +470,6 @@ class _CompanyPageState extends State<CompanyPage> {
     }
   }
 
-  // --- 新增：複製功能相關方法 ---
-
-  /// 產生用於剪貼簿的比較結果純文字
   String _generateComparisonTextForClipboard() {
     if (_comparisonResult == null) {
       return "沒有可複製的比較結果。";
@@ -470,36 +496,37 @@ class _CompanyPageState extends State<CompanyPage> {
       buffer.writeln("兩個資料集之間沒有差異。");
     } else {
       if (added.isNotEmpty) {
-        buffer.writeln("\n[新增的項目 (僅存在於資料集 2)]");
-        for (var item in added) {
-          buffer.writeln("- ${item['value']}");
-        }
+        final totalAdded = added.fold<int>(
+            0, (sum, item) => sum + (item['count'] as int? ?? 0));
+        buffer.writeln("\n[新增的項目 (共 $totalAdded 筆)]");
+        final addedItemsText =
+            added.map((item) => item['value'] as String).join(', ');
+        buffer.writeln(addedItemsText);
       }
       if (removed.isNotEmpty) {
-        buffer.writeln("\n[移除的項目 (僅存在於資料集 1)]");
-        for (var item in removed) {
-          buffer.writeln("- ${item['value']}");
-        }
+        final totalRemoved = removed.fold<int>(
+            0, (sum, item) => sum + (item['count'] as int? ?? 0));
+        buffer.writeln("\n[移除的項目 (共 $totalRemoved 筆)]");
+        final removedItemsText =
+            removed.map((item) => item['value'] as String).join(', ');
+        buffer.writeln(removedItemsText);
       }
     }
     return buffer.toString();
   }
 
-  /// 執行複製比較結果操作並顯示提示
   Future<void> _copyComparisonResult() async {
-    // --- 修改 ---: 增加一個檢查，確保有東西可以複製
+    if (!mounted) return;
     if (_comparisonResult == null ||
         (_comparisonResult!['added']!.isEmpty &&
             _comparisonResult!['removed']!.isEmpty)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('沒有可複製的差異內容。'),
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('沒有可複製的差異內容。'),
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
       return;
     }
     final comparisonText = _generateComparisonTextForClipboard();
@@ -516,45 +543,43 @@ class _CompanyPageState extends State<CompanyPage> {
     }
   }
 
-  // --- 新增 ---: 複製單一資料集連結的方法
   Future<void> _copyDataLink(String? timestamp, String panelName) async {
-    // 檢查是否所有必要資訊都存在
     if (timestamp == null ||
         _selectedCompany == null ||
         _selectedDataType == null) {
       return;
     }
-    // 確保 widget 仍然掛載在樹上
     if (!mounted) return;
 
-    // 構建 URL
     final url =
         '${Static.apiBaseUrl}/company_data/file/${_selectedCompany!.code}/$_selectedDataType/$timestamp';
 
-    // 複製到剪貼簿
     await Clipboard.setData(ClipboardData(text: url));
 
-    // 顯示提示
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$panelName 的資料連結已複製！'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$panelName 的資料連結已複製！'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   // --- Widget 建構方法 ---
 
-  Widget _buildDropdown<T>({
+  Widget _buildSelectionButton<T>({
+    required BuildContext context,
     required ThemeData themeData,
     required String hintText,
+    required String dialogTitle,
     required T? value,
     required List<T> items,
     required ValueChanged<T?> onChanged,
     required bool isLoading,
     String? loadingText,
-    Map<String, String>? displayNames,
+    required String Function(T item) itemToString,
     bool enabled = true,
   }) {
     if (isLoading) {
@@ -567,9 +592,7 @@ class _CompanyPageState extends State<CompanyPage> {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: themeData.colorScheme.primary,
-                  )),
+                      strokeWidth: 2, color: themeData.colorScheme.primary)),
               const SizedBox(width: 8),
               Text(loadingText ?? "載入中...",
                   style: themeData.textTheme.bodySmall),
@@ -578,48 +601,66 @@ class _CompanyPageState extends State<CompanyPage> {
         ),
       );
     }
+
+    final bool isEnabled = enabled && items.isNotEmpty;
+    final String currentText = value != null ? itemToString(value) : hintText;
+    final Color textColor = value != null
+        ? themeData.textTheme.bodyMedium!.color!
+        : themeData.hintColor;
+
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4.0),
-        child: DropdownButtonFormField<T>(
-          decoration: InputDecoration(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-            filled: !enabled,
-            fillColor: themeData.disabledColor.withAlpha((0.1 * 255).round()),
+        child: OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            side: BorderSide(
+                color: themeData.colorScheme.outline.withOpacity(0.5)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            backgroundColor: !isEnabled
+                ? themeData.disabledColor.withAlpha((0.1 * 255).round())
+                : null,
           ),
-          isExpanded: true,
-          isDense: true,
-          hint: Text(hintText,
-              style: themeData.textTheme.bodyMedium
-                  ?.copyWith(color: themeData.hintColor)),
-          value: value,
-          items: items.isEmpty
-              ? []
-              : items.map((item) {
-                  String displayText = item.toString();
-                  if (item is Company) displayText = item.name;
-                  if (displayNames != null &&
-                      item is String &&
-                      displayNames.containsKey(item)) {
-                    displayText = displayNames[item]!;
-                  }
-                  return DropdownMenuItem<T>(
-                    value: item,
-                    child: Text(displayText,
-                        overflow: TextOverflow.ellipsis,
-                        style: themeData.textTheme.bodyMedium),
+          onPressed: !isEnabled
+              ? null
+              : () async {
+                  final selectedValue = await showDialog<T>(
+                    context: context,
+                    builder: (BuildContext context) => SelectionDialog<T>(
+                      title: dialogTitle,
+                      items: items,
+                      initialValue: value,
+                      itemBuilder: itemToString,
+                    ),
                   );
-                }).toList(),
-          onChanged: enabled && items.isNotEmpty ? onChanged : null,
-          style: themeData.textTheme.bodyMedium,
+                  // 無論使用者是選擇了新項目還是點擊取消 (返回 null)，都觸發 onChanged
+                  // 這樣可以正確地更新或清除選擇
+                  onChanged(selectedValue);
+                },
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  currentText,
+                  style: themeData.textTheme.bodyMedium
+                      ?.copyWith(color: textColor),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(
+                Icons.arrow_drop_down,
+                color: isEnabled
+                    ? themeData.colorScheme.onSurfaceVariant
+                    : themeData.disabledColor,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // 最終優化版的 _buildDataPanel 方法
   Widget _buildDataPanel({
     required ThemeData themeData,
     required int panelIndex,
@@ -629,16 +670,12 @@ class _CompanyPageState extends State<CompanyPage> {
   }) {
     final String? selectedTimestamp =
         (panelIndex == 1) ? _selectedTimestamp1 : _selectedTimestamp2;
-    // 我們將標題和時間戳分開處理，以便更好地控制佈局
     final String titleText = "資料集 $panelIndex:";
     final String timestampText = selectedTimestamp ?? '未選';
-
-    // --- 新增開始: 計算資料筆數 ---
     String countText = '';
     if (data is List) {
       countText = ' (筆數: ${data.length})';
     }
-    // --- 新增結束 ---
 
     String dataTypeDisplayName = selectedDataType != null
         ? (_dataTypeDisplayNames[selectedDataType] ?? selectedDataType)
@@ -704,7 +741,6 @@ class _CompanyPageState extends State<CompanyPage> {
                     style: themeData.textTheme.titleSmall
                         ?.copyWith(fontWeight: FontWeight.w600),
                     children: [
-                      // --- 修改: 將筆數加到標題中 ---
                       TextSpan(text: '$titleText$countText\n'),
                       TextSpan(
                         text: timestampText,
@@ -741,7 +777,6 @@ class _CompanyPageState extends State<CompanyPage> {
     );
   }
 
-  // 簡化 _buildListDisplay 以處理 List<String>
   Widget _buildListDisplay(ThemeData themeData, List<dynamic> dataList) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
@@ -759,16 +794,13 @@ class _CompanyPageState extends State<CompanyPage> {
             ),
           );
         }
-        // 跳過非字串元素
         return const SizedBox.shrink();
       },
     );
   }
 
-  // 簡化 _buildDiffItemCard 以顯示單個字串
   Widget _buildDiffItemCard(
       ThemeData themeData, Map<String, dynamic> item, String type) {
-    // item is expected to be {'value': 'the-string-value'}
     final Color cardColor;
     final Color iconColor;
     final Color textColor;
@@ -782,14 +814,15 @@ class _CompanyPageState extends State<CompanyPage> {
       textColor = colorScheme.onTertiaryContainer;
       icon = Icons.add_circle_outline;
     } else {
-      // '移除'
       cardColor = colorScheme.errorContainer.withAlpha(150);
       iconColor = colorScheme.error;
       textColor = colorScheme.onErrorContainer;
       icon = Icons.remove_circle_outline;
     }
 
-    String title = item['value'] as String? ?? 'N/A';
+    final String title = item['value'] as String? ?? 'N/A';
+    final int count = item['count'] as int? ?? 1;
+    final String displayText = count > 1 ? '$title (數量: $count)' : title;
 
     return Card(
       elevation: 0.2,
@@ -802,11 +835,10 @@ class _CompanyPageState extends State<CompanyPage> {
             child: Icon(icon, color: iconColor, size: 18),
           ),
           Expanded(
-            // 新增 Expanded 以避免文字過長時溢出
             child: Text(
-              title,
+              displayText,
               style: themeData.textTheme.bodySmall?.copyWith(color: textColor),
-              overflow: TextOverflow.ellipsis, // 新增溢出處理
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -815,8 +847,7 @@ class _CompanyPageState extends State<CompanyPage> {
   }
 
   Widget _buildComparisonPanel(ThemeData themeData) {
-    String dataTypeDisplayName = "項目"; // 簡化顯示名稱
-    themeData.colorScheme.onSurface.withAlpha((0.5 * 255).round());
+    String dataTypeDisplayName = "項目";
     final colorScheme = themeData.colorScheme;
     final placeholderColor =
         themeData.colorScheme.onSurface.withAlpha((0.5 * 255).round());
@@ -853,7 +884,6 @@ class _CompanyPageState extends State<CompanyPage> {
                 ?.copyWith(color: placeholderColor)),
       ));
     } else if (_comparisonResult!['general_diff'] != null) {
-      // 通用差異仍然可以作為回退
       content = Center(
         child: Text(
           _comparisonResult!['general_diff']![0]['message'].toString(),
@@ -862,7 +892,6 @@ class _CompanyPageState extends State<CompanyPage> {
         ),
       );
     } else {
-      // 僅處理 added 和 removed
       final added = _comparisonResult!['added']!;
       final removed = _comparisonResult!['removed']!;
 
@@ -878,7 +907,9 @@ class _CompanyPageState extends State<CompanyPage> {
       } else {
         List<Widget> diffWidgets = [];
         if (added.isNotEmpty) {
-          diffWidgets.add(Text('新增的$dataTypeDisplayName (僅於資料集2):',
+          final totalAdded = added.fold<int>(
+              0, (sum, item) => sum + (item['count'] as int? ?? 0));
+          diffWidgets.add(Text('新增的$dataTypeDisplayName (共 $totalAdded 筆):',
               textAlign: TextAlign.center,
               style: themeData.textTheme.labelLarge
                   ?.copyWith(color: colorScheme.tertiary)));
@@ -888,8 +919,10 @@ class _CompanyPageState extends State<CompanyPage> {
           diffWidgets.add(const SizedBox(height: 4));
         }
         if (removed.isNotEmpty) {
+          final totalRemoved = removed.fold<int>(
+              0, (sum, item) => sum + (item['count'] as int? ?? 0));
           diffWidgets.add(
-            Text('移除的$dataTypeDisplayName (僅於資料集1):',
+            Text('移除的$dataTypeDisplayName (共 $totalRemoved 筆):',
                 textAlign: TextAlign.center,
                 style: themeData.textTheme.labelLarge
                     ?.copyWith(color: colorScheme.error)),
@@ -921,7 +954,6 @@ class _CompanyPageState extends State<CompanyPage> {
         final bool canSelectTimestamps =
             _selectedCompany != null && _selectedDataType != null;
         final colorScheme = themeData.colorScheme;
-        // --- 新增 ---: 判斷比較結果複製按鈕是否可用的邏輯
         final bool canCopyComparison = _comparisonResult != null &&
             (_comparisonResult!['added']!.isNotEmpty ||
                 _comparisonResult!['removed']!.isNotEmpty);
@@ -960,49 +992,61 @@ class _CompanyPageState extends State<CompanyPage> {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  _buildDropdown<Company>(
-                      themeData: themeData,
-                      hintText: '選擇公司',
-                      value: _selectedCompany,
-                      items: _companies,
-                      onChanged: _onCompanyChanged,
-                      isLoading: _isLoadingCompanies,
-                      loadingText: "載入公司..."),
+                  _buildSelectionButton<Company>(
+                    context: context,
+                    themeData: themeData,
+                    hintText: '選擇公司',
+                    dialogTitle: '選擇公司',
+                    value: _selectedCompany,
+                    items: _companies,
+                    onChanged: _onCompanyChanged,
+                    isLoading: _isLoadingCompanies,
+                    loadingText: "載入公司...",
+                    itemToString: (Company c) => c.name,
+                  ),
                   const SizedBox(width: 6),
-                  _buildDropdown<String>(
+                  _buildSelectionButton<String>(
+                    context: context,
                     themeData: themeData,
                     hintText: '選擇資料類型',
+                    dialogTitle: '選擇資料類型',
                     value: _selectedDataType,
                     items: _dataTypes,
                     onChanged: _onDataTypeChanged,
                     isLoading: false,
-                    displayNames: _dataTypeDisplayNames,
+                    itemToString: (String s) => _dataTypeDisplayNames[s] ?? s,
                   ),
                 ],
               ),
               const SizedBox(height: 6),
               Row(
                 children: [
-                  _buildDropdown<String>(
+                  _buildSelectionButton<String>(
+                    context: context,
                     themeData: themeData,
                     hintText: '資料集 1',
+                    dialogTitle: '選擇資料集 1',
                     value: _selectedTimestamp1,
                     items: _timestamps,
                     onChanged: (val) => _onTimestampChanged(val, 1),
                     isLoading: _isLoadingTimestamps,
                     loadingText: "載入資料集...",
                     enabled: canSelectTimestamps,
+                    itemToString: (String s) => s,
                   ),
                   const SizedBox(width: 6),
-                  _buildDropdown<String>(
+                  _buildSelectionButton<String>(
+                    context: context,
                     themeData: themeData,
                     hintText: '資料集 2',
+                    dialogTitle: '選擇資料集 2',
                     value: _selectedTimestamp2,
                     items: _timestamps,
                     onChanged: (val) => _onTimestampChanged(val, 2),
                     isLoading: _isLoadingTimestamps,
                     loadingText: "載入資料集...",
                     enabled: canSelectTimestamps,
+                    itemToString: (String s) => s,
                   ),
                 ],
               ),
@@ -1022,7 +1066,6 @@ class _CompanyPageState extends State<CompanyPage> {
                   children: [
                     Expanded(
                       flex: 1,
-                      // --- 修改 ---: 更新 _buildDataPanel 的呼叫方式
                       child: _buildDataPanel(
                         themeData: themeData,
                         panelIndex: 1,
@@ -1034,7 +1077,6 @@ class _CompanyPageState extends State<CompanyPage> {
                     const SizedBox(width: 6),
                     Expanded(
                       flex: 1,
-                      // --- 修改 ---: 更新 _buildDataPanel 的呼叫方式
                       child: _buildDataPanel(
                         themeData: themeData,
                         panelIndex: 2,
@@ -1068,7 +1110,6 @@ class _CompanyPageState extends State<CompanyPage> {
                                   icon: Icon(Icons.content_copy,
                                       size: 16, color: colorScheme.primary),
                                   tooltip: '複製比較結果',
-                                  // --- 修改 ---: 根據是否有結果來決定是否啟用按鈕
                                   onPressed: canCopyComparison
                                       ? _copyComparisonResult
                                       : null,
@@ -1077,13 +1118,10 @@ class _CompanyPageState extends State<CompanyPage> {
                             ),
                           ),
                           Divider(
-                            thickness: 1,
-                            height: 1,
-                            color: themeData.dividerColor,
-                          ),
-                          Expanded(
-                            child: _buildComparisonPanel(themeData),
-                          ),
+                              thickness: 1,
+                              height: 1,
+                              color: themeData.dividerColor),
+                          Expanded(child: _buildComparisonPanel(themeData)),
                         ],
                       ),
                     ),

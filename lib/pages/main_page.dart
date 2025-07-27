@@ -1,15 +1,16 @@
 import 'dart:convert';
+
 import 'package:bus_scraper/static.dart'; // 假設您的 Static 類在此
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:package_info_plus/package_info_plus.dart';
 
-import 'company_page.dart';
-import 'favorite_page.dart';
-import 'nearby_vehicles_page.dart';
 import 'cars_page.dart';
+import 'company_page.dart';
 import 'driver_plates_page.dart';
+import 'favorite_page.dart';
 import 'info_page.dart';
+import 'nearby_vehicles_page.dart';
 import 'route_page.dart';
 import 'settings_page.dart';
 
@@ -53,7 +54,7 @@ class _MainPageState extends State<MainPage> {
     NavigationDestination(
       icon: Icon(Icons.business_outlined),
       selectedIcon: Icon(Icons.business),
-      label: '公司',
+      label: '監理',
     ),
     NavigationDestination(
       icon: Icon(Icons.pin_drop_outlined),
@@ -88,7 +89,7 @@ class _MainPageState extends State<MainPage> {
       final decodedJson = jsonDecode(jsonString) as Map<String, dynamic>;
       setState(() {
         _updateNotes = decodedJson.map(
-              (key, value) => MapEntry(key, value.toString()),
+          (key, value) => MapEntry(key, value.toString()),
         );
       });
     } catch (e) {
@@ -108,7 +109,8 @@ class _MainPageState extends State<MainPage> {
     final currentVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
     final lastShownVersion = Static.localStorage.lastShownVersion;
 
-    if (currentVersion != lastShownVersion && _updateNotes!.containsKey(currentVersion)) {
+    if (currentVersion != lastShownVersion &&
+        _updateNotes!.containsKey(currentVersion)) {
       if (mounted) {
         _showUpdateDialog(
           context,
@@ -159,15 +161,15 @@ class _MainPageState extends State<MainPage> {
 
   String _getAppBarTitle(int index) {
     return switch (index) {
-      0 => "資訊",
+      0 => "桃園公車站",
       1 => "路線",
       2 => "車輛",
-      3 => "收藏",
+      3 => "收藏車輛",
       4 => "駕駛反查",
-      5 => "公司",
+      5 => "監理資料",
       6 => "附近車輛",
       7 => "設定",
-      _ => "BusScraper"
+      _ => "桃園公車站"
     };
   }
 
@@ -187,11 +189,11 @@ class _MainPageState extends State<MainPage> {
           bottomNavigationBar: isLandscape
               ? null
               : NavigationBar(
-            onDestinationSelected: (index) =>
-                setState(() => selectedIndex = index),
-            selectedIndex: selectedIndex,
-            destinations: destinations,
-          ),
+                  onDestinationSelected: (index) =>
+                      setState(() => selectedIndex = index),
+                  selectedIndex: selectedIndex,
+                  destinations: destinations,
+                ),
         );
       },
     );
