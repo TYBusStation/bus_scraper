@@ -1,34 +1,50 @@
+// lib/pages/driver_plates_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../widgets/driving_record_list.dart';
+import '../data/vehicle_history.dart';
+import '../static.dart';
+import '../widgets/car_list_item.dart';
 import '../widgets/empty_state_indicator.dart';
-import '../widgets/theme_provider.dart';
+import '../widgets/searchable_list.dart'; // 【核心修改】導入 SearchableList
 
 class DriverPlatesPage extends StatefulWidget {
-  const DriverPlatesPage({super.key});
+  final String? initialDriverId;
+  final DateTime? initialStartDate;
+  final DateTime? initialEndDate;
+
+  const DriverPlatesPage({
+    super.key,
+    this.initialDriverId,
+    this.initialStartDate,
+    this.initialEndDate,
+  });
 
   @override
   State<DriverPlatesPage> createState() => _DriverPlatesPageState();
 }
 
 class _DriverPlatesPageState extends State<DriverPlatesPage> {
-  final _driverIdController = TextEditingController();
-  DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
-  DateTime _endDate = DateTime.now();
+  late TextEditingController _driverIdController;
+  late DateTime _startDate;
+  late DateTime _endDate;
   final _displayDateFormat = DateFormat('yyyy/MM/dd');
 
   bool _hasSearched = false;
-  String _currentDriverId = '';
-
-  // 【新增】1. 用於顯示提示訊息的狀態變數
+  Future<List<PlateDrivingDates>>? _searchFuture;
   String? _promptMessage;
 
   @override
   void initState() {
     super.initState();
-    // 【新增】2. 初始化頁面時設定預設的提示訊息
-    _promptMessage = "請輸入駕駛員 ID 並選擇日期範圍\n然後點擊查詢按鈕\n(註：ID 前方若有 0 可能需去除)";
+    _driverIdController =
+        TextEditingController(text: widget.initialDriverId ?? '');
+    _startDate = widget.initialStartDate ??
+        DateTime.now().subtract(const Duration(days: 7));
+    _endDate = widget.initialEndDate ?? DateTime.now();
+
+    _promptMessage = "輸入駕駛員 ID 並選擇日期範圍後\n點擊查詢按鈕";
   }
 
   @override
@@ -43,7 +59,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
       initialDate: isStart ? _startDate : _endDate,
       firstDate: DateTime(2025, 6, 8),
       lastDate: DateTime.now().add(const Duration(days: 1)),
-      helpText: isStart ? '選擇開始日期' : '選擇結束日期',
     );
 
     if (pickedDate != null) {
@@ -55,9 +70,10 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
           _endDate = pickedDate;
           if (_endDate.isBefore(_startDate)) _startDate = _endDate;
         }
-        // 【修改】3. 日期變更後，隱藏舊結果並顯示提示
-        _hasSearched = false;
-        _promptMessage = "日期已更新，請重新點擊「查詢」。";
+        if (_hasSearched) {
+          _hasSearched = false;
+          _promptMessage = "日期已更新，請重新點擊「查詢」。";
+        }
       });
     }
   }
@@ -65,87 +81,76 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
   void _triggerSearch() {
     FocusScope.of(context).unfocus();
     if (_driverIdController.text.isEmpty) {
-      // 可以在此處增加一個提示，如果需要的話
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('請先輸入駕駛員 ID'),
-          behavior: SnackBarBehavior.floating,
-        ),
+        const SnackBar(content: Text('請先輸入駕駛員 ID')),
       );
       return;
     }
     setState(() {
       _hasSearched = true;
-      _currentDriverId = _driverIdController.text;
-      // 【修改】4. 查詢時清除提示訊息，以便顯示結果列表
       _promptMessage = null;
+      final finalEndDate =
+          DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
+      _searchFuture = Static.findDriverDrivingDates(
+        driverId: _driverIdController.text,
+        startDate: _startDate,
+        endDate: finalEndDate,
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return ThemeProvider(
-      builder: (BuildContext context, ThemeData themeData) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildInputCard(),
-            const SizedBox(height: 8),
-            Expanded(
-              // 【修改】5. 根據 _hasSearched 狀態決定顯示列表還是提示
-              child: _hasSearched
-                  ? DrivingRecordList(
-                      key: ValueKey('driver_$_currentDriverId'),
-                      queryType: QueryType.byDriver,
-                      queryValue: _currentDriverId,
-                      startDate: _startDate,
-                      endDate: _endDate,
-                      driverIdForListItem: _currentDriverId,
-                    )
-                  : _buildPromptArea(), // 顯示提示訊息的區域
-            ),
-          ],
-        ),
+    final body = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildInputCard(),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _hasSearched ? _buildResultsList() : _buildPromptArea(),
+          ),
+        ],
       ),
     );
+
+    if (widget.initialDriverId != null) {
+      return Scaffold(
+        appBar: AppBar(title: Text('${widget.initialDriverId} 的駕駛車輛')),
+        body: body,
+      );
+    } else {
+      return body;
+    }
   }
 
   Widget _buildInputCard() {
+    final isReadOnly = widget.initialDriverId != null;
+    final theme = Theme.of(context);
     return Card(
       elevation: 1,
       margin: const EdgeInsets.only(top: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-          width: 1,
-        ),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
               controller: _driverIdController,
-              // 【新增】6. 當文字變更時，如果已經有查詢結果，則提示使用者重新查詢
-              onChanged: (value) {
-                if (_hasSearched) {
-                  setState(() {
-                    _hasSearched = false;
-                    _promptMessage = "駕駛員 ID 已變更，請重新點擊「查詢」。";
-                  });
-                }
-              },
-              decoration: const InputDecoration(
+              readOnly: isReadOnly,
+              decoration: InputDecoration(
                 isDense: true,
                 labelText: "駕駛員 ID",
                 hintText: "如：120031",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person_search_outlined),
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.person_search_outlined),
+                filled: isReadOnly,
+                fillColor: isReadOnly
+                    ? theme.colorScheme.surfaceVariant.withOpacity(0.3)
+                    : null,
               ),
               keyboardType: TextInputType.text,
             ),
@@ -153,32 +158,25 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
             Row(
               children: [
                 Expanded(
-                  child: _buildDatePicker(
-                    label: "起始日期",
-                    value: _startDate,
-                    onPressed: () => _selectDate(context, true),
-                  ),
-                ),
+                    child: _buildDatePicker(
+                        label: "起始日期",
+                        value: _startDate,
+                        onPressed: () => _selectDate(context, true))),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _buildDatePicker(
-                    label: "結束日期",
-                    value: _endDate,
-                    onPressed: () => _selectDate(context, false),
-                  ),
-                ),
+                    child: _buildDatePicker(
+                        label: "結束日期",
+                        value: _endDate,
+                        onPressed: () => _selectDate(context, false))),
               ],
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _triggerSearch,
-              icon: const Icon(Icons.search_rounded, size: 20),
-              label: const Text("查詢"),
+              icon: const Icon(Icons.search_rounded),
+              label: const Text("查詢駕駛車輛"),
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                textStyle:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+                  minimumSize: const Size.fromHeight(48)),
             ),
           ],
         ),
@@ -186,14 +184,11 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     );
   }
 
-  Widget _buildDatePicker({
-    required String label,
-    required DateTime value,
-    required VoidCallback onPressed,
-  }) {
+  Widget _buildDatePicker(
+      {required String label,
+      required DateTime value,
+      required VoidCallback onPressed}) {
     final theme = Theme.of(context);
-    final displayText = _displayDateFormat.format(value);
-
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
@@ -214,7 +209,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
                   style: theme.textTheme.labelSmall,
                 ),
                 Text(
-                  displayText,
+                  DateFormat('yyyy/MM/dd').format(value),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -228,16 +223,70 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     );
   }
 
-  // 【修改】7. 將 _buildInitialMessage 更名為 _buildPromptArea 並使其動態化
   Widget _buildPromptArea() {
-    // 根據是否有提示訊息決定標題
     final title = _promptMessage?.contains("更新") ?? false ? "請重新查詢" : "開始查詢";
-
     return EmptyStateIndicator(
       icon: Icons.person_search_outlined,
       title: title,
-      // 直接使用 _promptMessage 狀態變數
       subtitle: _promptMessage ?? '',
+    );
+  }
+
+  // 【核心修改】使用 SearchableList 來顯示結果
+  Widget _buildResultsList() {
+    return FutureBuilder<List<PlateDrivingDates>>(
+      future: _searchFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return EmptyStateIndicator(
+              icon: Icons.error_outline_rounded,
+              title: "查詢失敗",
+              subtitle: snapshot.error.toString());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const EmptyStateIndicator(
+              icon: Icons.no_transfer_rounded,
+              title: "查無資料",
+              subtitle: "找不到該駕駛在此期間的任何駕駛記錄");
+        }
+
+        final records = snapshot.data!;
+        // 將結果列表包裹在 SearchableList 中
+        return SearchableList<PlateDrivingDates>(
+          allItems: records,
+          searchHintText: "搜尋車牌（如：KKA-3822）",
+          // 過濾條件：檢查輸入的文字是否存在於車牌號碼中
+          filterCondition: (record, text) {
+            return record.plate.toUpperCase().contains(text.toUpperCase());
+          },
+          // 排序回呼：可以按車牌號碼排序
+          sortCallback: (a, b) => a.plate.compareTo(b.plate),
+          // 每個項目的建立器
+          itemBuilder: (context, record) {
+            final car = Static.carData.firstWhere(
+              (c) => c.plate == record.plate,
+            );
+
+            return CarListItem(
+              car: car,
+              showLiveButton: true,
+              drivingDates: record.dates,
+              driverId: _driverIdController.text,
+              // 移除預設的水平邊距，使其與 SearchableList 的邊距一致
+              margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+            );
+          },
+          // 搜尋無結果時的提示
+          emptyStateWidget: const EmptyStateIndicator(
+            icon: Icons.search_off,
+            title: "找不到符合的車輛",
+            subtitle: "請嘗試更改搜尋關鍵字",
+          ),
+        );
+      },
     );
   }
 }

@@ -706,7 +706,7 @@ class BaseMapViewState extends State<BaseMapView> {
                                     horizontal: 16.0, vertical: 8.0),
                                 child: Wrap(
                                     spacing: 8.0,
-                                    runSpacing: 6.0,
+                                    runSpacing: 4.0,
                                     children: [
                                       _buildInfoChip(
                                           icon: Icons.route_outlined,
@@ -839,7 +839,7 @@ class BaseMapViewState extends State<BaseMapView> {
                                     horizontal: 16.0, vertical: 8.0),
                                 child: Wrap(
                                     spacing: 8.0,
-                                    runSpacing: 6.0,
+                                    runSpacing: 4.0,
                                     children: [
                                       if (plate != null)
                                         _buildInfoChip(

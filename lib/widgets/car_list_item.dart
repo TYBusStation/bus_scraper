@@ -1,18 +1,20 @@
 // lib/widgets/car_list_item.dart
 
-import 'package:bus_scraper/pages/live_osm_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../data/car.dart';
+import '../pages/driver_search_page.dart';
 import '../pages/history_page.dart';
+import '../pages/live_osm_page.dart';
+import '../pages/route_search_page.dart';
 import '../static.dart';
 import 'favorite_button.dart';
 import 'favorite_provider.dart';
 
 /// 一個可重用的 Widget，用於顯示單一車輛的資訊卡片。
 ///
-/// 封裝了卡片樣式、車牌資訊、收藏按鈕和操作按鈕。
+/// 封裝了卡片樣式、車牌資訊、收藏按鈕和一個提供多種操作的按鈕。
 class CarListItem extends StatelessWidget {
   const CarListItem({
     super.key,
@@ -20,23 +22,92 @@ class CarListItem extends StatelessWidget {
     required this.showLiveButton,
     this.drivingDates,
     this.driverId,
-    this.routeId, // 【新增】接收 routeId 參數
+    this.routeId,
+    this.margin, // 【核心修改】新增可選的 margin 參數
   });
 
-  /// 要顯示的車輛資料。
   final Car car;
-
-  /// 是否顯示「即時動態」按鈕。
   final bool showLiveButton;
-
-  /// 要顯示的駕駛日期列表 (List<String>)
   final List<String>? drivingDates;
-
-  /// 當前查詢的駕駛員 ID，用於點擊日期時傳遞
   final String? driverId;
-
-  /// 【新增】當前查詢的路線 ID，用於點擊日期時傳遞
   final String? routeId;
+  final EdgeInsetsGeometry? margin; // 【核心修改】定義 margin 屬性
+
+  // 顯示操作選項的對話框
+  void _showActionsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          title: Text('車輛操作: ${car.plate}'),
+          contentPadding: const EdgeInsets.only(top: 12.0),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (showLiveButton)
+                ListTile(
+                  leading: const Icon(Icons.directions_bus_rounded),
+                  title: const Text('即時動態'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => LiveOsmPage(plate: car.plate)),
+                    );
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.history_rounded),
+                title: const Text('行駛記錄'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => HistoryPage(plate: car.plate)),
+                  );
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.person_search_rounded),
+                title: const Text('查詢駕駛'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DriverSearchPage(plate: car.plate),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.route_rounded),
+                title: const Text('查詢路線'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RouteSearchPage(plate: car.plate),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('關閉'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +122,8 @@ class CarListItem extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.0),
       ),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      // 【核心修改】使用傳入的 margin，若為 null 則使用預設值
+      margin: margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12.0),
         child: Padding(
@@ -59,17 +131,14 @@ class CarListItem extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- 上層資訊區 ---
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 左側收藏按鈕
                   FavoriteButton(
                     plate: car.plate,
                     notifier: favoritesNotifier,
                   ),
                   const SizedBox(width: 16),
-                  // 中間的文字資訊
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,19 +163,16 @@ class CarListItem extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // 右側的操作按鈕
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildHistoryButton(context),
-                      if (showLiveButton) ...[
-                        _buildLiveButton(context),
-                      ],
-                    ],
+                  FilledButton.icon(
+                    onPressed: () => _showActionsDialog(context),
+                    icon: const Icon(Icons.more_horiz_rounded, size: 18),
+                    label: const Text('操作'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
                   ),
                 ],
               ),
-              // --- 下層日期區 ---
               if (hasDates) ...[
                 const SizedBox(height: 12),
                 Divider(
@@ -149,7 +215,6 @@ class CarListItem extends StatelessWidget {
                                     initialStartTime: startTime,
                                     initialEndTime: endTime,
                                     initialDriverId: driverId,
-                                    // 【修改】將 routeId 傳遞過去
                                     initialRouteId: routeId,
                                   ),
                                 ),
@@ -163,44 +228,6 @@ class CarListItem extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildHistoryButton(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.history_rounded),
-      tooltip: '歷史紀錄',
-      style: IconButton.styleFrom(
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        shape: const CircleBorder(),
-        padding: const EdgeInsets.all(10),
-      ),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HistoryPage(plate: car.plate),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildLiveButton(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.directions_bus_rounded),
-      tooltip: '即時動態',
-      style: IconButton.styleFrom(
-        padding: const EdgeInsets.all(10),
-      ),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => LiveOsmPage(plate: car.plate)),
-        );
-      },
     );
   }
 }

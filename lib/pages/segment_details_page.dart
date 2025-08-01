@@ -82,7 +82,7 @@ class SegmentDetailsPage extends StatelessWidget {
                   const Divider(height: 12),
                   Wrap(
                     spacing: 8.0,
-                    runSpacing: 6.0,
+                    runSpacing: 4.0,
                     children: [
                       _buildInfoChip(
                         context,

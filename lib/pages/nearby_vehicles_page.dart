@@ -1120,7 +1120,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                               horizontal: 16.0, vertical: 8.0),
                           child: Wrap(
                             spacing: 8.0,
-                            runSpacing: 6.0,
+                            runSpacing: 4.0,
                             children: [
                               _buildInfoChip(
                                   icon: Icons.numbers,

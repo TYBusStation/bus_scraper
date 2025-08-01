@@ -97,13 +97,7 @@ class _HistoryPageState extends State<HistoryPage> {
       _selectedRouteIds = [widget.initialRouteId!];
     }
 
-    if (widget.initialStartTime != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _fetchHistory();
-      });
-    } else {
-      _message = "請選擇時間範圍後點擊查詢。";
-    }
+    _message = "請選擇時間範圍後點擊查詢。";
   }
 
   Future<void> _pickDateTime(BuildContext context, bool isStartTime) async {

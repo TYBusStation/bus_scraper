@@ -9,6 +9,7 @@ import 'package:random_user_agents/random_user_agents.dart';
 import 'data/bus_route.dart';
 import 'data/car.dart';
 import 'data/route_detail.dart';
+import 'data/vehicle_history.dart';
 
 // 【新增】定義一個城市資料模型
 class AppCity {
@@ -110,9 +111,9 @@ class Static {
 
   // --- Dio Instance ---
   static final Dio dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 15),
-    sendTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 15),
+    connectTimeout: const Duration(seconds: 30),
+    sendTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 30),
     headers: {
       'User-Agent': RandomUserAgents.random(),
       'Content-Type': 'application/json',
@@ -265,7 +266,7 @@ class Static {
       }
     } on DioException catch (e) {
       log("DioError fetching route detail for ID $routeId: ${e.message}");
-    } catch (e, s) {
+    } catch (e) {
       log("Unexpected error fetching route detail for ID $routeId: $e");
     }
     return BusRoute.unknown;
@@ -548,5 +549,161 @@ class Static {
     return hasDriverRemark(driverId)
         ? "$driverId(${getDriverRemark(driverId)})"
         : driverId;
+  }
+
+  static Future<List<DriverDateInfo>> findVehicleDrivers({
+    required String plate,
+    DateTime? startDate, // 【新增】
+    DateTime? endDate, // 【新增】
+  }) async {
+    final String city = localStorage.city;
+    // 【修改】使用 Uri.parse().replace() 來安全地添加查詢參數
+    final uri = Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_drivers/$plate")
+        .replace(
+      queryParameters: {
+        if (startDate != null) 'start_time': apiDateFormat.format(startDate),
+        if (endDate != null) 'end_time': apiDateFormat.format(endDate),
+      },
+    );
+    log("Fetching drivers for plate $plate from API: $uri");
+    try {
+      final response = await dio.getUri(uri);
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map((json) => DriverDateInfo.fromJson(json))
+            .toList();
+      }
+    } on DioException catch (e) {
+      log("DioError fetching drivers for plate $plate: ${e.message}");
+    } catch (e) {
+      log("Unexpected error fetching drivers for plate $plate: $e");
+    }
+    return [];
+  }
+
+  /// 根據車輛車牌反查其所有行駛過的路線及日期
+  ///
+  /// 對應 API: `GET /{city}/tools/find_vehicle_routes/{plate}`
+  static Future<List<VehicleRouteHistory>> findVehicleRoutes({
+    required String plate,
+    DateTime? startDate, // 【新增】
+    DateTime? endDate, // 【新增】
+  }) async {
+    final String city = localStorage.city;
+    // 【修改】使用 Uri.parse().replace()
+    final uri =
+        Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_routes/$plate").replace(
+      queryParameters: {
+        if (startDate != null) 'start_time': apiDateFormat.format(startDate),
+        if (endDate != null) 'end_time': apiDateFormat.format(endDate),
+      },
+    );
+    log("Fetching routes for plate $plate from API: $uri");
+    try {
+      final response = await dio.getUri(uri);
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map((json) => VehicleRouteHistory.fromJson(json))
+            .toList();
+      }
+    } on DioException catch (e) {
+      log("DioError fetching routes for plate $plate: ${e.message}");
+    } catch (e) {
+      log("Unexpected error fetching routes for plate $plate: $e");
+    }
+    return [];
+  }
+
+  static Future<List<PlateDrivingDates>> findDriverDrivingDates({
+    required String driverId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final String city = localStorage.city;
+    final uri = Uri.parse("$apiBaseUrl/$city/tools/find_driver_dates").replace(
+      queryParameters: {
+        'driver_id': driverId, // 注意後端參數可能是 driver_id
+        if (startDate != null) 'start_time': apiDateFormat.format(startDate),
+        if (endDate != null) 'end_time': apiDateFormat.format(endDate),
+      },
+    );
+    log("Fetching plates for driver $driverId from API: $uri");
+    try {
+      final response = await dio.getUri(uri);
+      if (response.statusCode == 200 && response.data is List) {
+        // Dio 會自動解碼，我們直接使用
+        return (response.data as List)
+            .map((json) => PlateDrivingDates.fromJson(json))
+            .toList();
+      }
+    } on DioException catch (e) {
+      log("DioError fetching plates for driver $driverId: ${e.message}");
+    } catch (e) {
+      log("Unexpected error fetching plates for driver $driverId: $e");
+    }
+    return [];
+  }
+
+  /// 根據路線 ID 查詢行駛過的車輛及日期
+  ///
+  /// 對應 API: `GET /{city}/tools/find_route_vehicles`
+  static Future<List<VehicleDrivingDates>> findVehiclesOnRoute({
+    required String routeId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final String city = localStorage.city;
+    final uri =
+        Uri.parse("$apiBaseUrl/$city/tools/find_route_vehicles").replace(
+      queryParameters: {
+        'route_id': routeId, // 注意後端參數可能是 route_id
+        if (startDate != null) 'start_time': apiDateFormat.format(startDate),
+        if (endDate != null) 'end_time': apiDateFormat.format(endDate),
+      },
+    );
+    log("Fetching vehicles for route $routeId from API: $uri");
+    try {
+      final response = await dio.getUri(uri);
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map((json) => VehicleDrivingDates.fromJson(json))
+            .toList();
+      }
+    } on DioException catch (e) {
+      log("DioError fetching vehicles for route $routeId: ${e.message}");
+    } catch (e) {
+      log("Unexpected error fetching vehicles for route $routeId: $e");
+    }
+    return [];
+  }
+
+  static Future<List<DriverDateInfo>> findDriversForVehicle({
+    required String plate,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final String city = localStorage.city;
+    final uri = Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_drivers/$plate")
+        .replace(
+      queryParameters: {
+        if (startDate != null) 'start_time': apiDateFormat.format(startDate),
+        if (endDate != null) 'end_time': apiDateFormat.format(endDate),
+      },
+    );
+    log("Fetching drivers for plate $plate from API: $uri");
+    try {
+      final response = await dio.getUri(uri);
+      if (response.statusCode == 200 && response.data is List) {
+        // Dio 會自動解碼，我們直接使用
+        return (response.data as List)
+            .map((json) => DriverDateInfo.fromJson(json))
+            .toList();
+      }
+    } on DioException catch (e) {
+      log("DioError fetching drivers for plate $plate: ${e.message}");
+    } catch (e) {
+      log("Unexpected error fetching drivers for plate $plate: $e");
+    }
+    return [];
   }
 }
