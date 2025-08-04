@@ -1,5 +1,6 @@
 // static.dart
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:bus_scraper/storage/local_storage.dart';
 import 'package:bus_scraper/storage/storage.dart';
 import 'package:dio/dio.dart';
@@ -123,6 +124,8 @@ class Static {
       'Accept-Encoding': 'gzip, deflate, br',
     },
   ));
+
+  static final AudioPlayer audioPlayer = AudioPlayer();
 
   // --- Local Storage ---
   static final LocalStorage localStorage = LocalStorage();

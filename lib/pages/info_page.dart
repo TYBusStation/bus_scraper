@@ -1,8 +1,10 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:share_plus/share_plus.dart'; // <-- 步驟 1: 導入 share_plus 套件
 import 'package:url_launcher/url_launcher.dart';
 
+import '../static.dart';
 import '../widgets/theme_provider.dart';
 
 class InfoPage extends StatelessWidget {
@@ -33,7 +35,20 @@ class InfoPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 20),
+                Text(
+                  "歡迎使用 桃園公車站",
+                  style:
+                      themeData.textTheme.headlineSmall?.copyWith(fontSize: 25),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: () async => await Static.audioPlayer
+                      .play(AssetSource('taoyuan_bus_station.mp3')),
+                  label: const Text("點我播放聲音"),
+                  icon: const Icon(Icons.volume_up),
+                ),
+                const SizedBox(height: 10),
                 Text(
                   "如有任何問題或建議\n請聯繫作者",
                   style: themeData.textTheme.headlineSmall
@@ -104,7 +119,7 @@ class InfoPage extends StatelessWidget {
 
                 const SizedBox(height: 30),
                 Text(
-                  "主要為桃園市公車資料\n及部分行經桃園之非桃園公車\n最早資料時間為 2025-06-08\n\n歡迎分享此網站給有興趣的人",
+                  "主要為桃園市公車資料\n及部分行經桃園之非桃園公車\n最早資料時間為 2025-06-08\n歡迎分享此網站給有興趣的人",
                   style:
                       themeData.textTheme.headlineSmall?.copyWith(fontSize: 20),
                   textAlign: TextAlign.center,
