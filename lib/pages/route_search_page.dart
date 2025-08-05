@@ -35,7 +35,9 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   final _displayDateFormat = DateFormat('yyyy/MM/dd');
 
   bool _hasSearched = false;
-  Future<List<VehicleRouteHistory>>? _searchFuture;
+
+  // 【核心修改】將 _searchFuture 的類型改為最終的資料類型
+  Future<List<BusRouteWithHistory>>? _searchFuture;
   String? _promptMessage = "請選擇日期範圍後點擊查詢";
 
   Future<void> _selectDate(BuildContext context, bool isStart) async {
@@ -63,6 +65,29 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     }
   }
 
+  // 【新增】一個方法來鏈接兩個 Future，處理完整的資料流程
+  Future<List<BusRouteWithHistory>> _fetchAndProcessRoutes(
+      DateTime startDate, DateTime endDate) async {
+    // 1. 取得路線歷史
+    final histories = await Static.findVehicleRoutes(
+      plate: widget.plate,
+      startDate: startDate,
+      endDate: endDate,
+    );
+
+    if (histories.isEmpty) {
+      return [];
+    }
+
+    // 2. 根據歷史取得詳細路線資訊並打包成 BusRouteWithHistory
+    final processedRoutes = await Future.wait(histories.map((history) async {
+      final routeDetails = await Static.getRouteById(history.routeId);
+      return BusRouteWithHistory(route: routeDetails, history: history);
+    }));
+
+    return processedRoutes;
+  }
+
   void _triggerSearch() {
     FocusScope.of(context).unfocus();
     setState(() {
@@ -70,11 +95,9 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       _promptMessage = null;
       final finalEndDate =
           DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
-      _searchFuture = Static.findVehicleRoutes(
-        plate: widget.plate,
-        startDate: _startDate,
-        endDate: finalEndDate,
-      );
+
+      // 【核心修改】呼叫我們的新方法，並將結果 Future 賦值給 _searchFuture
+      _searchFuture = _fetchAndProcessRoutes(_startDate, finalEndDate);
     });
   }
 
@@ -185,8 +208,9 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     );
   }
 
+  // 【核心修改】簡化 Widget，只使用一個 FutureBuilder
   Widget _buildResultsList() {
-    return FutureBuilder<List<VehicleRouteHistory>>(
+    return FutureBuilder<List<BusRouteWithHistory>>(
       future: _searchFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -205,205 +229,178 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
               subtitle: '在此日期區間內找不到任何行駛路線記錄');
         }
 
-        final routesHistory = snapshot.data!;
+        final List<BusRouteWithHistory> allItems = snapshot.data!;
 
-        return FutureBuilder<List<BusRouteWithHistory>>(
-          future: Future.wait(routesHistory.map((history) async {
-            final routeDetails = await Static.getRouteById(history.routeId);
-            return BusRouteWithHistory(route: routeDetails, history: history);
-          })),
-          builder: (context, processedSnapshot) {
-            if (processedSnapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (!processedSnapshot.hasData) {
-              return const EmptyStateIndicator(
-                  icon: Icons.bus_alert_rounded, title: '無法載入路線資訊');
-            }
+        return SearchableList<BusRouteWithHistory>(
+          allItems: allItems,
+          searchHintText: "搜尋路線名稱、描述或編號...",
+          filterCondition: (item, text) {
+            return text
+                .toUpperCase()
+                .split(" ")
+                .where((token) => token.isNotEmpty)
+                .every(
+                  (token) => [
+                    item.route.id,
+                    item.route.name,
+                    item.route.description,
+                    item.route.departure,
+                    item.route.destination,
+                  ].any((str) => str.toUpperCase().contains(token)),
+                );
+          },
+          sortCallback: (a, b) =>
+              Static.compareRoutes(a.route.name, b.route.name),
+          itemBuilder: (context, item) {
+            final BusRoute route = item.route;
+            final VehicleRouteHistory routeInfo = item.history;
+            final theme = Theme.of(context);
+            final textTheme = theme.textTheme;
+            final colorScheme = theme.colorScheme;
 
-            final List<BusRouteWithHistory> allItems = processedSnapshot.data!;
-
-            return SearchableList<BusRouteWithHistory>(
-              allItems: allItems,
-              searchHintText: "搜尋路線名稱、描述或編號...",
-              filterCondition: (item, text) {
-                return text
-                    .toUpperCase()
-                    .split(" ")
-                    .where((token) => token.isNotEmpty)
-                    .every(
-                      (token) => [
-                        item.route.id,
-                        item.route.name,
-                        item.route.description,
-                        item.route.departure,
-                        item.route.destination,
-                      ].any((str) => str.toUpperCase().contains(token)),
-                    );
-              },
-              sortCallback: (a, b) =>
-                  Static.compareRoutes(a.route.name, b.route.name),
-              itemBuilder: (context, item) {
-                final BusRoute route = item.route;
-                final VehicleRouteHistory routeInfo = item.history;
-                final theme = Theme.of(context);
-                final textTheme = theme.textTheme;
-                final colorScheme = theme.colorScheme;
-
-                return Card(
-                  elevation: 2,
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            return Card(
+              elevation: 2,
+              margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      route.name,
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          route.name,
-                          style: textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.departure_board,
-                                size: 20, color: Colors.green),
-                            const SizedBox(width: 8),
-                            Expanded(
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                  Text(route.departure,
-                                      style: textTheme.bodyLarge?.copyWith(
-                                          fontWeight: FontWeight.bold))
-                                ])),
-                            const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8.0),
-                                child: Icon(Icons.arrow_forward, size: 18)),
-                            const Icon(Icons.flag, size: 20, color: Colors.red),
-                            const SizedBox(width: 8),
-                            Expanded(
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                  Text(route.destination,
-                                      style: textTheme.bodyLarge?.copyWith(
-                                          fontWeight: FontWeight.bold))
-                                ])),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        // 【核心修改】補回路線描述
-                        Text(
-                          route.description,
-                          style: textTheme.bodyLarge?.copyWith(
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        Text('編號：${route.id}',
-                            style: textTheme.bodyLarge?.copyWith(
-                                color: colorScheme.onSurfaceVariant)),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: () async {
-                                final url = Uri.parse(
-                                    "${Static.govWebUrl}/driving-map/${route.id}");
-                                if (await canLaunchUrl(url))
-                                  await launchUrl(url);
-                              },
-                              icon: const Icon(Icons.map_outlined),
-                              label: const Text('公車動態網'),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            FilledButton.icon(
-                              onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          RouteVehiclesPage(route: route))),
-                              icon: const Icon(
-                                  Icons.directions_bus_filled_outlined),
-                              label: const Text('查詢車輛'),
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Divider(
-                            height: 1,
-                            color: theme.dividerColor.withOpacity(0.5)),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8.0,
-                          runSpacing: 8.0,
-                          children: routeInfo.dates.map((date) {
-                            // 【核心修改】統一日期晶片的風格
-                            return ActionChip(
-                              label: Text(date),
-                              labelStyle: TextStyle(
-                                color: theme.colorScheme.onSecondaryContainer,
-                                fontSize: 12,
-                              ),
-                              backgroundColor:
-                                  theme.colorScheme.secondaryContainer,
-                              onPressed: () {
-                                final selectedDate = DateTime.parse(date);
-                                final startTime = DateTime(selectedDate.year,
-                                    selectedDate.month, selectedDate.day);
-                                final endTime = DateTime(
-                                  selectedDate.year,
-                                  selectedDate.month,
-                                  selectedDate.day,
-                                ).add(const Duration(days: 1));
-
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => HistoryPage(
-                                      plate: widget.plate,
-                                      initialStartTime: startTime,
-                                      initialEndTime: endTime,
-                                      initialRouteId: route.id,
-                                    ),
-                                  ),
-                                );
-                              },
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                              side: BorderSide.none,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                            );
-                          }).toList(),
-                        )
+                        const Icon(Icons.departure_board,
+                            size: 20, color: Colors.green),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              Text(route.departure,
+                                  style: textTheme.bodyLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold))
+                            ])),
+                        const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Icon(Icons.arrow_forward, size: 18)),
+                        const Icon(Icons.flag, size: 20, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              Text(route.destination,
+                                  style: textTheme.bodyLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold))
+                            ])),
                       ],
                     ),
-                  ),
-                );
-              },
-              emptyStateWidget: const EmptyStateIndicator(
-                icon: Icons.search_off,
-                title: "找不到符合的路線",
-                subtitle: "請嘗試更改搜尋關鍵字",
+                    const SizedBox(height: 4),
+                    Text(
+                      route.description,
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    Text('編號：${route.id}',
+                        style: textTheme.bodyLarge
+                            ?.copyWith(color: colorScheme.onSurfaceVariant)),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final url = Uri.parse(
+                                "${Static.govWebUrl}/driving-map/${route.id}");
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url);
+                            }
+                          },
+                          icon: const Icon(Icons.map_outlined),
+                          label: const Text('公車動態網'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton.icon(
+                          onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      RouteVehiclesPage(route: route))),
+                          icon:
+                              const Icon(Icons.directions_bus_filled_outlined),
+                          label: const Text('查詢車輛'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Divider(
+                        height: 1, color: theme.dividerColor.withOpacity(0.5)),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8.0,
+                      runSpacing: 8.0,
+                      children: routeInfo.dates.map((date) {
+                        return ActionChip(
+                          label: Text(date),
+                          labelStyle: TextStyle(
+                            color: theme.colorScheme.onSecondaryContainer,
+                            fontSize: 12,
+                          ),
+                          backgroundColor: theme.colorScheme.secondaryContainer,
+                          onPressed: () {
+                            final selectedDate = DateTime.parse(date);
+                            final startTime = DateTime(selectedDate.year,
+                                selectedDate.month, selectedDate.day);
+                            final endTime =
+                                startTime.add(const Duration(days: 1));
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => HistoryPage(
+                                  plate: widget.plate,
+                                  initialStartTime: startTime,
+                                  initialEndTime: endTime,
+                                  initialRouteId: route.id,
+                                ),
+                              ),
+                            );
+                          },
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          side: BorderSide.none,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                        );
+                      }).toList(),
+                    )
+                  ],
+                ),
               ),
             );
           },
+          emptyStateWidget: const EmptyStateIndicator(
+            icon: Icons.search_off,
+            title: "找不到符合的路線",
+            subtitle: "請嘗試更改搜尋關鍵字",
+          ),
         );
       },
     );
