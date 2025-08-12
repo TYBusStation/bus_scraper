@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,8 +7,8 @@ import '../data/company.dart';
 import '../static.dart';
 import '../widgets/theme_provider.dart';
 
-// --- 通用的彈出式選擇對話框 (已移除搜尋框) ---
-class SelectionDialog<T> extends StatelessWidget {
+// --- 通用的彈出式選擇對話框 (已新增搜尋框) ---
+class SelectionDialog<T> extends StatefulWidget {
   final String title;
   final List<T> items;
   final T? initialValue;
@@ -22,34 +23,107 @@ class SelectionDialog<T> extends StatelessWidget {
   });
 
   @override
+  State<SelectionDialog<T>> createState() => _SelectionDialogState<T>();
+}
+
+class _SelectionDialogState<T> extends State<SelectionDialog<T>> {
+  late final TextEditingController _searchController;
+  late List<T> _filteredItems;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _filteredItems = widget.items; // 初始顯示所有項目
+    _searchController.addListener(_filterItems);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterItems);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterItems() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredItems = widget.items;
+      } else {
+        _filteredItems = widget.items.where((item) {
+          // 使用傳入的 itemBuilder 來取得每個項目的字串表示以進行搜尋
+          return widget.itemBuilder(item).toLowerCase().contains(query);
+        }).toList();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final themeData = Theme.of(context);
     return AlertDialog(
-      title: Text(title, style: themeData.textTheme.titleLarge),
-      contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 16),
+      title: Text(widget.title, style: themeData.textTheme.titleLarge),
+      contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       content: SizedBox(
         width: double.maxFinite,
         height: MediaQuery.of(context).size.height * 0.6,
-        child: items.isEmpty
-            ? Center(
-                child: Text('沒有可選擇的項目', style: themeData.textTheme.bodySmall))
-            : ListView.builder(
-                shrinkWrap: true,
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  return ListTile(
-                    title: Text(itemBuilder(item),
-                        overflow: TextOverflow.ellipsis),
-                    selected: item == initialValue,
-                    selectedTileColor:
-                        themeData.colorScheme.primary.withOpacity(0.1),
-                    onTap: () {
-                      Navigator.of(context).pop(item);
-                    },
-                  );
-                },
+        // 使用 Column 來放置搜尋框和列表
+        child: Column(
+          children: [
+            // --- 搜尋框 ---
+            TextField(
+              controller: _searchController,
+              autofocus: false, // 自動獲取焦點
+              style: themeData.textTheme.bodyMedium,
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                hintText: '搜尋...',
+                hintStyle: themeData.textTheme.bodySmall
+                    ?.copyWith(color: themeData.hintColor),
+                prefixIcon: Icon(Icons.search,
+                    color: themeData.colorScheme.primary, size: 20),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear,
+                            size: 18,
+                            color: themeData.colorScheme.onSurfaceVariant),
+                        onPressed: () => _searchController.clear(),
+                      )
+                    : null,
               ),
+            ),
+            const SizedBox(height: 12),
+            // --- 項目列表 ---
+            Expanded(
+              child: _filteredItems.isEmpty
+                  ? Center(
+                      child:
+                          Text('沒有符合的項目', style: themeData.textTheme.bodySmall))
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _filteredItems.length,
+                      itemBuilder: (context, index) {
+                        final item = _filteredItems[index];
+                        return ListTile(
+                          title: Text(widget.itemBuilder(item),
+                              overflow: TextOverflow.ellipsis),
+                          selected: item == widget.initialValue,
+                          selectedTileColor:
+                              themeData.colorScheme.primary.withOpacity(0.1),
+                          onTap: () {
+                            Navigator.of(context).pop(item);
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -249,16 +323,29 @@ class _CompanyPageState extends State<CompanyPage> {
             "資料集 for ${_selectedCompany!.code}/$_selectedDataType 從 API 獲取並快取。");
         setState(() {
           _timestamps = List<String>.from(response.data);
+          // 如果成功載入但列表為空，也給予提示
+          if (_timestamps.isEmpty) {
+            _error = "此類型下沒有可用的資料集。";
+          }
         });
       } else {
         throw Exception(
             '無法載入資料集: ${response.statusCode} - ${response.data?['detail'] ?? response.statusMessage}');
       }
     } catch (e) {
+      // --- 修改開始 ---
+      String errorMessage = '載入資料集時發生錯誤: $e';
+      // 判斷是否為 DioException 且狀態碼為 404
+      if (e is DioException && e.response?.statusCode == 404) {
+        final String dataTypeDisplayName =
+            _dataTypeDisplayNames[_selectedDataType!] ?? _selectedDataType!;
+        errorMessage = '無此資料類型 ($dataTypeDisplayName) 的資料集。';
+      }
       setState(() {
-        _error = '載入資料集時發生錯誤: $e';
-        _timestamps = [];
+        _error = errorMessage;
+        _timestamps = []; // 確保時間戳列表為空
       });
+      // --- 修改結束 ---
     } finally {
       setState(() {
         _isLoadingTimestamps = false;
@@ -358,9 +445,16 @@ class _CompanyPageState extends State<CompanyPage> {
             '無法載入公司資料: ${response.statusCode} - ${response.data?['detail'] ?? response.statusMessage}');
       }
     } catch (e) {
+      // --- 修改開始 ---
+      String errorMessage = '載入資料集 $target 時發生錯誤: $e';
+      // 判斷是否為 DioException 且狀態碼為 404
+      if (e is DioException && e.response?.statusCode == 404) {
+        errorMessage = '資料集檔案不存在或已移除 (404 Not Found)。';
+      }
       setState(() {
-        _error = '載入資料集 $target 時發生錯誤: $e';
+        _error = errorMessage;
       });
+      // --- 修改結束 ---
     } finally {
       setState(() {
         if (target == 1) {
@@ -625,6 +719,7 @@ class _CompanyPageState extends State<CompanyPage> {
           onPressed: !isEnabled
               ? null
               : () async {
+                  // 注意：這裡現在調用的是我們修改後的 SelectionDialog
                   final selectedValue = await showDialog<T>(
                     context: context,
                     builder: (BuildContext context) => SelectionDialog<T>(
@@ -634,9 +729,10 @@ class _CompanyPageState extends State<CompanyPage> {
                       itemBuilder: itemToString,
                     ),
                   );
-                  // 無論使用者是選擇了新項目還是點擊取消 (返回 null)，都觸發 onChanged
-                  // 這樣可以正確地更新或清除選擇
-                  onChanged(selectedValue);
+                  // 處理返回的結果
+                  if (selectedValue != null) {
+                    onChanged(selectedValue);
+                  }
                 },
           child: Row(
             children: [
