@@ -451,10 +451,16 @@ class BaseMapViewState extends State<BaseMapView> {
             FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                initialCenter: widget.points.isNotEmpty
-                    ? LatLng(widget.points.last.lat, widget.points.last.lon)
+                // 根據 bounds 決定初始視圖
+                // 1. 如果 bounds 是單一點，則直接置中並縮放
+                initialCenter: (widget.bounds != null &&
+                        widget.bounds!.southWest == widget.bounds!.northEast)
+                    ? widget.bounds!.center
+                    // 2. 如果沒有 bounds，使用預設中心點
                     : BaseMapView.getDefaultCenter(),
                 initialZoom: BaseMapView.defaultZoom,
+
+                // 如果 bounds 是一個有效的區域 (非單點)，則使用 fitCamera
                 initialCameraFit: (widget.bounds != null &&
                         widget.bounds!.southWest != widget.bounds!.northEast)
                     ? CameraFit.bounds(
