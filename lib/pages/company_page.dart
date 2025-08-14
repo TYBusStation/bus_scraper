@@ -1098,7 +1098,7 @@ class _CompanyPageState extends State<CompanyPage> {
                     onChanged: _onCompanyChanged,
                     isLoading: _isLoadingCompanies,
                     loadingText: "載入公司...",
-                    itemToString: (Company c) => c.name,
+                    itemToString: (Company c) => "${c.name} (${c.code})",
                   ),
                   const SizedBox(width: 6),
                   _buildSelectionButton<String>(
