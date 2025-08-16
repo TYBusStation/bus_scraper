@@ -104,11 +104,19 @@ class _HistoryPageState extends State<HistoryPage> {
     final DateTime initialDate =
         isStartTime ? _selectedStartTime : _selectedEndTime;
 
+    // 定義日期選擇器的絕對邊界
+    final absoluteFirstDate = DateTime(2025, 6, 8);
+    final absoluteLastDate = DateTime.now().add(const Duration(days: 1));
+
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2025, 6, 8),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
+      initialDate: initialDate.isAfter(absoluteLastDate)
+          ? absoluteLastDate
+          : (initialDate.isBefore(absoluteFirstDate)
+              ? absoluteFirstDate
+              : initialDate),
+      firstDate: absoluteFirstDate,
+      lastDate: absoluteLastDate,
       helpText: isStartTime ? '選擇開始日期' : '選擇結束日期',
     );
 
@@ -128,19 +136,66 @@ class _HistoryPageState extends State<HistoryPage> {
             pickedTime.hour,
             pickedTime.minute,
           );
+
+          const maxDuration = Duration(days: 2);
+          final now = DateTime.now();
+
+          // 將當前時間值複製到臨時變數中進行計算
+          var tempStartTime = _selectedStartTime;
+          var tempEndTime = _selectedEndTime;
+
           if (isStartTime) {
-            _selectedStartTime = newDateTime;
-            if (_selectedStartTime.isAfter(_selectedEndTime)) {
-              _selectedEndTime =
-                  _selectedStartTime.add(const Duration(minutes: 1));
+            // 1. 更新開始時間
+            tempStartTime = newDateTime;
+
+            // 2. 檢查並修正：如果開始時間晚於結束時間，則自動調整結束時間
+            if (tempStartTime.isAfter(tempEndTime)) {
+              tempEndTime = tempStartTime.add(const Duration(minutes: 1));
+            }
+
+            // 3. 檢查並修正：時間範圍不能超過2天
+            if (tempEndTime.difference(tempStartTime) > maxDuration) {
+              tempEndTime = tempStartTime.add(maxDuration);
+            }
+
+            // 4. 檢查並修正：結束時間不能超過當前時間
+            if (tempEndTime.isAfter(now)) {
+              tempEndTime = now;
+              // 再次檢查，防止調整後開始時間又晚於結束時間
+              if (tempStartTime.isAfter(tempEndTime)) {
+                tempStartTime =
+                    tempEndTime.subtract(const Duration(minutes: 1));
+              }
             }
           } else {
-            _selectedEndTime = newDateTime;
-            if (_selectedEndTime.isBefore(_selectedStartTime)) {
-              _selectedStartTime =
-                  _selectedEndTime.subtract(const Duration(minutes: 1));
+            // 選擇結束時間
+            // 1. 更新結束時間
+            tempEndTime = newDateTime;
+
+            // 2. 檢查並修正：如果結束時間早於開始時間，則自動調整開始時間
+            if (tempEndTime.isBefore(tempStartTime)) {
+              tempStartTime = tempEndTime.subtract(const Duration(minutes: 1));
+            }
+
+            // 3. 檢查並修正：時間範圍不能超過2天
+            if (tempEndTime.difference(tempStartTime) > maxDuration) {
+              tempStartTime = tempEndTime.subtract(maxDuration);
+            }
+
+            // 4. 檢查並修正：開始時間不能早於絕對起始日期
+            if (tempStartTime.isBefore(absoluteFirstDate)) {
+              tempStartTime = absoluteFirstDate;
+              // 再次檢查，防止調整後結束時間又早於開始時間
+              if (tempEndTime.isBefore(tempStartTime)) {
+                tempEndTime = tempStartTime.add(const Duration(minutes: 1));
+              }
             }
           }
+
+          // 將計算完成的結果賦值回去
+          _selectedStartTime = tempStartTime;
+          _selectedEndTime = tempEndTime;
+
           _message = "時間已更新，請點擊查詢。";
           _clearDataAndFilters();
         });
@@ -200,6 +255,16 @@ class _HistoryPageState extends State<HistoryPage> {
     if (_selectedStartTime.isAfter(_selectedEndTime)) {
       setState(() {
         _error = "錯誤：開始時間不能晚於結束時間。";
+        _message = null;
+        _clearDataAndFilters();
+      });
+      return;
+    }
+
+    // 保留此最終檢查，確保 API 請求的範圍正確
+    if (_selectedEndTime.difference(_selectedStartTime).inHours > 48) {
+      setState(() {
+        _error = "錯誤：查詢範圍不能超過 2 天。";
         _message = null;
         _clearDataAndFilters();
       });
