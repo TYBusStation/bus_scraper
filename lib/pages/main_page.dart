@@ -161,7 +161,7 @@ class _MainPageState extends State<MainPage> {
 
   String _getAppBarTitle(int index) {
     return switch (index) {
-      0 => "桃園公車站",
+      0 => "桃園公車站動態追蹤",
       1 => "路線",
       2 => "車輛",
       3 => "收藏車輛",
@@ -169,7 +169,7 @@ class _MainPageState extends State<MainPage> {
       5 => "監理資料",
       6 => "附近車輛",
       7 => "設定",
-      _ => "桃園公車站"
+      _ => "桃園公車站動態追蹤"
     };
   }
 

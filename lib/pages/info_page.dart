@@ -17,7 +17,7 @@ class InfoPage extends StatelessWidget {
 
     SharePlus.instance.share(ShareParams(
       uri: Uri.parse('https://myster7494.github.io/bus_scraper/'),
-      subject: '桃園公車站',
+      subject: '桃園公車站動態追蹤',
       sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
     ));
   }
