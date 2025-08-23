@@ -17,8 +17,8 @@ import '../static.dart';
 
 class BaseMapView extends StatefulWidget {
   static LatLng getDefaultCenter() {
-    if (Static.localStorage.city == "kaohsiung") {
-      return const LatLng(22.639502555782638, 120.30258514756802);
+    if (Static.localStorage.city == "taichung") {
+      return const LatLng(24.137331792238204, 120.6869186637282);
     }
 
     return const LatLng(24.98893444390252, 121.31443803557084);

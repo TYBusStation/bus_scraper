@@ -152,7 +152,7 @@ class CarListItem extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "${car.type.chinese} (${car.type.name})",
+                          car.typeDisplayName,
                           style: textTheme.bodyLarge,
                         ),
                         const SizedBox(height: 4),

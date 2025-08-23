@@ -11,6 +11,7 @@ Car _$CarFromJson(Map<String, dynamic> json) => Car(
       type:
           $enumDecode(_$TypeEnumMap, json['type'], unknownValue: Type.unknown),
       lastSeen: DateTime.parse(json['last_seen'] as String),
+      rawType: _readRawType(json, 'rawType') as String,
     );
 
 Map<String, dynamic> _$CarToJson(Car instance) => <String, dynamic>{

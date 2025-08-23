@@ -192,43 +192,43 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
 
             // 城市選擇區塊
-            // Padding(
-            //   padding: const EdgeInsets.all(8.0),
-            //   child: ExpansionTile(
-            //     title: const Text('當前城市'),
-            //     subtitle: Text(currentCityName),
-            //     // 顯示當前選擇的城市名稱
-            //     leading: const Icon(Icons.location_city),
-            //     shape: Border.all(color: Colors.transparent),
-            //     children: [
-            //       const SizedBox(height: 12),
-            //       SegmentedButton<String>(
-            //         segments: Static.availableCities.map((city) {
-            //           return ButtonSegment<String>(
-            //             value: city.code,
-            //             label: Text(city.name),
-            //           );
-            //         }).toList(),
-            //         selected: {_currentCityForRemarks},
-            //         onSelectionChanged: (Set<String> newSelection) {
-            //           final newValue = newSelection.first;
-            //           if (newValue != _currentCityForRemarks) {
-            //             setState(() {
-            //               Static.localStorage.city = newValue;
-            //               _currentCityForRemarks = newValue;
-            //             });
-            //
-            //             final newCityName = Static.availableCities
-            //                 .firstWhere((c) => c.code == newValue)
-            //                 .name;
-            //             _showForceRestartDialog(newCityName);
-            //           }
-            //         },
-            //       ),
-            //       const SizedBox(height: 8),
-            //     ],
-            //   ),
-            // ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ExpansionTile(
+                title: const Text('當前城市'),
+                subtitle: Text(currentCityName),
+                // 顯示當前選擇的城市名稱
+                leading: const Icon(Icons.location_city),
+                shape: Border.all(color: Colors.transparent),
+                children: [
+                  const SizedBox(height: 12),
+                  SegmentedButton<String>(
+                    segments: Static.availableCities.map((city) {
+                      return ButtonSegment<String>(
+                        value: city.code,
+                        label: Text(city.name),
+                      );
+                    }).toList(),
+                    selected: {_currentCityForRemarks},
+                    onSelectionChanged: (Set<String> newSelection) {
+                      final newValue = newSelection.first;
+                      if (newValue != _currentCityForRemarks) {
+                        setState(() {
+                          Static.localStorage.city = newValue;
+                          _currentCityForRemarks = newValue;
+                        });
+
+                        final newCityName = Static.availableCities
+                            .firstWhere((c) => c.code == newValue)
+                            .name;
+                        _showForceRestartDialog(newCityName);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
 
             // 駕駛員備註區塊
             Padding(

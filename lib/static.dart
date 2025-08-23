@@ -43,14 +43,14 @@ class Static {
   // 【新增】定義可用的城市列表
   static const List<AppCity> availableCities = [
     AppCity(code: 'taoyuan', name: '桃園市'),
-    AppCity(code: 'kaohsiung', name: '高雄市'),
+    AppCity(code: 'taichung', name: '台中市'),
   ];
 
   // 【修改】將 GraphQL API URL 改為動態 getter
   static String get govWebUrl {
     final city = localStorage.city;
-    if (city == 'kaohsiung') {
-      return "https://ibus.tbkc.gov.tw/ibus";
+    if (city == 'taichung') {
+      return "https://citybus.taichung.gov.tw/ebus";
     }
     // 預設返回桃園的 URL
     return "https://ebus.tycg.gov.tw/ebus";
