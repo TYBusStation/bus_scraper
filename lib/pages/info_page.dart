@@ -36,7 +36,7 @@ class InfoPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  "歡迎使用 桃園公車站",
+                  "歡迎使用 桃園公車站動態追蹤",
                   style:
                       themeData.textTheme.headlineSmall?.copyWith(fontSize: 25),
                   textAlign: TextAlign.center,
@@ -144,6 +144,16 @@ class ContactItem {
 
 final List<ContactItem> contactItems = [
   ContactItem(
+    title: "Website",
+    icon: FontAwesomeIcons.link,
+    url: "https://tybusstation.github.io",
+  ),
+  ContactItem(
+    title: "Instagram",
+    icon: FontAwesomeIcons.instagram,
+    url: "https://www.instagram.com/myster.bus/",
+  ),
+  ContactItem(
     title: "Discord",
     icon: FontAwesomeIcons.discord,
     url: "https://discordapp.com/users/716652855905222736",
@@ -151,11 +161,6 @@ final List<ContactItem> contactItems = [
   ContactItem(
     title: "GitHub",
     icon: FontAwesomeIcons.github,
-    url: "https://github.com/Myster7494",
-  ),
-  ContactItem(
-    title: "Instagram",
-    icon: FontAwesomeIcons.instagram,
-    url: "https://www.instagram.com/__myster___/",
+    url: "https://github.com/TYBusStation",
   ),
 ];
