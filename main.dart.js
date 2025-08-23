@@ -50231,7 +50231,7 @@ r.a=s
 return r},
 $S:833}
 A.aaa.prototype={
-$2(a,b){return A.aW3(!1,B.UL,b,"\u6843\u5712\u516c\u8eca\u7ad9")},
+$2(a,b){return A.aW3(!1,B.UL,b,"\u6843\u5712\u516c\u8eca\u7ad9\u52d5\u614b\u8ffd\u8e64")},
 $S:613}
 A.QD.prototype={
 F(a){return A.adq(new A.acw(),t.oG)}}
@@ -51852,7 +51852,7 @@ case 1:return A.z(q,r)}})
 return A.A($async$$0,r)},
 $S:8}
 A.ajY.prototype={
-$0(){var s=t.Qv.a(this.b.ga5()),r=$.b72(),q=A.cB("https://myster7494.github.io/bus_scraper/",0,null),p=A.bD(s.b1(0,null),B.h),o=s.gu(0),n=p.a
+$0(){var s=t.Qv.a(this.b.ga5()),r=$.b72(),q=A.cB("https://tybusstation.github.io/bus_scraper/",0,null),p=A.bD(s.b1(0,null),B.h),o=s.gu(0),n=p.a
 p=p.b
 r.it(0,new A.avl("\u6843\u5712\u516c\u8eca\u7ad9\u52d5\u614b\u8ffd\u8e64",new A.C(n,p,n+o.a,p+o.b),q))
 return null},
