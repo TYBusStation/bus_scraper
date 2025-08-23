@@ -33,9 +33,7 @@ class _AppLoaderState extends State<AppLoader> {
 
   void _handleTap(BuildContext scaffoldContext) {
     final now = DateTime.now();
-    if (now
-        .difference(_lastTapTime)
-        .inSeconds > 1) {
+    if (now.difference(_lastTapTime).inSeconds > 1) {
       _tapCount = 0;
     }
 
@@ -122,7 +120,7 @@ class _AppLoaderState extends State<AppLoader> {
                             Text(
                               "初始化失敗：\n${snapshot.error}",
                               style:
-                              themeData.textTheme.headlineMedium?.copyWith(
+                                  themeData.textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 28,
                               ),
@@ -132,7 +130,7 @@ class _AppLoaderState extends State<AppLoader> {
                             Text(
                               "請嘗試重新開啟程式\n\n如仍有任何問題請聯繫作者",
                               style:
-                              themeData.textTheme.headlineLarge?.copyWith(
+                                  themeData.textTheme.headlineLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 24,
                               ),
@@ -146,48 +144,47 @@ class _AppLoaderState extends State<AppLoader> {
                               ),
                               child: Padding(
                                 padding:
-                                const EdgeInsets.symmetric(vertical: 8.0),
+                                    const EdgeInsets.symmetric(vertical: 8.0),
                                 child: Column(
                                   children: List.generate(contactItems.length,
-                                          (index) {
-                                        final item = contactItems[index];
-                                        return Column(
-                                          children: [
-                                            ListTile(
-                                              leading: FaIcon(
-                                                item.icon,
-                                                size: 28,
-                                                color:
+                                      (index) {
+                                    final item = contactItems[index];
+                                    return Column(
+                                      children: [
+                                        ListTile(
+                                          leading: FaIcon(
+                                            item.icon,
+                                            size: 28,
+                                            color:
                                                 themeData.colorScheme.primary,
-                                              ),
-                                              title: Text(
-                                                item.title,
-                                                style:
+                                          ),
+                                          title: Text(
+                                            item.title,
+                                            style:
                                                 themeData.textTheme.titleMedium,
-                                              ),
-                                              trailing: OutlinedButton(
-                                                onPressed: () async =>
+                                          ),
+                                          trailing: OutlinedButton(
+                                            onPressed: () async =>
                                                 await launchUrl(
                                                     Uri.parse(item.url)),
-                                                style: OutlinedButton.styleFrom(
-                                                  side: BorderSide(
-                                                      color: themeData
-                                                          .colorScheme.primary),
-                                                ),
-                                                child: const Text("前往"),
-                                              ),
-                                              onTap: () async =>
-                                              await launchUrl(
-                                                  Uri.parse(item.url)),
+                                            style: OutlinedButton.styleFrom(
+                                              side: BorderSide(
+                                                  color: themeData
+                                                      .colorScheme.primary),
                                             ),
-                                            if (index < contactItems.length - 1)
-                                              const Divider(
-                                                  indent: 20,
-                                                  endIndent: 20,
-                                                  height: 1),
-                                          ],
-                                        );
-                                      }),
+                                            child: const Text("前往"),
+                                          ),
+                                          onTap: () async => await launchUrl(
+                                              Uri.parse(item.url)),
+                                        ),
+                                        if (index < contactItems.length - 1)
+                                          const Divider(
+                                              indent: 20,
+                                              endIndent: 20,
+                                              height: 1),
+                                      ],
+                                    );
+                                  }),
                                 ),
                               ),
                             ),
@@ -224,13 +221,12 @@ class App extends StatelessWidget {
         ),
       ],
       child: ThemeProvider(
-        builder: (BuildContext context, ThemeData themeData) =>
-            MaterialApp(
-              debugShowCheckedModeBanner: false,
-              title: '桃園公車站',
-              theme: themeData,
-              home: const MainPage(),
-            ),
+        builder: (BuildContext context, ThemeData themeData) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: '桃園公車站動態追蹤',
+          theme: themeData,
+          home: const MainPage(),
+        ),
       ),
     );
   }

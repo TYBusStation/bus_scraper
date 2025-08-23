@@ -16,7 +16,7 @@ class InfoPage extends StatelessWidget {
     final box = context.findRenderObject() as RenderBox?;
 
     SharePlus.instance.share(ShareParams(
-      uri: Uri.parse('https://myster7494.github.io/bus_scraper/'),
+      uri: Uri.parse('https://tybusstation.github.io/bus_scraper/'),
       subject: '桃園公車站動態追蹤',
       sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
     ));
