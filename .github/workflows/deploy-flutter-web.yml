@@ -1,4 +1,4 @@
-name: Build and Deploy Flutter (Web & Android) # 更新 Workflow 名稱以反映其功能
+name: Build Flutter (Web) # 更新 Workflow 名稱以反映其功能
 
 # 何時觸發 Workflow
 on:
@@ -11,7 +11,7 @@ on:
 # Workflow 運行的作業 (jobs)
 jobs:
   build_and_deploy:
-    name: Build and Deploy (Web & Android) # 更新作業名稱
+    name: Build (Web) # 更新作業名稱
     runs-on: ubuntu-latest # 使用最新的 Ubuntu 運行器
 
     steps:
@@ -47,17 +47,17 @@ jobs:
         #   flutter build web --release --base-href "/$REPO_NAME/"
         # 這裡為了簡化，暫時保留原樣，但請留意此潛在問題。
 
-      # 步驟 6: 部署到 GitHub Pages (Web 應用)
-      - name: Deploy Web to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }} # GitHub 自動提供的 token，用於授權推送到倉庫
-          publish_dir: ./build/web # 指定要部署的資料夾 (Web 建置產物)
-          publish_branch: gh-pages # 指定要推送到哪個分支 (GitHub Pages 會從此分支提供服務)
-          # user_name: 'github-actions[bot]' # 可選：自定義 commit 的用戶名
-          # user_email: 'github-actions[bot]@users.noreply.github.com' # 可選：自定義 commit 的用戶郵箱
-          # commit_message: 'Deploy Flutter Web to GitHub Pages' # 可選：自定義 commit 訊息
-          # force_orphan: true # 強烈建議用於 gh-pages 分支，以保持其乾淨
+#      # 步驟 6: 部署到 GitHub Pages (Web 應用)
+#      - name: Deploy Web to GitHub Pages
+#        uses: peaceiris/actions-gh-pages@v3
+#        with:
+#          github_token: ${{ secrets.GITHUB_TOKEN }} # GitHub 自動提供的 token，用於授權推送到倉庫
+#          publish_dir: ./build/web # 指定要部署的資料夾 (Web 建置產物)
+#          publish_branch: gh-pages # 指定要推送到哪個分支 (GitHub Pages 會從此分支提供服務)
+#          # user_name: 'github-actions[bot]' # 可選：自定義 commit 的用戶名
+#          # user_email: 'github-actions[bot]@users.noreply.github.com' # 可選：自定義 commit 的用戶郵箱
+#          # commit_message: 'Deploy Flutter Web to GitHub Pages' # 可選：自定義 commit 訊息
+#          # force_orphan: true # 強烈建議用於 gh-pages 分支，以保持其乾淨
 
 #      # --- 新增：建置 Android APK 並上傳 Artifact ---
 #
