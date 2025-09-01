@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:bus_scraper/pages/info_page.dart';
 import 'package:bus_scraper/pages/main_page.dart';
 import 'package:bus_scraper/static.dart';
+import 'package:bus_scraper/utils/background_service_helper.dart';
 import 'package:bus_scraper/version_check_service.dart';
 import 'package:bus_scraper/widgets/favorite_provider.dart';
 import 'package:bus_scraper/widgets/theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,8 +21,10 @@ class InitializationResult {
   InitializationResult({this.updateRequired = false, this.updateInfo});
 }
 
-void main() {
+Future<void> main() async {
+  // main 函數需要是 async
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeService(); // 在 runApp 之前初始化背景服務
   runApp(const AppLoader());
 }
 
@@ -264,30 +270,43 @@ class _UpdatePageState extends State<UpdatePage> {
   bool _isDownloading = false;
   double _progress = 0.0;
   String _statusText = '發現新版本，為了確保程式正常運作，請立即更新。';
+  final service = FlutterBackgroundService();
+  StreamSubscription<Map<String, dynamic>?>? _serviceSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // 監聽來自背景服務的事件
+    _serviceSubscription = service.on('update').listen((event) {
+      if (event != null && event.containsKey('progress')) {
+        setState(() {
+          _progress = (event['progress'] as int).toDouble() / 100.0;
+        });
+      }
+    });
+
+    // 你也可以監聽 'download_error' 或 'download_complete' 來更新 UI
+  }
+
+  @override
+  void dispose() {
+    _serviceSubscription?.cancel();
+    super.dispose();
+  }
 
   Future<void> _startUpdate() async {
     setState(() {
       _isDownloading = true;
-      _statusText = '下載中，請稍候...';
+      _statusText = '下載已開始，您可以將 App 切換至背景。';
       _progress = 0.0;
     });
 
-    try {
-      final service = VersionCheckService();
-      await service.downloadAndInstall(
-        widget.updateInfo['url'],
-        (progress) {
-          setState(() {
-            _progress = progress;
-          });
-        },
-      );
-    } catch (e) {
-      setState(() {
-        _statusText = '更新失敗: $e\n請檢查您的網路連線與儲存空間權限。';
-        _isDownloading = false;
-      });
-    }
+    // 啟動背景服務並傳遞下載參數
+    service.startService();
+    service.invoke('startDownload', {
+      'url': widget.updateInfo['url'],
+      'version': widget.updateInfo['version'],
+    });
   }
 
   @override
@@ -298,7 +317,7 @@ class _UpdatePageState extends State<UpdatePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('應用程式更新'),
-        automaticallyImplyLeading: false, // 禁止返回
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Padding(
@@ -330,14 +349,14 @@ class _UpdatePageState extends State<UpdatePage> {
                       borderRadius: BorderRadius.circular(5),
                     ),
                     const SizedBox(height: 8),
-                    Text('${(_progress * 100).toStringAsFixed(1)}%'),
+                    Text('${(_progress * 100).toStringAsFixed(0)}%'),
                   ],
                 )
               else
                 ElevatedButton.icon(
                   onPressed: _startUpdate,
                   icon: const Icon(Icons.download),
-                  label: const Text('立即更新'),
+                  label: const Text('下載並安裝'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     textStyle: const TextStyle(fontSize: 18),

@@ -1,7 +1,7 @@
 // lib/version_check_service.dart
 
 // 引入我們新建的平台檢查器
-import 'package:bus_scraper/provider/platform_checker.dart';
+import 'package:bus_scraper/utils/platform_checker.dart';
 // 移除了 'dart:io' 的 import
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
