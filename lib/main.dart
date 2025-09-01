@@ -1,14 +1,10 @@
-import 'dart:async';
-
 import 'package:bus_scraper/pages/info_page.dart';
 import 'package:bus_scraper/pages/main_page.dart';
 import 'package:bus_scraper/static.dart';
-import 'package:bus_scraper/utils/background_service_helper.dart';
-import 'package:bus_scraper/version_check_service.dart';
+import 'package:bus_scraper/utils/version_check_service.dart';
 import 'package:bus_scraper/widgets/favorite_provider.dart';
 import 'package:bus_scraper/widgets/theme_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -21,10 +17,8 @@ class InitializationResult {
   InitializationResult({this.updateRequired = false, this.updateInfo});
 }
 
-Future<void> main() async {
-  // main 函數需要是 async
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeService(); // 在 runApp 之前初始化背景服務
   runApp(const AppLoader());
 }
 
@@ -268,45 +262,62 @@ class UpdatePage extends StatefulWidget {
 
 class _UpdatePageState extends State<UpdatePage> {
   bool _isDownloading = false;
+  bool _isInitializingForSkip = false; // 新增狀態：用於處理略過時的初始化
   double _progress = 0.0;
-  String _statusText = '發現新版本，為了確保程式正常運作，請立即更新。';
-  final service = FlutterBackgroundService();
-  StreamSubscription<Map<String, dynamic>?>? _serviceSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    // 監聽來自背景服務的事件
-    _serviceSubscription = service.on('update').listen((event) {
-      if (event != null && event.containsKey('progress')) {
-        setState(() {
-          _progress = (event['progress'] as int).toDouble() / 100.0;
-        });
-      }
-    });
-
-    // 你也可以監聽 'download_error' 或 'download_complete' 來更新 UI
-  }
-
-  @override
-  void dispose() {
-    _serviceSubscription?.cancel();
-    super.dispose();
-  }
+  String _statusText = '發現新版本，請立即更新。';
 
   Future<void> _startUpdate() async {
     setState(() {
       _isDownloading = true;
-      _statusText = '下載已開始，您可以將 App 切換至背景。';
+      _statusText = '下載中，請勿離開此頁面';
       _progress = 0.0;
     });
 
-    // 啟動背景服務並傳遞下載參數
-    service.startService();
-    service.invoke('startDownload', {
-      'url': widget.updateInfo['url'],
-      'version': widget.updateInfo['version'],
+    try {
+      final service = VersionCheckService();
+      await service.downloadAndInstall(
+        widget.updateInfo['url'],
+        (progress) {
+          setState(() {
+            _progress = progress;
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _statusText = '更新失敗: $e\n請檢查您的網路連線與儲存空間權限。';
+        _isDownloading = false;
+      });
+    }
+  }
+
+  // 新增方法：處理略過更新的邏輯
+  Future<void> _skipUpdate() async {
+    setState(() {
+      _isInitializingForSkip = true;
+      _statusText = '正在準備應用程式...';
     });
+
+    try {
+      // 執行在初始流程中被跳過的靜態資源載入
+      await Static.init();
+
+      // 檢查 Widget 是否還在 Widget Tree 中，避免非同步錯誤
+      if (mounted) {
+        // 初始化完成後，取代目前頁面並導向主 App
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const App()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _statusText = '準備失敗: $e\n請嘗試重新啟動應用程式。';
+          _isInitializingForSkip = false;
+        });
+      }
+    }
   }
 
   @override
@@ -317,7 +328,7 @@ class _UpdatePageState extends State<UpdatePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('應用程式更新'),
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: false, // 禁止返回
       ),
       body: Center(
         child: Padding(
@@ -340,6 +351,7 @@ class _UpdatePageState extends State<UpdatePage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
+              // 根據不同狀態顯示對應的 UI
               if (_isDownloading)
                 Column(
                   children: [
@@ -349,18 +361,36 @@ class _UpdatePageState extends State<UpdatePage> {
                       borderRadius: BorderRadius.circular(5),
                     ),
                     const SizedBox(height: 8),
-                    Text('${(_progress * 100).toStringAsFixed(0)}%'),
+                    Text('${(_progress * 100).toStringAsFixed(1)}%'),
+                  ],
+                )
+              else if (_isInitializingForSkip)
+                const Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('正在準備應用程式...'),
                   ],
                 )
               else
-                ElevatedButton.icon(
-                  onPressed: _startUpdate,
-                  icon: const Icon(Icons.download),
-                  label: const Text('下載並安裝'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(fontSize: 18),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: _startUpdate,
+                      icon: const Icon(Icons.download),
+                      label: const Text('立即更新'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                    const SizedBox(height: 12), // 按鈕間的間距
+                    TextButton(
+                      onPressed: _skipUpdate, // 綁定略過方法
+                      child: const Text('略過此版本'),
+                    ),
+                  ],
                 ),
             ],
           ),

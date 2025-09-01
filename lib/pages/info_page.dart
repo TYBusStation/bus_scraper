@@ -1,23 +1,44 @@
+import 'package:flutter/foundation.dart'
+    show kIsWeb; // <-- 步驟 1: 導入 kIsWeb 以偵測平台
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:share_plus/share_plus.dart'; // <-- 步驟 1: 導入 share_plus 套件
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/theme_provider.dart';
+
+// --- 步驟 2: 定義您的 APK 下載連結 ---
+// !!! 請務必將此連結替換為您自己的 APK 檔案實際託管的網址 !!!
+const String apkDownloadUrl =
+    'https://github.com/TYBusStation/bus_scraper/releases/latest/download/app-release.apk';
 
 class InfoPage extends StatelessWidget {
   const InfoPage({super.key});
 
   // 處理分享功能的函式
   void _shareWebsite(BuildContext context) {
-    // 獲取按鈕的位置，用於 iPad 上的分享彈出視窗
     final box = context.findRenderObject() as RenderBox?;
-
     SharePlus.instance.share(ShareParams(
       uri: Uri.parse('https://tybusstation.github.io/bus_scraper/'),
       subject: '桃園公車站動態追蹤',
       sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
     ));
+  }
+
+  // --- 步驟 3: 新增處理 APK 下載的函式 ---
+  Future<void> _downloadApk(BuildContext context) async {
+    final Uri uri = Uri.parse(apkDownloadUrl);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      // 如果無法開啟連結，顯示錯誤訊息
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('無法開啟下載連結: $apkDownloadUrl'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -92,21 +113,37 @@ class InfoPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 30),
 
-                // --- 新增的分享按鈕 ---
+                // --- 分享按鈕 ---
                 ElevatedButton.icon(
                   icon: const Icon(Icons.share),
                   label: const Text('分享此網站'),
-                  onPressed: () => _shareWebsite(context), // 呼叫分享函式
+                  onPressed: () => _shareWebsite(context),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                     textStyle: const TextStyle(fontSize: 18),
                     backgroundColor: themeData.colorScheme.primary,
-                    // 主題主要顏色
-                    foregroundColor:
-                        themeData.colorScheme.onPrimary, // 在主要顏色上的文字顏色
+                    foregroundColor: themeData.colorScheme.onPrimary,
                   ),
                 ),
-                // --- 分享按鈕結束 ---
+
+                // --- 步驟 4: 新增下載 APK 按鈕 (僅在 Web 平台顯示) ---
+                if (kIsWeb) ...[
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    icon: const FaIcon(FontAwesomeIcons.android, size: 22),
+                    label: const Text('下載 Android 版 (APK)'),
+                    onPressed: () => _downloadApk(context), // 呼叫下載函式
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      textStyle: const TextStyle(fontSize: 18),
+                      backgroundColor: const Color(0xFF3DDC84),
+                      // Android 綠色
+                      foregroundColor: Colors.black, // 在綠色上的文字顏色
+                    ),
+                  ),
+                ],
+                // --- 下載按鈕結束 ---
+
                 const SizedBox(height: 20),
               ],
             ),

@@ -2,10 +2,8 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-            android:label="桃園公車站"
+            android:label="桃園公車站動態追蹤"
             android:name="${applicationName}"
             android:icon="@mipmap/launcher_icon">
         <activity
@@ -36,9 +34,6 @@
         <meta-data
                 android:name="flutterEmbedding"
                 android:value="2"/>
-        <service
-                android:name="id.flutter.flutter_background_service.FlutterBackgroundService"
-                android:foregroundServiceType="dataSync"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
