@@ -4,26 +4,25 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:bus_scraper/storage/local_storage.dart';
 import 'package:bus_scraper/storage/storage.dart';
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart'; // 導入 IOHttpClientAdapter
-import 'package:flutter/foundation.dart' show kIsWeb; // 導入 kIsWeb 來判斷是否在 Web 平台
 import 'package:intl/intl.dart';
 import 'package:random_user_agents/random_user_agents.dart';
-import 'dart:io' show X509Certificate; // 導入 X509Certificate 類型
+import 'package:flutter/foundation.dart' show kIsWeb; // 引入 kIsWeb
+import 'dart:io' show Platform, HttpClient, X509Certificate; // 引入 Platform 等
+
+// 僅在非 Web 平台使用 IOHttpClientAdapter
+import 'package:dio/io.dart' if (dart.library.html) 'package:dio/browser.dart';
+
 
 import 'data/bus_route.dart';
 import 'data/car.dart';
-import 'data/driver_date_info.dart'; // 確保這個文件存在並定義 DriverDateInfo
-import 'data/plate_driving_dates.dart'; // 確保這個文件存在並定義 PlateDrivingDates
 import 'data/route_detail.dart';
-import 'data/vehicle_driving_dates.dart'; // 確保這個文件存在並定義 VehicleDrivingDates
 import 'data/vehicle_history.dart';
 
-// 【修正】定義一個城市資料模型
+// 【新增】定義一個城市資料模型
 class AppCity {
   final String code; // e.g., 'taoyuan'
   final String name; // e.g., '桃園市'
 
-  // 【修正】構造函數的 name 參數類型應為 String
   const AppCity({required this.code, required this.name});
 }
 
@@ -32,8 +31,11 @@ class Static {
 
   // --- Constants ---
   static const String _primaryApiUrl = "https://myster.freeddns.org:25566";
-  static const String _fallbackApiUrl =
-      "http://192.168.1.159:25567"; // 使用 http 以便本地測試
+  // 【關鍵修改】Fallback API 建議也使用 HTTPS，並確保其憑證有效。
+  // 如果在內部網路，可能需要自行管理憑證或在 Web 端使用代理。
+  static const String _fallbackApiUrl = "https://192.168.1.159:25567";
+  // 如果 fallback API 仍然必須是 HTTP (例如，僅供開發環境)，請注意 Web 端的安全限制。
+  // static const String _fallbackApiUrl = "http://192.168.1.159:25567"; // For HTTP fallback, but not recommended for production web
 
   static final DateFormat apiDateFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
   static final DateFormat displayDateFormatNoSec =
@@ -132,6 +134,28 @@ class Static {
     },
   ));
 
+  // 【新增】一個初始化 Dio 的方法，允許在非 Web 平台忽略憑證錯誤（⚠️僅限開發/特殊情況）
+  static void _setupDioClientAdapter() {
+    if (!kIsWeb) { // 僅在非 Web 平台（Android/iOS/Desktop）
+      (dio.httpClientAdapter as IOHttpClientAdapter).onHttpClientCreate =
+          (HttpClient client) {
+        client.badCertificateCallback =
+            (X509Certificate cert, String host, int port) {
+          // 在這裡可以根據 host 判斷是否要忽略憑證錯誤
+          // 例如：只對 _primaryApiUrl 或 _fallbackApiUrl 忽略
+          // 目前是全部忽略，⚠️ 生產環境極不推薦
+          bool shouldIgnore = host == Uri.parse(_primaryApiUrl).host ||
+              host == Uri.parse(_fallbackApiUrl).host;
+          log("Bad certificate callback for $host:$port. Ignore: $shouldIgnore");
+          return shouldIgnore;
+        };
+        return client;
+      };
+    }
+    // Web 平台不需要特別設置，瀏覽器會處理憑證。
+    // 如果 Web 平台的憑證無效，瀏覽器會直接阻止連線，無法繞過。
+  }
+
   static final AudioPlayer audioPlayer = AudioPlayer();
 
   // --- Local Storage ---
@@ -148,70 +172,116 @@ class Static {
   // --- Route detail cache ---
   static final Map<String, RouteDetail> _routeDetailCache = {};
 
-  // 【修正】 init 方法，包含憑證處理邏輯
-  static Future<void> init() async {
+  static Future<void> init() {
     _initFuture ??= _performInit();
-
-    // 判斷是否為 Web 平台
-    if (!kIsWeb) {
-      // 僅在非 Web 平台（Android/iOS/Desktop）配置 HttpClientAdapter
-      // 強烈建議：在生產環境中避免忽略憑證錯誤，這會帶來安全風險。
-      // 確保你的伺服器憑證是有效且受信任的。
-      (dio.httpClientAdapter as IOHttpClientAdapter).onBadCertificate =
-          (X509Certificate cert, String host, int port) {
-        // 如果主機是 myster.freeddns.org 或 myster.freeddns.net 則忽略憑證錯誤
-        // 再次強調，這是一個安全風險，僅在開發或特定受控環境下考慮。
-        if (host == 'myster.freeddns.org' || host == 'myster.freeddns.net') {
-          Static.log('Ignoring bad certificate for host: $host');
-          return true; // 允許憑證過期或無效
-        }
-        Static.log('Rejecting bad certificate for host: $host');
-        return false; // 對其他主機仍進行嚴格驗證
-      };
-    } else {
-      // Web 平台不需額外配置 HttpClientAdapter，瀏覽器會自行處理憑證。
-      // 如果 Web 遇到憑證問題，通常表示伺服器憑證本身有問題。
-      Static.log('Running on Web platform, certificate handling is by browser.');
-    }
-
     return _initFuture!;
   }
 
-  // 【修正】 _performInit 方法，包含實際的初始化邏輯
-  static Future<void> _performInit() async {
-    Static.log("Performing initial setup...");
-    await localStorage.init(); // 初始化本地存儲
-
-    // 加載各種路線和車輛數據
-    // 這裡的順序很重要，因為 routeData 依賴於 opRouteData 和 specialRouteData
-    opRouteData = await _fetchOpRoutesFromServer();
-    specialRouteData = await _fetchSpecialRoutesFromServer();
-    routeData = [...opRouteData, ...specialRouteData]; // 合併兩種路線
-    carData = await _fetchCarDataFromServer();
-
-    Static.log("Initial setup complete.");
-    // 如果你希望在應用啟動時就加載所有路線，可以取消下面的註釋
-    // await fetchAllRoutes();
-  }
-
-  // 【修正】 forceSwitchApiAndReInit 方法改為 async
-  static Future<void> forceSwitchApiAndReInit() async {
-    Static.log("Force switching API triggered by user.");
+  // 【修改】新增一個私有方法來切換 API，並在失敗時呼叫
+  static void _switchToFallbackApi() {
     if (_currentApiBaseUrl == _primaryApiUrl) {
       _currentApiBaseUrl = _fallbackApiUrl;
-      Static.log("Switched to FALLBACK API: $_currentApiBaseUrl");
+      log("Switched to FALLBACK API: $_currentApiBaseUrl");
+    } else {
+      // 如果已經在使用 Fallback API，或只有一個 API，則不需要進一步切換
+      log("Already using Fallback API or no other API to switch to.");
+    }
+    _routeDetailCache.clear(); // 清除快取，因為後端可能不同步
+    allRouteData = null; // 清除所有路線快取
+  }
+
+  static Future<void> forceSwitchApiAndReInit() {
+    log("Force switching API triggered by user.");
+    // 直接執行切換邏輯，不檢查當前是哪個 API
+    if (_currentApiBaseUrl == _primaryApiUrl) {
+      _currentApiBaseUrl = _fallbackApiUrl;
+      log("Switched to FALLBACK API: $_currentApiBaseUrl");
     } else {
       _currentApiBaseUrl = _primaryApiUrl;
-      Static.log("Switched to PRIMARY API: $_currentApiBaseUrl");
+      log("Switched to PRIMARY API: $_currentApiBaseUrl");
     }
 
     _routeDetailCache.clear(); // 清除快取，因為後端可能不同步
-    allRouteData = null; // 清除所有路線數據快取
-    _initFuture = null; // 重置 _initFuture 以便下次調用 init() 時重新執行 _performInit()
-    await init(); // 重新執行初始化
+    allRouteData = null;
+    _initFuture = null; // 重置初始化 Future
+    return init();
   }
 
-  // 【新增】統一的 log 函數
+  static Future<void> _performInit() async {
+    log("Static initialization started.");
+
+    // 【關鍵修改】將 StorageHelper.init() 移到最前面
+    await StorageHelper.init();
+
+    // 【新增】在初始化時設置 Dio 的 ClientAdapter
+    // 這應該在 dio 實例被使用前設置
+    _setupDioClientAdapter();
+
+    log("Using API Base URL: $apiBaseUrl");
+    log("Current city: ${localStorage.city}");
+
+    try {
+      // 嘗試連接當前的 API
+      await _testApiConnection(_currentApiBaseUrl);
+      log("API server connection successful with $_currentApiBaseUrl.");
+
+      // 步驟 3: 平行獲取所有必要的啟動資料
+      final results = await Future.wait([
+        _fetchOpRoutesFromServer(),
+        _fetchSpecialRoutesFromServer(),
+        _fetchCarDataFromServer(),
+      ], eagerError: true); // eagerError: true 可以在任何一個 future 失敗時立即失敗
+
+      // 步驟 4: 安全地賦值
+      opRouteData =
+          (results[0] is List<BusRoute>) ? results[0] as List<BusRoute> : [];
+      specialRouteData =
+          (results[1] is List<BusRoute>) ? results[1] as List<BusRoute> : [];
+      carData = (results[2] is List<Car>) ? results[2] as List<Car> : [];
+
+      routeData = [...opRouteData, ...specialRouteData];
+      final seen = <String>{};
+      routeData.retainWhere((route) => seen.add(route.id));
+
+      log("Static initialization complete.");
+      log("Operational routes loaded: ${opRouteData.length}");
+      log("Special routes loaded: ${specialRouteData.length}");
+      log("Total combined routes: ${routeData.length}");
+      log("Car data loaded: ${carData.length}");
+    } catch (e, stackTrace) {
+      log("!!! WARNING: Static initialization failed with current API (primary or fallback) !!!");
+      log("Error: $e");
+      log("StackTrace: $stackTrace");
+
+      // 如果當前是 Primary API 且初始化失敗，嘗試切換到 Fallback API 並重試
+      if (_currentApiBaseUrl == _primaryApiUrl) {
+        log("Primary API failed. Attempting to switch to Fallback API and re-initialize.");
+        _switchToFallbackApi(); // 切換到備用 API
+        _initFuture = null; // 重置 _initFuture 以便再次調用 init()
+        return await init(); // 遞歸調用 init() 以使用備用 API
+      } else {
+        // 如果已經在使用 Fallback API 並且也失敗了，或者只有 Primary API 失敗後沒有 Fallback，
+        // 則應用無法獲取資料。
+        log("Both Primary and Fallback APIs failed or Fallback API is also unavailable. Application will run with empty data.");
+        opRouteData = [];
+        specialRouteData = [];
+        routeData = [];
+        carData = [];
+        // 這裡可以選擇 rethrow 或返回一個失敗狀態，讓 UI 知道。
+        // 為避免 LateInitializationError 再次發生，還是為 late final 變數賦值。
+        // rethrow; // 如果希望上層捕獲這個錯誤
+      }
+    }
+  }
+
+  // 【新增】一個獨立的 API 連線測試方法
+  static Future<void> _testApiConnection(String apiUrl) async {
+    log("Testing API connection to: $apiUrl");
+    await dio.getUri(Uri.parse(apiUrl)); // 嘗試一個簡單的 GET 請求
+    log("Connection to $apiUrl successful.");
+  }
+
+
   static void log(String message) {
     print("[${DateTime.now().toIso8601String()}] [Static] $message");
   }
@@ -244,7 +314,7 @@ class Static {
     final int? routeIdInt = int.tryParse(routeId);
     if (routeIdInt == null) return BusRoute.unknown;
 
-    Static.log("Fetching unknown route detail from API for ID: $routeId");
+    log("Fetching unknown route detail from API for ID: $routeId");
     try {
       final response = await dio.post(
         _graphqlApiUrl, // 使用動態 getter
@@ -257,27 +327,16 @@ class Static {
       if (response.statusCode == 200 &&
           response.data?['data']?['route'] is Map) {
         final newRoute = BusRoute.fromJson(response.data['data']['route']);
-        Static.log(
-            "Successfully fetched detail for unknown route: ${newRoute.name} ($routeId)");
-        // 確保不重複添加
+        log("Successfully fetched detail for unknown route: ${newRoute.name} ($routeId)");
         if (!routeData.any((r) => r.id == newRoute.id)) {
-          // 注意：routeData 是 late final，不能直接 .add。
-          // 如果需要動態更新運行時的路線列表，需要重新設計 routeData 的管理方式。
-          // 暫時先不修改這個行為，但請注意這裡可能會有問題。
-          // 一個解決方案是讓 routeData 是一個普通的 List，而不是 late final。
-          // 或者在 _performInit 時就完全加載所有可能的路線。
-          // 為了保持 late final，我們假設 `routeData` 在初始化後是固定的。
-          // 如果確實有動態添加未知路線的需求，這部分邏輯需要調整。
-          // 為了保持原意且避免編譯錯誤，這裡暫時假裝可以添加。
-          // 實際應用中，如果 routeData 是 late final，這行會報錯。
-          // routeData.add(newRoute); // 如果 routeData 是 late final，這裡會是錯誤。
+          routeData.add(newRoute);
         }
         return newRoute;
       }
     } on DioException catch (e) {
-      Static.log("DioError fetching route detail for ID $routeId: ${e.message}");
+      log("DioError fetching route detail for ID $routeId: ${e.message}");
     } catch (e) {
-      Static.log("Unexpected error fetching route detail for ID $routeId: $e");
+      log("Unexpected error fetching route detail for ID $routeId: $e");
     }
     return BusRoute.unknown;
   }
@@ -290,7 +349,7 @@ class Static {
     final int? routeIdInt = int.tryParse(routeId);
     if (routeIdInt == null) return RouteDetail.unknown;
 
-    Static.log("Fetching route path and stops from API for ID: $routeId");
+    log("Fetching route path and stops from API for ID: $routeId");
     try {
       final response = await dio.post(
         _graphqlApiUrl, // 使用動態 getter
@@ -308,9 +367,9 @@ class Static {
         return routeDetail;
       }
     } on DioException catch (e) {
-      Static.log("DioError fetching path/stops for ID $routeId: ${e.message}");
+      log("DioError fetching path/stops for ID $routeId: ${e.message}");
     } catch (e) {
-      Static.log("Unexpected error fetching path/stops for ID $routeId: $e");
+      log("Unexpected error fetching path/stops for ID $routeId: $e");
     }
     return RouteDetail.unknown;
   }
@@ -326,7 +385,7 @@ class Static {
 
   static Future<List<BusRoute>> _fetchAllRoutesFromServer() async {
     final String url = "$apiBaseUrl/${localStorage.city}/all_routes";
-    Static.log("Fetching all routes from API: $url");
+    log("Fetching all routes from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
       if (response.statusCode == 200 && response.data is List) {
@@ -335,15 +394,15 @@ class Static {
             .toList();
       }
     } on DioException catch (e) {
-      Static.log("DioError fetching all routes: ${e.message}");
+      log("DioError fetching all routes: ${e.message}");
     } catch (e) {
-      Static.log("Unexpected error fetching all routes: $e");
+      log("Unexpected error fetching all routes: $e");
     }
     return [];
   }
 
   static Future<List<BusRoute>> _fetchOpRoutesFromServer() async {
-    Static.log("Fetching operational routes from API: $_graphqlApiUrl");
+    log("Fetching operational routes from API: $_graphqlApiUrl");
     try {
       final response = await dio.post(
         _graphqlApiUrl, // 使用動態 getter
@@ -360,10 +419,9 @@ class Static {
             .toList();
       }
     } on DioException catch (e) {
-      Static.log("DioError fetching operational routes: ${e.message}");
+      log("DioError fetching operational routes: ${e.message}");
     } catch (e, stackTrace) {
-      Static.log(
-          "Unexpected error fetching operational routes: $e\nStackTrace: $stackTrace");
+      log("Unexpected error fetching operational routes: $e\nStackTrace: $stackTrace");
     }
     return [];
   }
@@ -371,7 +429,7 @@ class Static {
   static Future<List<BusRoute>> _fetchSpecialRoutesFromServer() async {
     final String url =
         "$apiBaseUrl/${Static.localStorage.city}/special_routes"; // 特殊路線是全域的，不分城市
-    Static.log("Fetching special routes from API: $url");
+    log("Fetching special routes from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
       if (response.statusCode == 200 && response.data is List) {
@@ -380,25 +438,25 @@ class Static {
             .toList();
       }
     } on DioException catch (e) {
-      Static.log("DioError fetching special routes: ${e.message}");
+      log("DioError fetching special routes: ${e.message}");
     } catch (e) {
-      Static.log("Unexpected error fetching special routes: $e");
+      log("Unexpected error fetching special routes: $e");
     }
     return [];
   }
 
   static Future<List<Car>> _fetchCarDataFromServer() async {
     final String url = "$apiBaseUrl/${localStorage.city}/all_car_types";
-    Static.log("Fetching car data from API: $url");
+    log("Fetching car data from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
       if (response.statusCode == 200 && response.data is List) {
         return (response.data as List).map((c) => Car.fromJson(c)).toList();
       }
     } on DioException catch (e) {
-      Static.log("DioError fetching car data: ${e.message}");
+      log("DioError fetching car data: ${e.message}");
     } catch (e) {
-      Static.log("Unexpected error fetching car data: $e");
+      log("Unexpected error fetching car data: $e");
     }
     return [];
   }
@@ -537,13 +595,17 @@ class Static {
 
   /// 檢查對於**當前城市**的特定駕駛員是否存在備註。
   static bool hasDriverRemark(String driverId) {
+    // 1. 獲取當前選擇的城市
     final currentCity = localStorage.city;
+    // 2. 呼叫 LocalStorage 中新的、正確的方法
     return localStorage.getRemarksForCity(currentCity).containsKey(driverId);
   }
 
   /// 獲取對於**當前城市**的特定駕駛員的備註。
   static String? getDriverRemark(String driverId) {
+    // 1. 獲取當前選擇的城市
     final currentCity = localStorage.city;
+    // 2. 呼叫 LocalStorage 中新的、正確的方法
     return localStorage.getRemarksForCity(currentCity)[driverId];
   }
 
@@ -552,6 +614,7 @@ class Static {
     if (driverId == "0") {
       return "未知駕駛";
     }
+    // hasDriverRemark 和 getDriverRemark 現在已經是城市感知的了
     return hasDriverRemark(driverId)
         ? "$driverId(${getDriverRemark(driverId)})"
         : driverId;
@@ -559,10 +622,11 @@ class Static {
 
   static Future<List<DriverDateInfo>> findVehicleDrivers({
     required String plate,
-    DateTime? startDate,
-    DateTime? endDate,
+    DateTime? startDate, // 【新增】
+    DateTime? endDate, // 【新增】
   }) async {
     final String city = localStorage.city;
+    // 【修改】使用 Uri.parse().replace() 來安全地添加查詢參數
     final uri = Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_drivers/$plate")
         .replace(
       queryParameters: {
@@ -570,7 +634,7 @@ class Static {
         if (endDate != null) 'end_time': apiDateFormat.format(endDate),
       },
     );
-    Static.log("Fetching drivers for plate $plate from API: $uri");
+    log("Fetching drivers for plate $plate from API: $uri");
     try {
       final response = await dio.getUri(uri);
       if (response.statusCode == 200 && response.data is List) {
@@ -579,22 +643,24 @@ class Static {
             .toList();
       }
     } on DioException catch (e) {
-      Static.log("DioError fetching drivers for plate $plate: ${e.message}");
+      log("DioError fetching drivers for plate $plate: ${e.message}");
     } catch (e) {
-      Static.log("Unexpected error fetching drivers for plate $plate: $e");
+      log("Unexpected error fetching drivers for plate $plate: $e");
     }
     return [];
   }
+
 
   /// 根據車輛車牌反查其所有行駛過的路線及日期
   ///
   /// 對應 API: `GET /{city}/tools/find_vehicle_routes/{plate}`
   static Future<List<VehicleRouteHistory>> findVehicleRoutes({
     required String plate,
-    DateTime? startDate,
-    DateTime? endDate,
+    DateTime? startDate, // 【新增】
+    DateTime? endDate, // 【新增】
   }) async {
     final String city = localStorage.city;
+    // 【修改】使用 Uri.parse().replace()
     final uri =
         Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_routes/$plate").replace(
       queryParameters: {
@@ -602,7 +668,7 @@ class Static {
         if (endDate != null) 'end_time': apiDateFormat.format(endDate),
       },
     );
-    Static.log("Fetching routes for plate $plate from API: $uri");
+    log("Fetching routes for plate $plate from API: $uri");
     try {
       final response = await dio.getUri(uri);
       if (response.statusCode == 200 && response.data is List) {
@@ -610,11 +676,10 @@ class Static {
             .map((json) => VehicleRouteHistory.fromJson(json))
             .toList();
       }
-      Static.log("Invalid response data for plate $plate. Status: ${response.statusCode}, Data: ${response.data}");
     } on DioException catch (e) {
-      Static.log("DioError fetching routes for plate $plate: ${e.message}");
+      log("DioError fetching routes for plate $plate: ${e.message}");
     } catch (e) {
-      Static.log("Unexpected error fetching routes for plate $plate: $e");
+      log("Unexpected error fetching routes for plate $plate: $e");
     }
     return [];
   }
@@ -632,19 +697,19 @@ class Static {
         if (endDate != null) 'end_time': apiDateFormat.format(endDate),
       },
     );
-    Static.log("Fetching plates for driver $driverId from API: $uri");
+    log("Fetching plates for driver $driverId from API: $uri");
     try {
       final response = await dio.getUri(uri);
       if (response.statusCode == 200 && response.data is List) {
+        // Dio 會自動解碼，我們直接使用
         return (response.data as List)
             .map((json) => PlateDrivingDates.fromJson(json))
             .toList();
       }
-      Static.log("Invalid response data for driver $driverId. Status: ${response.statusCode}, Data: ${response.data}");
     } on DioException catch (e) {
-      Static.log("DioError fetching plates for driver $driverId: ${e.message}");
+      log("DioError fetching plates for driver $driverId: ${e.message}");
     } catch (e) {
-      Static.log("Unexpected error fetching plates for driver $driverId: $e");
+      log("Unexpected error fetching plates for driver $driverId: $e");
     }
     return [];
   }
@@ -666,7 +731,7 @@ class Static {
         if (endDate != null) 'end_time': apiDateFormat.format(endDate),
       },
     );
-    Static.log("Fetching vehicles for route $routeId from API: $uri");
+    log("Fetching vehicles for route $routeId from API: $uri");
     try {
       final response = await dio.getUri(uri);
       if (response.statusCode == 200 && response.data is List) {
@@ -674,11 +739,10 @@ class Static {
             .map((json) => VehicleDrivingDates.fromJson(json))
             .toList();
       }
-      Static.log("Invalid response data for route $routeId. Status: ${response.statusCode}, Data: ${response.data}");
     } on DioException catch (e) {
-      Static.log("DioError fetching vehicles for route $routeId: ${e.message}");
+      log("DioError fetching vehicles for route $routeId: ${e.message}");
     } catch (e) {
-      Static.log("Unexpected error fetching vehicles for route $routeId: $e");
+      log("Unexpected error fetching vehicles for route $routeId: $e");
     }
     return [];
   }
@@ -696,19 +760,19 @@ class Static {
         if (endDate != null) 'end_time': apiDateFormat.format(endDate),
       },
     );
-    Static.log("Fetching drivers for plate $plate from API: $uri");
+    log("Fetching drivers for plate $plate from API: $uri");
     try {
       final response = await dio.getUri(uri);
       if (response.statusCode == 200 && response.data is List) {
+        // Dio 會自動解碼，我們直接使用
         return (response.data as List)
             .map((json) => DriverDateInfo.fromJson(json))
             .toList();
       }
-      Static.log("Invalid response data for plate $plate. Status: ${response.statusCode}, Data: ${response.data}");
     } on DioException catch (e) {
-      Static.log("DioError fetching drivers for plate $plate: ${e.message}");
+      log("DioError fetching drivers for plate $plate: ${e.message}");
     } catch (e) {
-      Static.log("Unexpected error fetching drivers for plate $plate: $e");
+      log("Unexpected error fetching drivers for plate $plate: $e");
     }
     return [];
   }
