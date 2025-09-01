@@ -1,7 +1,5 @@
-
 // static.dart
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:bus_scraper/storage/local_storage.dart';
 import 'package:bus_scraper/storage/storage.dart';
 import 'package:dio/dio.dart';
@@ -31,7 +29,7 @@ class Static {
 
   static final DateFormat apiDateFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
   static final DateFormat displayDateFormatNoSec =
-      DateFormat('yyyy-MM-dd HH:mm');
+  DateFormat('yyyy-MM-dd HH:mm');
   static final DateFormat displayDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
   static RegExp letterNumber = RegExp(r"[^a-zA-Z0-9]");
@@ -120,13 +118,11 @@ class Static {
       'User-Agent': RandomUserAgents.random(),
       'Content-Type': 'application/json',
       'Accept':
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
       'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
       'Accept-Encoding': 'gzip, deflate, br',
     },
   ));
-
-  static final AudioPlayer audioPlayer = AudioPlayer();
 
   // --- Local Storage ---
   static final LocalStorage localStorage = LocalStorage();
@@ -166,50 +162,16 @@ class Static {
   static Future<void> _performInit() async {
     log("Static initialization started.");
 
+    // 【關鍵修改】將 StorageHelper.init() 移到最前面
     await StorageHelper.init();
 
     log("Using API Base URL: $apiBaseUrl");
     log("Current city: ${localStorage.city}");
 
-    bool primaryApiSuccess = false;
-    // Attempt to connect to the primary API first
     try {
-      await dio.getUri(Uri.parse(_primaryApiUrl));
-      _currentApiBaseUrl = _primaryApiUrl;
-      log("Primary API server connection successful: $_currentApiBaseUrl");
-      primaryApiSuccess = true;
-    } catch (e, stackTrace) {
-      log("Primary API connection failed: $e");
-      log("StackTrace: $stackTrace");
-      log("Attempting to switch to FALLBACK API: $_fallbackApiUrl");
-      _currentApiBaseUrl = _fallbackApiUrl; // Switch to fallback
-      // Try connecting to the fallback API
-      try {
-        await dio.getUri(Uri.parse(_fallbackApiUrl));
-        log("Fallback API server connection successful: $_currentApiBaseUrl");
-        primaryApiSuccess = true; // Still mark as success for further logic
-      } catch (fallbackError, fallbackStackTrace) {
-        log("Fallback API connection also failed: $fallbackError");
-        log("Fallback StackTrace: $fallbackStackTrace");
-        // If both fail, rethrow the *primary* error as it's the initial failure point
-        // Or rethrow a new error indicating both failed
-        throw Exception("Failed to connect to both primary and fallback APIs.");
-      }
-    }
-
-    if (!primaryApiSuccess) {
-      // This branch is technically covered by the nested try-catch above,
-      // but explicitly setting the URL ensures clarity.
-      // This line will only be reached if the fallback also failed
-      // and the exception was already rethrown.
-      // Or if you want to handle it differently.
-      // For this refined logic, the `throw Exception` inside the catch block handles it.
-    }
-
-
-    try {
-      // Use the successfully connected API Base URL
-      log("Final API Base URL for data fetching: $apiBaseUrl");
+      // 測試 API 連線
+      await dio.getUri(Uri.parse(apiBaseUrl));
+      log("API server connection successful.");
 
       // 步驟 3: 平行獲取所有必要的啟動資料
       final results = await Future.wait([
@@ -220,9 +182,9 @@ class Static {
 
       // 步驟 4: 安全地賦值
       opRouteData =
-          (results[0] is List<BusRoute>) ? results[0] as List<BusRoute> : [];
+      (results[0] is List<BusRoute>) ? results[0] as List<BusRoute> : [];
       specialRouteData =
-          (results[1] is List<BusRoute>) ? results[1] as List<BusRoute> : [];
+      (results[1] is List<BusRoute>) ? results[1] as List<BusRoute> : [];
       carData = (results[2] is List<Car>) ? results[2] as List<Car> : [];
 
       routeData = [...opRouteData, ...specialRouteData];
@@ -236,7 +198,7 @@ class Static {
       log("Car data loaded: ${carData.length}");
     } catch (e, stackTrace) {
       // 【關鍵】如果初始化過程中任何一步失敗，捕獲錯誤
-      log("!!! CRITICAL: Static initialization failed during data fetching !!!");
+      log("!!! CRITICAL: Static initialization failed !!!");
       log("Error: $e");
       log("StackTrace: $stackTrace");
 
@@ -249,6 +211,10 @@ class Static {
 
       rethrow;
     }
+  }
+
+  static void log(String message) {
+    print("[${DateTime.now().toIso8601String()}] [Static] $message");
   }
 
   static BusRoute getRouteByIdSync(String routeId) {
@@ -292,7 +258,8 @@ class Static {
       if (response.statusCode == 200 &&
           response.data?['data']?['route'] is Map) {
         final newRoute = BusRoute.fromJson(response.data['data']['route']);
-        log("Successfully fetched detail for unknown route: ${newRoute.name} ($routeId)");
+        log("Successfully fetched detail for unknown route: ${newRoute
+            .name} ($routeId)");
         if (!routeData.any((r) => r.id == newRoute.id)) {
           routeData.add(newRoute);
         }
@@ -327,7 +294,7 @@ class Static {
       if (response.statusCode == 200 &&
           response.data?['data']?['route'] is Map) {
         final routeDetail =
-            RouteDetail.fromJson(response.data['data']['route']);
+        RouteDetail.fromJson(response.data['data']['route']);
         _routeDetailCache[routeId] = routeDetail;
         return routeDetail;
       }
@@ -386,14 +353,16 @@ class Static {
     } on DioException catch (e) {
       log("DioError fetching operational routes: ${e.message}");
     } catch (e, stackTrace) {
-      log("Unexpected error fetching operational routes: $e\nStackTrace: $stackTrace");
+      log(
+          "Unexpected error fetching operational routes: $e\nStackTrace: $stackTrace");
     }
     return [];
   }
 
   static Future<List<BusRoute>> _fetchSpecialRoutesFromServer() async {
     final String url =
-        "$apiBaseUrl/${Static.localStorage.city}/special_routes"; // 特殊路線是全域的，不分城市
+        "$apiBaseUrl/${Static.localStorage
+        .city}/special_routes"; // 特殊路線是全域的，不分城市
     log("Fetching special routes from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
@@ -506,10 +475,10 @@ class Static {
     if (typeComparison != 0) return typeComparison;
     if (pa['type'] == 'NUMERIC') {
       int baseNumComparison =
-          (pa['baseNum'] ?? 0).compareTo(pb['baseNum'] ?? 0);
+      (pa['baseNum'] ?? 0).compareTo(pb['baseNum'] ?? 0);
       if (baseNumComparison != 0) return baseNumComparison;
       int suffixAlphaComparison =
-          (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
+      (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
       if (suffixAlphaComparison != 0) return suffixAlphaComparison;
       String paParen = pa['suffixParenthesis'] as String;
       String pbParen = pb['suffixParenthesis'] as String;
@@ -518,7 +487,7 @@ class Static {
       return paParen.compareTo(pbParen);
     } else if (pa['type'] == 'ALPHA') {
       int baseStrComparison =
-          (pa['baseStr'] ?? '').compareTo(pb['baseStr'] ?? '');
+      (pa['baseStr'] ?? '').compareTo(pb['baseStr'] ?? '');
       if (baseStrComparison != 0) return baseStrComparison;
       int paSuffixNumVal = (pa['suffixNumeric'] as String).isEmpty
           ? 0
@@ -529,7 +498,7 @@ class Static {
       int suffixNumComparison = paSuffixNumVal.compareTo(pbSuffixNumVal);
       if (suffixNumComparison != 0) return suffixNumComparison;
       int suffixAlphaComparison =
-          (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
+      (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
       if (suffixAlphaComparison != 0) return suffixAlphaComparison;
       String paParen = pa['suffixParenthesis'] as String;
       String pbParen = pb['suffixParenthesis'] as String;
@@ -538,7 +507,7 @@ class Static {
       return paParen.compareTo(pbParen);
     } else if (pa['type'] == 'T') {
       int baseNumComparison =
-          (pa['baseNum'] ?? 0).compareTo(pb['baseNum'] ?? 0);
+      (pa['baseNum'] ?? 0).compareTo(pb['baseNum'] ?? 0);
       if (baseNumComparison != 0) return baseNumComparison;
       bool paIsSpecial = pa['isSpecialTGood'] as bool;
       bool pbIsSpecial = pb['isSpecialTGood'] as bool;
@@ -546,7 +515,7 @@ class Static {
         return paIsSpecial ? -1 : 1;
       }
       int suffixAlphaComparison =
-          (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
+      (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
       if (suffixAlphaComparison != 0) return suffixAlphaComparison;
       String paParen = pa['suffixParenthesis'] as String;
       String pbParen = pb['suffixParenthesis'] as String;
@@ -615,7 +584,6 @@ class Static {
     return [];
   }
 
-
   /// 根據車輛車牌反查其所有行駛過的路線及日期
   ///
   /// 對應 API: `GET /{city}/tools/find_vehicle_routes/{plate}`
@@ -627,7 +595,7 @@ class Static {
     final String city = localStorage.city;
     // 【修改】使用 Uri.parse().replace()
     final uri =
-        Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_routes/$plate").replace(
+    Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_routes/$plate").replace(
       queryParameters: {
         if (startDate != null) 'start_time': apiDateFormat.format(startDate),
         if (endDate != null) 'end_time': apiDateFormat.format(endDate),
@@ -689,7 +657,7 @@ class Static {
   }) async {
     final String city = localStorage.city;
     final uri =
-        Uri.parse("$apiBaseUrl/$city/tools/find_route_vehicles").replace(
+    Uri.parse("$apiBaseUrl/$city/tools/find_route_vehicles").replace(
       queryParameters: {
         'route_id': routeId, // 注意後端參數可能是 route_id
         if (startDate != null) 'start_time': apiDateFormat.format(startDate),
