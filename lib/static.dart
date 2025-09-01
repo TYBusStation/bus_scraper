@@ -7,10 +7,15 @@ import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import 'package:random_user_agents/random_user_agents.dart';
 import 'package:flutter/foundation.dart' show kIsWeb; // 引入 kIsWeb
-import 'dart:io' show Platform, HttpClient, X509Certificate; // 引入 Platform 等
 
-// 僅在非 Web 平台使用 IOHttpClientAdapter
+// Conditional import for Dio client adapter
+// On non-web platforms, import IOHttpClientAdapter from dio/io.dart
+// On web platforms, dio/browser.dart is used, which does not have IOHttpClientAdapter
 import 'package:dio/io.dart' if (dart.library.html) 'package:dio/browser.dart';
+
+// Only import dart:io if not on web, to avoid issues with web compilation
+// You might need to make Platform and HttpClient nullable or only use them inside !kIsWeb blocks
+import 'dart:io' show Platform, HttpClient, X509Certificate;
 
 
 import 'data/bus_route.dart';
@@ -134,9 +139,11 @@ class Static {
     },
   ));
 
-  // 【新增】一個初始化 Dio 的方法，允許在非 Web 平台忽略憑證錯誤（⚠️僅限開發/特殊情況）
+  // 【修改】一個初始化 Dio 的方法，允許在非 Web 平台忽略憑證錯誤（⚠️僅限開發/特殊情況）
   static void _setupDioClientAdapter() {
     if (!kIsWeb) { // 僅在非 Web 平台（Android/iOS/Desktop）
+      // Cast dio.httpClientAdapter to HttpClientAdapter from dio/io.dart
+      // This is safe because dio/io.dart is imported when kIsWeb is false.
       (dio.httpClientAdapter as IOHttpClientAdapter).onHttpClientCreate =
           (HttpClient client) {
         client.badCertificateCallback =
