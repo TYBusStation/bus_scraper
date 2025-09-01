@@ -143,6 +143,9 @@ class Static {
 
   static Future<void> init() {
     _initFuture ??= _performInit();
+    dio.httpClientAdapter = IOHttpClientAdapter(
+  onBadCertificate: (X509Certificate cert, String host, int port) => true,
+);
     return _initFuture!;
   }
 
