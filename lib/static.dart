@@ -1,3 +1,4 @@
+
 // static.dart
 
 import 'package:audioplayers/audioplayers.dart';
@@ -6,17 +7,6 @@ import 'package:bus_scraper/storage/storage.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import 'package:random_user_agents/random_user_agents.dart';
-import 'package:flutter/foundation.dart' show kIsWeb; // 引入 kIsWeb
-
-// Conditional import for Dio client adapter
-// On non-web platforms, import IOHttpClientAdapter from dio/io.dart
-// On web platforms, dio/browser.dart is used, which does not have IOHttpClientAdapter
-import 'package:dio/io.dart' if (dart.library.html) 'package:dio/browser.dart';
-
-// Only import dart:io if not on web, to avoid issues with web compilation
-// You might need to make Platform and HttpClient nullable or only use them inside !kIsWeb blocks
-import 'dart:io' show Platform, HttpClient, X509Certificate;
-
 
 import 'data/bus_route.dart';
 import 'data/car.dart';
@@ -36,11 +26,8 @@ class Static {
 
   // --- Constants ---
   static const String _primaryApiUrl = "https://myster.freeddns.org:25566";
-  // 【關鍵修改】Fallback API 建議也使用 HTTPS，並確保其憑證有效。
-  // 如果在內部網路，可能需要自行管理憑證或在 Web 端使用代理。
-  static const String _fallbackApiUrl = "https://192.168.1.159:25567";
-  // 如果 fallback API 仍然必須是 HTTP (例如，僅供開發環境)，請注意 Web 端的安全限制。
-  // static const String _fallbackApiUrl = "http://192.168.1.159:25567"; // For HTTP fallback, but not recommended for production web
+  static const String _fallbackApiUrl =
+      "http://192.168.1.159:25567"; // 使用 http 以便本地測試
 
   static final DateFormat apiDateFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
   static final DateFormat displayDateFormatNoSec =
@@ -139,30 +126,6 @@ class Static {
     },
   ));
 
-  // 【修改】一個初始化 Dio 的方法，允許在非 Web 平台忽略憑證錯誤（⚠️僅限開發/特殊情況）
-  static void _setupDioClientAdapter() {
-    if (!kIsWeb) { // 僅在非 Web 平台（Android/iOS/Desktop）
-      // Cast dio.httpClientAdapter to HttpClientAdapter from dio/io.dart
-      // This is safe because dio/io.dart is imported when kIsWeb is false.
-      (dio.httpClientAdapter as IOHttpClientAdapter).onHttpClientCreate =
-          (HttpClient client) {
-        client.badCertificateCallback =
-            (X509Certificate cert, String host, int port) {
-          // 在這裡可以根據 host 判斷是否要忽略憑證錯誤
-          // 例如：只對 _primaryApiUrl 或 _fallbackApiUrl 忽略
-          // 目前是全部忽略，⚠️ 生產環境極不推薦
-          bool shouldIgnore = host == Uri.parse(_primaryApiUrl).host ||
-              host == Uri.parse(_fallbackApiUrl).host;
-          log("Bad certificate callback for $host:$port. Ignore: $shouldIgnore");
-          return shouldIgnore;
-        };
-        return client;
-      };
-    }
-    // Web 平台不需要特別設置，瀏覽器會處理憑證。
-    // 如果 Web 平台的憑證無效，瀏覽器會直接阻止連線，無法繞過。
-  }
-
   static final AudioPlayer audioPlayer = AudioPlayer();
 
   // --- Local Storage ---
@@ -184,22 +147,8 @@ class Static {
     return _initFuture!;
   }
 
-  // 【修改】新增一個私有方法來切換 API，並在失敗時呼叫
-  static void _switchToFallbackApi() {
-    if (_currentApiBaseUrl == _primaryApiUrl) {
-      _currentApiBaseUrl = _fallbackApiUrl;
-      log("Switched to FALLBACK API: $_currentApiBaseUrl");
-    } else {
-      // 如果已經在使用 Fallback API，或只有一個 API，則不需要進一步切換
-      log("Already using Fallback API or no other API to switch to.");
-    }
-    _routeDetailCache.clear(); // 清除快取，因為後端可能不同步
-    allRouteData = null; // 清除所有路線快取
-  }
-
   static Future<void> forceSwitchApiAndReInit() {
     log("Force switching API triggered by user.");
-    // 直接執行切換邏輯，不檢查當前是哪個 API
     if (_currentApiBaseUrl == _primaryApiUrl) {
       _currentApiBaseUrl = _fallbackApiUrl;
       log("Switched to FALLBACK API: $_currentApiBaseUrl");
@@ -210,27 +159,57 @@ class Static {
 
     _routeDetailCache.clear(); // 清除快取，因為後端可能不同步
     allRouteData = null;
-    _initFuture = null; // 重置初始化 Future
+    _initFuture = null;
     return init();
   }
 
   static Future<void> _performInit() async {
     log("Static initialization started.");
 
-    // 【關鍵修改】將 StorageHelper.init() 移到最前面
     await StorageHelper.init();
-
-    // 【新增】在初始化時設置 Dio 的 ClientAdapter
-    // 這應該在 dio 實例被使用前設置
-    _setupDioClientAdapter();
 
     log("Using API Base URL: $apiBaseUrl");
     log("Current city: ${localStorage.city}");
 
+    bool primaryApiSuccess = false;
+    // Attempt to connect to the primary API first
     try {
-      // 嘗試連接當前的 API
-      await _testApiConnection(_currentApiBaseUrl);
-      log("API server connection successful with $_currentApiBaseUrl.");
+      await dio.getUri(Uri.parse(_primaryApiUrl));
+      _currentApiBaseUrl = _primaryApiUrl;
+      log("Primary API server connection successful: $_currentApiBaseUrl");
+      primaryApiSuccess = true;
+    } catch (e, stackTrace) {
+      log("Primary API connection failed: $e");
+      log("StackTrace: $stackTrace");
+      log("Attempting to switch to FALLBACK API: $_fallbackApiUrl");
+      _currentApiBaseUrl = _fallbackApiUrl; // Switch to fallback
+      // Try connecting to the fallback API
+      try {
+        await dio.getUri(Uri.parse(_fallbackApiUrl));
+        log("Fallback API server connection successful: $_currentApiBaseUrl");
+        primaryApiSuccess = true; // Still mark as success for further logic
+      } catch (fallbackError, fallbackStackTrace) {
+        log("Fallback API connection also failed: $fallbackError");
+        log("Fallback StackTrace: $fallbackStackTrace");
+        // If both fail, rethrow the *primary* error as it's the initial failure point
+        // Or rethrow a new error indicating both failed
+        throw Exception("Failed to connect to both primary and fallback APIs.");
+      }
+    }
+
+    if (!primaryApiSuccess) {
+      // This branch is technically covered by the nested try-catch above,
+      // but explicitly setting the URL ensures clarity.
+      // This line will only be reached if the fallback also failed
+      // and the exception was already rethrown.
+      // Or if you want to handle it differently.
+      // For this refined logic, the `throw Exception` inside the catch block handles it.
+    }
+
+
+    try {
+      // Use the successfully connected API Base URL
+      log("Final API Base URL for data fetching: $apiBaseUrl");
 
       // 步驟 3: 平行獲取所有必要的啟動資料
       final results = await Future.wait([
@@ -256,41 +235,20 @@ class Static {
       log("Total combined routes: ${routeData.length}");
       log("Car data loaded: ${carData.length}");
     } catch (e, stackTrace) {
-      log("!!! WARNING: Static initialization failed with current API (primary or fallback) !!!");
+      // 【關鍵】如果初始化過程中任何一步失敗，捕獲錯誤
+      log("!!! CRITICAL: Static initialization failed during data fetching !!!");
       log("Error: $e");
       log("StackTrace: $stackTrace");
 
-      // 如果當前是 Primary API 且初始化失敗，嘗試切換到 Fallback API 並重試
-      if (_currentApiBaseUrl == _primaryApiUrl) {
-        log("Primary API failed. Attempting to switch to Fallback API and re-initialize.");
-        _switchToFallbackApi(); // 切換到備用 API
-        _initFuture = null; // 重置 _initFuture 以便再次調用 init()
-        return await init(); // 遞歸調用 init() 以使用備用 API
-      } else {
-        // 如果已經在使用 Fallback API 並且也失敗了，或者只有 Primary API 失敗後沒有 Fallback，
-        // 則應用無法獲取資料。
-        log("Both Primary and Fallback APIs failed or Fallback API is also unavailable. Application will run with empty data.");
-        opRouteData = [];
-        specialRouteData = [];
-        routeData = [];
-        carData = [];
-        // 這裡可以選擇 rethrow 或返回一個失敗狀態，讓 UI 知道。
-        // 為避免 LateInitializationError 再次發生，還是為 late final 變數賦值。
-        // rethrow; // 如果希望上層捕獲這個錯誤
-      }
+      // 為所有 late final 變數提供一個安全的空列表作為預設值
+      // 這樣 App 雖然沒有資料，但不會因為 LateInitializationError 而崩潰
+      opRouteData = [];
+      specialRouteData = [];
+      routeData = [];
+      carData = [];
+
+      rethrow;
     }
-  }
-
-  // 【新增】一個獨立的 API 連線測試方法
-  static Future<void> _testApiConnection(String apiUrl) async {
-    log("Testing API connection to: $apiUrl");
-    await dio.getUri(Uri.parse(apiUrl)); // 嘗試一個簡單的 GET 請求
-    log("Connection to $apiUrl successful.");
-  }
-
-
-  static void log(String message) {
-    print("[${DateTime.now().toIso8601String()}] [Static] $message");
   }
 
   static BusRoute getRouteByIdSync(String routeId) {
