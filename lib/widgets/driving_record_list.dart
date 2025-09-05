@@ -174,7 +174,7 @@ class _DrivingRecordListState extends State<DrivingRecordList> {
 
     return SearchableList<DrivingRecord>(
       allItems: _allRecords,
-      searchHintText: "篩選車牌（如：KKA-3822）",
+      searchHintText: "篩選車牌（如：${Static.getExamplePlate()}）",
       filterCondition: (record, text) =>
           record.car.plate.toUpperCase().contains(text.toUpperCase()),
       sortCallback: (a, b) => a.car.plate.compareTo(b.car.plate),

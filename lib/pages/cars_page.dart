@@ -17,7 +17,7 @@ class CarsPage extends StatelessWidget {
       builder: (context, notifier, child) {
         return SearchableList<Car>(
           allItems: Static.carData,
-          searchHintText: "搜尋車牌（如：KKA-3822）",
+          searchHintText: "搜尋車牌（如：${Static.getExamplePlate()}）",
           // 優化過濾邏輯，移除所有非英數字符再比較
           filterCondition: (car, text) =>
               car.plate.toUpperCase().contains(text.toUpperCase()),

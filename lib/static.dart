@@ -29,7 +29,7 @@ class Static {
 
   static final DateFormat apiDateFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
   static final DateFormat displayDateFormatNoSec =
-  DateFormat('yyyy-MM-dd HH:mm');
+      DateFormat('yyyy-MM-dd HH:mm');
   static final DateFormat displayDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
   static RegExp letterNumber = RegExp(r"[^a-zA-Z0-9]");
@@ -118,7 +118,7 @@ class Static {
       'User-Agent': RandomUserAgents.random(),
       'Content-Type': 'application/json',
       'Accept':
-      'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
       'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
       'Accept-Encoding': 'gzip, deflate, br',
     },
@@ -182,9 +182,9 @@ class Static {
 
       // 步驟 4: 安全地賦值
       opRouteData =
-      (results[0] is List<BusRoute>) ? results[0] as List<BusRoute> : [];
+          (results[0] is List<BusRoute>) ? results[0] as List<BusRoute> : [];
       specialRouteData =
-      (results[1] is List<BusRoute>) ? results[1] as List<BusRoute> : [];
+          (results[1] is List<BusRoute>) ? results[1] as List<BusRoute> : [];
       carData = (results[2] is List<Car>) ? results[2] as List<Car> : [];
 
       routeData = [...opRouteData, ...specialRouteData];
@@ -258,8 +258,7 @@ class Static {
       if (response.statusCode == 200 &&
           response.data?['data']?['route'] is Map) {
         final newRoute = BusRoute.fromJson(response.data['data']['route']);
-        log("Successfully fetched detail for unknown route: ${newRoute
-            .name} ($routeId)");
+        log("Successfully fetched detail for unknown route: ${newRoute.name} ($routeId)");
         if (!routeData.any((r) => r.id == newRoute.id)) {
           routeData.add(newRoute);
         }
@@ -294,7 +293,7 @@ class Static {
       if (response.statusCode == 200 &&
           response.data?['data']?['route'] is Map) {
         final routeDetail =
-        RouteDetail.fromJson(response.data['data']['route']);
+            RouteDetail.fromJson(response.data['data']['route']);
         _routeDetailCache[routeId] = routeDetail;
         return routeDetail;
       }
@@ -353,16 +352,14 @@ class Static {
     } on DioException catch (e) {
       log("DioError fetching operational routes: ${e.message}");
     } catch (e, stackTrace) {
-      log(
-          "Unexpected error fetching operational routes: $e\nStackTrace: $stackTrace");
+      log("Unexpected error fetching operational routes: $e\nStackTrace: $stackTrace");
     }
     return [];
   }
 
   static Future<List<BusRoute>> _fetchSpecialRoutesFromServer() async {
     final String url =
-        "$apiBaseUrl/${Static.localStorage
-        .city}/special_routes"; // 特殊路線是全域的，不分城市
+        "$apiBaseUrl/${Static.localStorage.city}/special_routes"; // 特殊路線是全域的，不分城市
     log("Fetching special routes from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
@@ -475,10 +472,10 @@ class Static {
     if (typeComparison != 0) return typeComparison;
     if (pa['type'] == 'NUMERIC') {
       int baseNumComparison =
-      (pa['baseNum'] ?? 0).compareTo(pb['baseNum'] ?? 0);
+          (pa['baseNum'] ?? 0).compareTo(pb['baseNum'] ?? 0);
       if (baseNumComparison != 0) return baseNumComparison;
       int suffixAlphaComparison =
-      (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
+          (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
       if (suffixAlphaComparison != 0) return suffixAlphaComparison;
       String paParen = pa['suffixParenthesis'] as String;
       String pbParen = pb['suffixParenthesis'] as String;
@@ -487,7 +484,7 @@ class Static {
       return paParen.compareTo(pbParen);
     } else if (pa['type'] == 'ALPHA') {
       int baseStrComparison =
-      (pa['baseStr'] ?? '').compareTo(pb['baseStr'] ?? '');
+          (pa['baseStr'] ?? '').compareTo(pb['baseStr'] ?? '');
       if (baseStrComparison != 0) return baseStrComparison;
       int paSuffixNumVal = (pa['suffixNumeric'] as String).isEmpty
           ? 0
@@ -498,7 +495,7 @@ class Static {
       int suffixNumComparison = paSuffixNumVal.compareTo(pbSuffixNumVal);
       if (suffixNumComparison != 0) return suffixNumComparison;
       int suffixAlphaComparison =
-      (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
+          (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
       if (suffixAlphaComparison != 0) return suffixAlphaComparison;
       String paParen = pa['suffixParenthesis'] as String;
       String pbParen = pb['suffixParenthesis'] as String;
@@ -507,7 +504,7 @@ class Static {
       return paParen.compareTo(pbParen);
     } else if (pa['type'] == 'T') {
       int baseNumComparison =
-      (pa['baseNum'] ?? 0).compareTo(pb['baseNum'] ?? 0);
+          (pa['baseNum'] ?? 0).compareTo(pb['baseNum'] ?? 0);
       if (baseNumComparison != 0) return baseNumComparison;
       bool paIsSpecial = pa['isSpecialTGood'] as bool;
       bool pbIsSpecial = pb['isSpecialTGood'] as bool;
@@ -515,7 +512,7 @@ class Static {
         return paIsSpecial ? -1 : 1;
       }
       int suffixAlphaComparison =
-      (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
+          (pa['suffixAlpha'] as String).compareTo(pb['suffixAlpha'] as String);
       if (suffixAlphaComparison != 0) return suffixAlphaComparison;
       String paParen = pa['suffixParenthesis'] as String;
       String pbParen = pb['suffixParenthesis'] as String;
@@ -595,7 +592,7 @@ class Static {
     final String city = localStorage.city;
     // 【修改】使用 Uri.parse().replace()
     final uri =
-    Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_routes/$plate").replace(
+        Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_routes/$plate").replace(
       queryParameters: {
         if (startDate != null) 'start_time': apiDateFormat.format(startDate),
         if (endDate != null) 'end_time': apiDateFormat.format(endDate),
@@ -657,7 +654,7 @@ class Static {
   }) async {
     final String city = localStorage.city;
     final uri =
-    Uri.parse("$apiBaseUrl/$city/tools/find_route_vehicles").replace(
+        Uri.parse("$apiBaseUrl/$city/tools/find_route_vehicles").replace(
       queryParameters: {
         'route_id': routeId, // 注意後端參數可能是 route_id
         if (startDate != null) 'start_time': apiDateFormat.format(startDate),
@@ -708,5 +705,12 @@ class Static {
       log("Unexpected error fetching drivers for plate $plate: $e");
     }
     return [];
+  }
+
+  static getExamplePlate() {
+    if (localStorage.city == "taichung") {
+      return "EAL-1277";
+    }
+    return "KKA-3822";
   }
 }

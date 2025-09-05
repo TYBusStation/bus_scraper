@@ -144,7 +144,8 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
               decoration: InputDecoration(
                 isDense: true,
                 labelText: "駕駛員 ID",
-                hintText: "如：120031",
+                hintText:
+                    "如：${Static.localStorage.city == "taichung" ? "14308" : "120031"}",
                 border: const OutlineInputBorder(),
                 prefixIcon: const Icon(Icons.person_search_outlined),
                 filled: isReadOnly,
@@ -257,7 +258,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
         // 將結果列表包裹在 SearchableList 中
         return SearchableList<PlateDrivingDates>(
           allItems: records,
-          searchHintText: "搜尋車牌（如：KKA-3822）",
+          searchHintText: "搜尋車牌（如：${Static.getExamplePlate()}）",
           // 過濾條件：檢查輸入的文字是否存在於車牌號碼中
           filterCondition: (record, text) {
             return record.plate.toUpperCase().contains(text.toUpperCase());

@@ -32,7 +32,7 @@ class InfoPage extends StatelessWidget {
       // 如果無法開啟連結，顯示錯誤訊息
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('無法開啟下載連結: $apkDownloadUrl'),
             backgroundColor: Colors.red,
           ),
@@ -55,16 +55,9 @@ class InfoPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  "歡迎使用 桃園公車站動態追蹤",
+                  "歡迎使用 桃園公車站動態追蹤\n目前提供桃園和台中的資料\n可至設定切換城市\n如有任何問題或建議\n請聯繫作者",
                   style:
                       themeData.textTheme.headlineSmall?.copyWith(fontSize: 25),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  "如有任何問題或建議\n請聯繫作者",
-                  style: themeData.textTheme.headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold, fontSize: 32),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 30),

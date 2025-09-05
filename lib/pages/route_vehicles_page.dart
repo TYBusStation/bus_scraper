@@ -219,7 +219,7 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
         final records = snapshot.data!;
         return SearchableList<VehicleDrivingDates>(
           allItems: records,
-          searchHintText: "搜尋車牌（如：KKA-3822）",
+          searchHintText: "搜尋車牌（如：${Static.getExamplePlate()}）",
           filterCondition: (record, text) {
             return record.plate.toUpperCase().contains(text.toUpperCase());
           },

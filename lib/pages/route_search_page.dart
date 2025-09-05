@@ -319,8 +319,10 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                       children: [
                         OutlinedButton.icon(
                           onPressed: () async {
-                            final url = Uri.parse(
-                                "${Static.govWebUrl}/driving-map/${route.id}");
+                            final url = Uri.parse(Static.localStorage.city !=
+                                    "taichung"
+                                ? "${Static.govWebUrl}/driving-map/${route.id}"
+                                : "https://tybusstation.github.io/taichung_bus/");
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url);
                             }
