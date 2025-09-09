@@ -1,38 +1,100 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <!--
-      If you are serving your web app in a path other than the root, change the
-      href value below to reflect the base path you are serving from.
-
-      The path provided below has to start and end with a slash "/" in order for
-      it to work correctly.
-
-      For more details:
-      * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-      This is a placeholder for base href that will be replaced by the value of
-      the `--base-href` argument provided to `flutter build`.
-    -->
     <base href="$FLUTTER_BASE_HREF">
-
     <meta charset="UTF-8">
     <meta content="IE=Edge" http-equiv="X-UA-Compatible">
     <meta name="description" content="桃園公車站動態追蹤">
-
-    <!-- iOS meta tags & icons -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="桃園公車站動態追蹤">
     <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-    <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon.png"/>
-
-    <title>bus_scraper</title>
+    <title>桃園公車站動態追蹤</title>
     <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            background-color: #121212;
+        }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            background-color: #121212;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .loading-container.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-status {
+            color: #e0e0e0;
+            margin-top: 24px;
+            font-family: sans-serif;
+            font-size: 16px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #424242;
+            border-top-color: #62a1ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 <body>
+<div id="loading-container" class="loading-container">
+    <div class="spinner"></div>
+    <p id="loading-status" class="loading-status">正在下載 CanvasKit 渲染器...</p>
+</div>
+
 <script src="flutter_bootstrap.js" async></script>
+
+<!-- *** 核心修改在此 *** -->
+<script>
+    // 1. 立即在 window 物件上定義全域函式。
+    //    不再使用 addEventListener('load', ...)，確保此函式在 Flutter 呼叫它之前必定存在。
+    window.hideFlutterLoader = function () {
+        const loadingContainer = document.getElementById('loading-container');
+        if (loadingContainer) {
+            loadingContainer.classList.add('hidden');
+            setTimeout(() => {
+                loadingContainer.remove();
+            }, 500); // 等待動畫
+        }
+    }
+
+    // 2. 啟動 Flutter 的邏輯保持不變。
+    const statusText = document.getElementById('loading-status');
+    _flutter.loader.load({
+        onEntrypointLoaded: async function (engineInitializer) {
+            statusText.textContent = "正在初始化 Flutter 引擎...";
+            const appRunner = await engineInitializer.initializeEngine();
+            statusText.textContent = "正在執行應用程式...";
+            await appRunner.runApp();
+        }
+    }).catch(function (error) { // 我們仍然保留 catch 來處理 Flutter 自身的載入錯誤
+        console.error("Flutter 啟動失敗:", error);
+        if (statusText) {
+            statusText.textContent = '應用程式載入失敗，請重新整理或檢查主控台。';
+        }
+    });
+</script>
+
 </body>
 </html>

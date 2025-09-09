@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../static.dart';
@@ -48,7 +49,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
               selectedLabelStyle: TextStyle(fontSize: 24),
               unselectedLabelStyle: TextStyle(fontSize: 24),
             ),
-            fontFamily: 'GenKiGothic2TW',
+            fontFamily: GoogleFonts.notoSansTc().fontFamily,
           );
 
           return widget.builder(context, themeData);

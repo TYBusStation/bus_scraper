@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.10.0+1
+version: 1.11.0+1
 
 environment:
   sdk: '>=3.4.1 <4.0.0'
@@ -53,6 +53,7 @@ dependencies:
   open_filex: ^4.7.0
   permission_handler: ^12.0.1
   yaml: ^3.1.3
+  google_fonts: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -96,12 +97,6 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  fonts:
-    - family: GenKiGothic2TW
-      fonts:
-        - asset: fonts/GenKiGothic2TW-M.otf
-        - asset: fonts/GenKiGothic2TW-B.otf
-          weight: 600
   #   - family: Trajan Pro
   #     fonts:
   #       - asset: fonts/TrajanPro.ttf

@@ -1,5 +1,3 @@
-// static.dart
-
 import 'package:bus_scraper/storage/local_storage.dart';
 import 'package:bus_scraper/storage/storage.dart';
 import 'package:dio/dio.dart';
@@ -21,6 +19,9 @@ class AppCity {
 
 class Static {
   static Future<void>? _initFuture;
+
+  // 【新增】初始化 ID，用於防止競態條件
+  static int _currentInitId = 0;
 
   // --- Constants ---
   static const String _primaryApiUrl = "https://myster.freeddns.org:25566";
@@ -156,11 +157,18 @@ class Static {
     _routeDetailCache.clear(); // 清除快取，因為後端可能不同步
     allRouteData = null;
     _initFuture = null;
+
+    // 【修改】增加版本號以作廢舊的初始化流程
+    _currentInitId++;
+    log("Initialization ID incremented to: $_currentInitId");
+
     return init();
   }
 
   static Future<void> _performInit() async {
-    log("Static initialization started.");
+    // 【修改】在執行開始時，捕獲當前的版本號
+    final int initId = _currentInitId;
+    log("Static initialization started with ID: $initId.");
 
     // 【關鍵修改】將 StorageHelper.init() 移到最前面
     await StorageHelper.init();
@@ -171,7 +179,7 @@ class Static {
     try {
       // 測試 API 連線
       await dio.getUri(Uri.parse(apiBaseUrl));
-      log("API server connection successful.");
+      log("API server connection successful for ID: $initId.");
 
       // 步驟 3: 平行獲取所有必要的啟動資料
       final results = await Future.wait([
@@ -180,6 +188,13 @@ class Static {
         _fetchCarDataFromServer(),
       ], eagerError: true); // eagerError: true 可以在任何一個 future 失敗時立即失敗
 
+      // 【關鍵保護】在賦值之前，檢查當前的初始化是否仍然是最新版本
+      if (initId != _currentInitId) {
+        log("Initialization with ID: $initId is outdated. Aborting assignment.");
+        return; // 直接返回，不執行後續的賦值操作
+      }
+
+      log("Initialization with ID: $initId is current. Proceeding with assignment.");
       // 步驟 4: 安全地賦值
       opRouteData =
           (results[0] is List<BusRoute>) ? results[0] as List<BusRoute> : [];
@@ -191,14 +206,20 @@ class Static {
       final seen = <String>{};
       routeData.retainWhere((route) => seen.add(route.id));
 
-      log("Static initialization complete.");
+      log("Static initialization complete for ID: $initId.");
       log("Operational routes loaded: ${opRouteData.length}");
       log("Special routes loaded: ${specialRouteData.length}");
       log("Total combined routes: ${routeData.length}");
       log("Car data loaded: ${carData.length}");
     } catch (e, stackTrace) {
+      // 【關鍵保護】也對錯誤進行檢查，避免舊的錯誤覆蓋新的狀態
+      if (initId != _currentInitId) {
+        log("Ignoring error from outdated initialization with ID: $initId. Error: $e");
+        return;
+      }
+
       // 【關鍵】如果初始化過程中任何一步失敗，捕獲錯誤
-      log("!!! CRITICAL: Static initialization failed !!!");
+      log("!!! CRITICAL: Static initialization failed for ID: $initId !!!");
       log("Error: $e");
       log("StackTrace: $stackTrace");
 
@@ -358,8 +379,7 @@ class Static {
   }
 
   static Future<List<BusRoute>> _fetchSpecialRoutesFromServer() async {
-    final String url =
-        "$apiBaseUrl/${Static.localStorage.city}/special_routes"; // 特殊路線是全域的，不分城市
+    final String url = "$apiBaseUrl/${Static.localStorage.city}/special_routes";
     log("Fetching special routes from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
