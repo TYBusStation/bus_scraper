@@ -37,7 +37,7 @@ jobs:
 
       # 步驟 5: 建置 Flutter Web 應用
       - name: Build Flutter Web
-        run: flutter build web --release --web-renderer canvaskit --tree-shake-icons --base-href /${{ github.event.repository.name }}/
+        run: flutter build web --release --tree-shake-icons --base-href /${{ github.event.repository.name }}/
         # 注意：如果您的倉庫名稱在 GitHub 上是 'MyRepo'，但 GitHub Pages 的路徑是 'myrepo' (全小寫)
         # 您可能需要手動將 `${{ github.event.repository.name }}` 轉換為小寫或直接硬編碼正確的路徑。
         # 例如: --base-href /myreponame/
