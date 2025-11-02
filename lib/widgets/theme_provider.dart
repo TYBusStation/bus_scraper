@@ -75,7 +75,6 @@ class ThemeChangeNotifier extends ChangeNotifier implements ReassembleHandler {
     notifyListeners();
   }
 
-  /// Handle hot reload
   @override
   void reassemble() {
     setTheme(Static.localStorage.appTheme);

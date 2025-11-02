@@ -1,5 +1,3 @@
-// lib/pages/multi_live_osm_page.dart
-
 import 'dart:async';
 
 import 'package:dio/dio.dart';
@@ -14,7 +12,6 @@ import '../utils/map_data_processor.dart';
 import '../widgets/base_map_view.dart';
 import '../widgets/point_marker.dart';
 
-// --- 優化 1: 為地圖顯示資料創建一個封裝類，讓狀態更新更清晰 ---
 class _MapDisplayData {
   final List<Polyline> polylines;
   final List<Marker> markers;
@@ -51,7 +48,6 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
   final Map<String, List<BusPoint>> _pointsByPlate = {};
   final Map<String, DateTime> _lastPointTimeByPlate = {};
 
-  // 使用 _MapDisplayData 來管理地圖圖層
   _MapDisplayData _mapData = _MapDisplayData(polylines: [], markers: []);
 
   late final AnimationController _locationAnimationController;
@@ -59,6 +55,8 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
 
   bool _isFirstLoadComplete = false;
   final DateFormat _timeFormat = DateFormat('HH:mm:ss');
+
+  bool _isWarningAcknowledged = false;
 
   @override
   void initState() {
@@ -95,18 +93,22 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
   void _dismissError() {
     setState(() {
       _error = null;
+      _isWarningAcknowledged = true;
     });
   }
 
   Future<void> _fetchAndDrawMap({bool isInitialLoad = false}) async {
-    if (!isInitialLoad) {
-      _dismissError();
+    if (!isInitialLoad && !_isWarningAcknowledged) {
+      setState(() {
+        _error = null;
+      });
     }
 
     if (isInitialLoad) {
       setState(() {
         _isLoading = true;
         _error = null;
+        _isWarningAcknowledged = false;
       });
     }
 
@@ -117,22 +119,19 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
       final futures = widget.plates.map((plate) async {
         final lastPointTime = _lastPointTimeByPlate[plate];
 
-        // --- *** 修正點 *** ---
         final DateTime startTime;
         if (isInitialLoad || lastPointTime == null) {
-          // 初次載入或無歷史資料，抓取過去 20 分鐘
-          startTime = endTime.subtract(const Duration(minutes: 20));
+          startTime = endTime.subtract(
+              Duration(minutes: Static.localStorage.liveTrackDuration));
         } else {
-          // 增量更新，從最後一個點的時間再往後推一毫秒開始抓取
           startTime = lastPointTime.add(const Duration(milliseconds: 1));
         }
-        // --- *** 修正結束 *** ---
 
-        final formattedStartTime = Static.apiDateFormat.format(startTime);
-        final formattedEndTime = Static.apiDateFormat.format(endTime);
+        final formattedStartTime = Static.apiTimeFormat.format(startTime);
+        final formattedEndTime = Static.apiTimeFormat.format(endTime);
 
         final url = Uri.parse(
-            "${Static.apiBaseUrl}/${Static.localStorage.city}/bus_data/$plate?start_time=$formattedStartTime&end_time=$formattedEndTime");
+            "${Static.apiBaseUrl}/${Static.city.code}/bus_data/$plate?start_time=$formattedStartTime&end_time=$formattedEndTime");
 
         try {
           final response = await Static.dio.getUri(url);
@@ -161,8 +160,8 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
           _pointsByPlate[plate] = newPoints;
         } else {
           _pointsByPlate.putIfAbsent(plate, () => []).addAll(newPoints);
-          final twentyMinutesAgo =
-              DateTime.now().subtract(const Duration(minutes: 20));
+          final twentyMinutesAgo = DateTime.now().subtract(
+              Duration(minutes: Static.localStorage.liveTrackDuration));
           _pointsByPlate[plate]
               ?.removeWhere((p) => p.dataTime.isBefore(twentyMinutesAgo));
         }
@@ -177,10 +176,18 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
       final allPoints =
           _pointsByPlate.values.expand((points) => points).toList();
       String? newError;
+
       if (allPoints.isEmpty) {
-        newError = "過去 20 分鐘内沒有找到任何收藏車輛的軌跡資料。";
-      } else if (errorPlates.isNotEmpty) {
-        newError = "車輛資料獲取失敗";
+        if (!_isWarningAcknowledged) {
+          newError =
+              "過去 ${Static.localStorage.liveTrackDuration} 分鐘内沒有找到任何車輛的軌跡資料。";
+        }
+      } else {
+        _isWarningAcknowledged = false;
+
+        if (errorPlates.isNotEmpty) {
+          newError = "部分車輛資料獲取失敗";
+        }
       }
 
       setState(() {
@@ -194,6 +201,7 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
       setState(() {
         _error = "發生未知錯誤: $e";
         _isLoading = false;
+        _isWarningAcknowledged = false;
       });
     } finally {
       if (mounted) {
@@ -268,7 +276,7 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
       if (aTime != null && bTime != null) {
         return aTime.compareTo(bTime);
       }
-      return 0; // 都沒有時間，順序不變
+      return 0;
     });
 
     return _MapDisplayData(

@@ -1,7 +1,4 @@
-// lib/widgets/car_list_item.dart
-
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../data/car.dart';
 import '../pages/driver_search_page.dart';
@@ -10,11 +7,7 @@ import '../pages/live_osm_page.dart';
 import '../pages/route_search_page.dart';
 import '../static.dart';
 import 'favorite_button.dart';
-import 'favorite_provider.dart';
 
-/// 一個可重用的 Widget，用於顯示單一車輛的資訊卡片。
-///
-/// 封裝了卡片樣式、車牌資訊、收藏按鈕和一個提供多種操作的按鈕。
 class CarListItem extends StatelessWidget {
   const CarListItem({
     super.key,
@@ -23,7 +16,7 @@ class CarListItem extends StatelessWidget {
     this.drivingDates,
     this.driverId,
     this.routeId,
-    this.margin, // 【核心修改】新增可選的 margin 參數
+    this.margin,
   });
 
   final Car car;
@@ -31,21 +24,21 @@ class CarListItem extends StatelessWidget {
   final List<String>? drivingDates;
   final String? driverId;
   final String? routeId;
-  final EdgeInsetsGeometry? margin; // 【核心修改】定義 margin 屬性
+  final EdgeInsetsGeometry? margin;
 
-  // 顯示操作選項的對話框
   void _showActionsDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext ctx) {
         return AlertDialog(
           title: Text('車輛操作: ${car.plate}'),
-          contentPadding: const EdgeInsets.only(top: 12.0),
+          contentPadding: const EdgeInsets.only(top: 8.0),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               if (showLiveButton)
                 ListTile(
+                  dense: true,
                   leading: const Icon(Icons.directions_bus_rounded),
                   title: const Text('即時動態'),
                   onTap: () {
@@ -58,6 +51,7 @@ class CarListItem extends StatelessWidget {
                   },
                 ),
               ListTile(
+                dense: true,
                 leading: const Icon(Icons.history_rounded),
                 title: const Text('行駛記錄'),
                 onTap: () {
@@ -71,8 +65,9 @@ class CarListItem extends StatelessWidget {
               ),
               const Divider(height: 1),
               ListTile(
+                dense: true,
                 leading: const Icon(Icons.person_search_rounded),
-                title: const Text('查詢駕駛'),
+                title: const Text('查詢駕駛長'),
                 onTap: () {
                   Navigator.pop(ctx);
                   Navigator.push(
@@ -84,6 +79,7 @@ class CarListItem extends StatelessWidget {
                 },
               ),
               ListTile(
+                dense: true,
                 leading: const Icon(Icons.route_rounded),
                 title: const Text('查詢路線'),
                 onTap: () {
@@ -113,7 +109,6 @@ class CarListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    final favoritesNotifier = context.watch<FavoritesNotifier>();
 
     final bool hasDates = drivingDates != null && drivingDates!.isNotEmpty;
 
@@ -122,12 +117,11 @@ class CarListItem extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.0),
       ),
-      // 【核心修改】使用傳入的 margin，若為 null 則使用預設值
-      margin: margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: margin ?? const EdgeInsets.symmetric(vertical: 4),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12.0),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -136,9 +130,8 @@ class CarListItem extends StatelessWidget {
                 children: [
                   FavoriteButton(
                     plate: car.plate,
-                    notifier: favoritesNotifier,
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,14 +143,14 @@ class CarListItem extends StatelessWidget {
                             letterSpacing: 0.5,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
                           car.typeDisplayName,
-                          style: textTheme.bodyLarge,
+                          style: textTheme.bodyMedium,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
-                          "最後上線：${Static.displayDateFormat.format(car.lastSeen)}",
+                          "最後上線：${Static.displayTimeFormat.format(car.lastSeen)}",
                           style: textTheme.bodySmall,
                         ),
                       ],
@@ -165,24 +158,25 @@ class CarListItem extends StatelessWidget {
                   ),
                   FilledButton.icon(
                     onPressed: () => _showActionsDialog(context),
-                    icon: const Icon(Icons.more_horiz_rounded, size: 18),
+                    icon: const Icon(Icons.more_horiz_rounded, size: 16),
                     label: const Text('操作'),
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      textStyle: textTheme.labelMedium,
                     ),
                   ),
                 ],
               ),
               if (hasDates) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Divider(
                   height: 1,
                   color: theme.dividerColor.withOpacity(0.5),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Wrap(
-                  spacing: 8.0,
-                  runSpacing: 8.0,
+                  spacing: 6.0,
+                  runSpacing: 4.0,
                   children: drivingDates!
                       .map((date) => ActionChip(
                             label: Text(date),
@@ -196,7 +190,7 @@ class CarListItem extends StatelessWidget {
                                 MaterialTapTargetSize.shrinkWrap,
                             side: BorderSide.none,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                                horizontal: 6, vertical: 0),
                             onPressed: () {
                               final selectedDate = DateTime.parse(date);
                               final startTime = DateTime(selectedDate.year,

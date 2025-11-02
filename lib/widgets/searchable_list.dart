@@ -1,30 +1,12 @@
-import 'package:flutter/foundation.dart'; // 新增
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-// 假設你的 ThemeProvider 在這裡
-// import 'theme_provider.dart';
-
-/// 一個通用的、可搜尋的列表頁面元件。
-///
-/// 這個 StatefulWidget 封裝了搜尋框、列表顯示、空狀態和相關的邏輯，
-/// 透過泛型 <T> 和回呼函式來適應不同的資料類型和需求。
 class SearchableList<T> extends StatefulWidget {
-  /// 原始的、未過濾的完整資料列表。
   final List<T> allItems;
-
-  /// 用於搜尋框的提示文字。
   final String searchHintText;
-
-  /// 過濾條件函式。根據使用者輸入的文字，判斷某個項目是否應被顯示。
   final bool Function(T item, String searchText) filterCondition;
-
-  /// 建立列表中每個項目的 Widget。
   final Widget Function(BuildContext context, T item) itemBuilder;
-
-  /// 當搜尋結果為空時，顯示的 Widget。
   final Widget emptyStateWidget;
-
-  /// 用於排序過濾後列表的回呼函式。
   final int Function(T a, T b) sortCallback;
 
   const SearchableList({
@@ -46,25 +28,19 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
   final ScrollController scrollController =
       ScrollController(keepScrollOffset: false);
 
-  /// 儲存過濾後的項目列表。
   late List<T> filteredItems;
 
   @override
   void initState() {
     super.initState();
-    // 監聽文字變化
     textEditingController.addListener(_onSearchChanged);
-    // 初始載入時，根據 widget.allItems 初始化 filteredItems
     filteredItems = _getFilteredAndSortedItems();
   }
 
-  // ******************** 核心修正點 ********************
-  /// 當父元件更新此 Widget 的屬性時會被呼叫。
   @override
   void didUpdateWidget(covariant SearchableList<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // 新增：若 allItems 內容有變化也要更新
     if (widget.allItems != oldWidget.allItems ||
         !listEquals(widget.allItems, oldWidget.allItems)) {
       setState(() {
@@ -73,34 +49,25 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
     }
   }
 
-  // ******************************************************
-
   @override
   void dispose() {
-    // 移除監聽器並釋放資源，防止記憶體洩漏
     textEditingController.removeListener(_onSearchChanged);
     textEditingController.dispose();
     scrollController.dispose();
     super.dispose();
   }
 
-  /// 當搜尋框文字改變時的處理函式。
   void _onSearchChanged() {
-    // 只需要更新 filteredItems 即可，不需要做其他判斷
     setState(() {
       filteredItems = _getFilteredAndSortedItems();
     });
-    // 如果列表控制器已經附加到 ListView，則將滾動位置跳回頂部
     if (scrollController.hasClients) {
       scrollController.jumpTo(0);
     }
   }
 
-  /// 根據目前的 allItems 和搜尋文字，返回一個過濾和排序後的新列表。
-  /// 這個方法不直接呼叫 setState，使其可以在多個地方重用。
   List<T> _getFilteredAndSortedItems() {
     final searchText = textEditingController.text;
-    // 從最新的 widget.allItems 開始過濾和排序
     return widget.allItems
         .where((item) => widget.filterCondition(item, searchText))
         .toList()
@@ -109,35 +76,23 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
 
   @override
   Widget build(BuildContext context) {
-    // 注意：我移除了 ThemeProvider，因為它通常在更高層級注入 (例如 MaterialApp)。
-    // 如果您確實需要它在這裡，可以將其加回來。
-    // build 方法會自動從 context 獲取主題。
     final ThemeData themeData = Theme.of(context);
 
     return Column(
       children: [
-        // --- 搜尋框 UI ---
         _buildSearchBar(themeData),
-        // --- 列表內容 ---
         Expanded(
           child: Builder(
             builder: (context) {
-              // 如果過濾後列表為空，顯示空狀態 Widget
               if (filteredItems.isEmpty) {
                 return widget.emptyStateWidget;
               }
-              // 否則，顯示可滾動的列表
-              return ListView.separated(
+              return ListView.builder(
                 controller: scrollController,
-                // 增加上下 padding，讓列表與搜尋框和底部有更多空間
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
                 itemCount: filteredItems.length,
                 itemBuilder: (context, index) =>
                     widget.itemBuilder(context, filteredItems[index]),
-                // 將分隔線改為不顯示，因為 Card 的 margin 已經提供了間隔
-                // 如果您仍想要分隔線，可以保留 Divider，但 Card 的 margin 已經很足夠
-                separatorBuilder: (context, index) =>
-                    const SizedBox.shrink(), // 不顯示任何東西
               );
             },
           ),
@@ -146,9 +101,7 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
     );
   }
 
-  /// 建立搜尋框 Widget。
   Widget _buildSearchBar(ThemeData themeData) {
-    // 現在isEmpty的判斷直接基於最新的filteredItems狀態
     final bool isEmpty =
         filteredItems.isEmpty && textEditingController.text.isNotEmpty;
     final Color primaryColor = themeData.colorScheme.primary;
@@ -159,53 +112,44 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
         color: themeData.colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(25),
       ),
-      margin: const EdgeInsets.all(10),
-      padding: const EdgeInsets.only(left: 10, right: 5),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.only(left: 12, right: 4),
       child: Row(
         children: [
           Icon(
             Icons.search,
+            size: 20,
             color: isEmpty ? errorColor : primaryColor,
           ),
+          const SizedBox(width: 8),
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.only(left: 5, right: 5, bottom: 5),
-              child: TextField(
-                // onChanged 現在由 addListener 處理，這裡可以移除
-                // onChanged: (text) => _onSearchChanged(),
-                style: TextStyle(
-                  color: isEmpty ? errorColor : themeData.colorScheme.onSurface,
-                ),
-                cursorColor:
-                    isEmpty ? errorColor : themeData.unselectedWidgetColor,
-                controller: textEditingController,
-                decoration: InputDecoration(
-                  hintText: widget.searchHintText,
-                  isDense: true,
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: isEmpty
-                          ? errorColor
-                          : themeData.unselectedWidgetColor,
-                    ),
-                  ),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: isEmpty ? errorColor : primaryColor,
-                    ),
-                  ),
-                ),
+            child: TextField(
+              style: TextStyle(
+                fontSize: 14,
+                color: isEmpty ? errorColor : themeData.colorScheme.onSurface,
+              ),
+              cursorColor:
+                  isEmpty ? errorColor : themeData.unselectedWidgetColor,
+              controller: textEditingController,
+              decoration: InputDecoration(
+                hintText: widget.searchHintText,
+                isDense: true,
+                contentPadding: const EdgeInsets.only(bottom: 4),
+                border: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
               ),
             ),
           ),
           IconButton(
             tooltip: "清除搜尋",
-            icon: const Icon(Icons.clear),
+            icon: const Icon(Icons.clear, size: 20),
             color: primaryColor,
             onPressed: () {
               if (textEditingController.text.isEmpty) return;
               textEditingController.clear();
-              // 清除文字時，addListener 會自動觸發 _onSearchChanged
             },
           ),
         ],

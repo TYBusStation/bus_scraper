@@ -65,21 +65,17 @@
 
 <script src="flutter_bootstrap.js" async></script>
 
-<!-- *** 核心修改在此 *** -->
 <script>
-    // 1. 立即在 window 物件上定義全域函式。
-    //    不再使用 addEventListener('load', ...)，確保此函式在 Flutter 呼叫它之前必定存在。
     window.hideFlutterLoader = function () {
         const loadingContainer = document.getElementById('loading-container');
         if (loadingContainer) {
             loadingContainer.classList.add('hidden');
             setTimeout(() => {
                 loadingContainer.remove();
-            }, 500); // 等待動畫
+            }, 500);
         }
     }
 
-    // 2. 啟動 Flutter 的邏輯保持不變。
     const statusText = document.getElementById('loading-status');
     _flutter.loader.load({
         onEntrypointLoaded: async function (engineInitializer) {
@@ -88,7 +84,7 @@
             statusText.textContent = "正在執行應用程式...";
             await appRunner.runApp();
         }
-    }).catch(function (error) { // 我們仍然保留 catch 來處理 Flutter 自身的載入錯誤
+    }).catch(function (error) {
         console.error("Flutter 啟動失敗:", error);
         if (statusText) {
             statusText.textContent = '應用程式載入失敗，請重新整理或檢查主控台。';

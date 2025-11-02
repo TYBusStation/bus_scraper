@@ -1,18 +1,15 @@
-// lib/pages/route_search_page.dart
-
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/bus_route.dart';
 import '../data/vehicle_history.dart';
 import '../pages/route_vehicles_page.dart';
 import '../static.dart';
+import '../storage/city.dart';
 import '../widgets/empty_state_indicator.dart';
 import '../widgets/searchable_list.dart';
 import 'history_page.dart';
 
-// 輔助類，將完整的路線資訊和歷史記錄綁定在一起
 class BusRouteWithHistory {
   final BusRoute route;
   final VehicleRouteHistory history;
@@ -32,43 +29,13 @@ class RouteSearchPage extends StatefulWidget {
 class _RouteSearchPageState extends State<RouteSearchPage> {
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
   DateTime _endDate = DateTime.now();
-  final _displayDateFormat = DateFormat('yyyy/MM/dd');
 
   bool _hasSearched = false;
-
-  // 【核心修改】將 _searchFuture 的類型改為最終的資料類型
+  bool _needsRefresh = false;
   Future<List<BusRouteWithHistory>>? _searchFuture;
-  String? _promptMessage = "請選擇日期範圍後點擊查詢";
 
-  Future<void> _selectDate(BuildContext context, bool isStart) async {
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: isStart ? _startDate : _endDate,
-      firstDate: DateTime(2025, 6, 8),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
-    );
-
-    if (pickedDate != null) {
-      setState(() {
-        if (isStart) {
-          _startDate = pickedDate;
-          if (_startDate.isAfter(_endDate)) _endDate = _startDate;
-        } else {
-          _endDate = pickedDate;
-          if (_endDate.isBefore(_startDate)) _startDate = _endDate;
-        }
-        if (_hasSearched) {
-          _hasSearched = false;
-          _promptMessage = "日期已更新，請重新點擊「查詢」。";
-        }
-      });
-    }
-  }
-
-  // 【新增】一個方法來鏈接兩個 Future，處理完整的資料流程
   Future<List<BusRouteWithHistory>> _fetchAndProcessRoutes(
       DateTime startDate, DateTime endDate) async {
-    // 1. 取得路線歷史
     final histories = await Static.findVehicleRoutes(
       plate: widget.plate,
       startDate: startDate,
@@ -79,7 +46,6 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       return [];
     }
 
-    // 2. 根據歷史取得詳細路線資訊並打包成 BusRouteWithHistory
     final processedRoutes = await Future.wait(histories.map((history) async {
       final routeDetails = await Static.getRouteById(history.routeId);
       return BusRouteWithHistory(route: routeDetails, history: history);
@@ -92,11 +58,9 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     FocusScope.of(context).unfocus();
     setState(() {
       _hasSearched = true;
-      _promptMessage = null;
+      _needsRefresh = false;
       final finalEndDate =
           DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
-
-      // 【核心修改】呼叫我們的新方法，並將結果 Future 賦值給 _searchFuture
       _searchFuture = _fetchAndProcessRoutes(_startDate, finalEndDate);
     });
   }
@@ -108,7 +72,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
         title: Text('${widget.plate} 路線查詢'),
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -125,34 +89,68 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   Widget _buildControlCard() {
     return Card(
       elevation: 1,
-      margin: const EdgeInsets.only(top: 12),
+      margin: const EdgeInsets.only(top: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
             Row(
               children: [
                 Expanded(
-                    child: _buildDatePicker(
-                        label: "起始日期",
-                        value: _startDate,
-                        onPressed: () => _selectDate(context, true))),
+                  child: _buildDatePicker(
+                    label: "起始",
+                    value: _startDate,
+                    onPressed: () => Static.selectDateTime(
+                      context: context,
+                      isStart: true,
+                      currentRange:
+                          DateTimeRange(start: _startDate, end: _endDate),
+                      lastSelectableDate:
+                          DateTime.now().add(const Duration(days: 1)),
+                      pickTime: false,
+                      maxDuration: const Duration(days: 30),
+                      onDateTimeChanged: (range) => setState(() {
+                        _startDate = range.start;
+                        _endDate = range.end;
+                        _needsRefresh = true;
+                        _hasSearched = false;
+                      }),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
-                    child: _buildDatePicker(
-                        label: "結束日期",
-                        value: _endDate,
-                        onPressed: () => _selectDate(context, false))),
+                  child: _buildDatePicker(
+                    label: "結束",
+                    value: _endDate,
+                    onPressed: () => Static.selectDateTime(
+                      context: context,
+                      isStart: false,
+                      currentRange:
+                          DateTimeRange(start: _startDate, end: _endDate),
+                      lastSelectableDate:
+                          DateTime.now().add(const Duration(days: 1)),
+                      pickTime: false,
+                      maxDuration: const Duration(days: 30),
+                      onDateTimeChanged: (range) => setState(() {
+                        _startDate = range.start;
+                        _endDate = range.end;
+                        _needsRefresh = true;
+                        _hasSearched = false;
+                      }),
+                    ),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             FilledButton.icon(
               onPressed: _triggerSearch,
-              icon: const Icon(Icons.search_rounded),
+              icon: const Icon(Icons.search_rounded, size: 18),
               label: const Text("查詢路線"),
               style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48)),
+                  minimumSize: const Size.fromHeight(40)),
             ),
           ],
         ),
@@ -169,7 +167,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outline.withOpacity(0.5)),
           borderRadius: BorderRadius.circular(8),
@@ -185,14 +183,14 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                   style: theme.textTheme.labelSmall,
                 ),
                 Text(
-                  DateFormat('yyyy/MM/dd').format(value),
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  Static.displayDateFormat.format(value),
+                  style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
-            const Icon(Icons.calendar_month_outlined, size: 20),
+            const Icon(Icons.calendar_month_outlined, size: 18),
           ],
         ),
       ),
@@ -200,15 +198,16 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   }
 
   Widget _buildPromptArea() {
-    final title = _promptMessage?.contains("更新") ?? false ? "請重新查詢" : "開始查詢";
+    final title = _needsRefresh ? "請重新查詢" : "開始查詢";
+    final subtitle = _needsRefresh ? "時間已更新，請點擊查詢。" : "請選擇日期範圍後點擊查詢";
+
     return EmptyStateIndicator(
       icon: Icons.search_rounded,
       title: title,
-      subtitle: _promptMessage ?? '',
+      subtitle: subtitle,
     );
   }
 
-  // 【核心修改】簡化 Widget，只使用一個 FutureBuilder
   Widget _buildResultsList() {
     return FutureBuilder<List<BusRouteWithHistory>>(
       future: _searchFuture,
@@ -233,7 +232,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
 
         return SearchableList<BusRouteWithHistory>(
           allItems: allItems,
-          searchHintText: "搜尋路線名稱、描述或編號...",
+          searchHintText: "搜尋路線名稱、描述或編號",
           filterCondition: (item, text) {
             return text
                 .toUpperCase()
@@ -260,9 +259,9 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
 
             return Card(
               elevation: 2,
-              margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+              margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(12.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -273,65 +272,57 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         color: colorScheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const Icon(Icons.departure_board,
-                            size: 20, color: Colors.green),
-                        const SizedBox(width: 8),
+                            size: 18, color: Colors.green),
+                        const SizedBox(width: 6),
                         Expanded(
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                              Text(route.departure,
-                                  style: textTheme.bodyLarge
-                                      ?.copyWith(fontWeight: FontWeight.bold))
-                            ])),
+                            child: Text(route.departure,
+                                style: textTheme.bodyMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold))),
                         const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Icon(Icons.arrow_forward, size: 18)),
-                        const Icon(Icons.flag, size: 20, color: Colors.red),
-                        const SizedBox(width: 8),
+                            padding: EdgeInsets.symmetric(horizontal: 6.0),
+                            child: Icon(Icons.arrow_forward, size: 16)),
+                        const Icon(Icons.flag, size: 18, color: Colors.red),
+                        const SizedBox(width: 6),
                         Expanded(
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                              Text(route.destination,
-                                  style: textTheme.bodyLarge
-                                      ?.copyWith(fontWeight: FontWeight.bold))
-                            ])),
+                            child: Text(route.destination,
+                                style: textTheme.bodyMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold))),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       route.description,
-                      style: textTheme.bodyLarge?.copyWith(
+                      style: textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurface,
                       ),
                     ),
                     Text('編號：${route.id}',
-                        style: textTheme.bodyLarge
+                        style: textTheme.bodySmall
                             ?.copyWith(color: colorScheme.onSurfaceVariant)),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         OutlinedButton.icon(
                           onPressed: () async {
-                            final url = Uri.parse(Static.localStorage.city !=
-                                    "taichung"
-                                ? "${Static.govWebUrl}/driving-map/${route.id}"
+                            final url = Uri.parse(Static.city != City.taichung
+                                ? "${Static.city.url}/driving-map/${route.id}"
                                 : "https://tybusstation.github.io/taichung_bus/");
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url);
                             }
                           },
-                          icon: const Icon(Icons.map_outlined),
+                          icon: const Icon(Icons.map_outlined, size: 16),
                           label: const Text('公車動態網'),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
+                                horizontal: 10, vertical: 6),
+                            textStyle: theme.textTheme.labelMedium,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -341,23 +332,24 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                               MaterialPageRoute(
                                   builder: (context) =>
                                       RouteVehiclesPage(route: route))),
-                          icon:
-                              const Icon(Icons.directions_bus_filled_outlined),
+                          icon: const Icon(Icons.directions_bus_filled_outlined,
+                              size: 16),
                           label: const Text('查詢車輛'),
                           style: FilledButton.styleFrom(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
+                                horizontal: 10, vertical: 6),
+                            textStyle: theme.textTheme.labelMedium,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Divider(
                         height: 1, color: theme.dividerColor.withOpacity(0.5)),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Wrap(
-                      spacing: 8.0,
-                      runSpacing: 8.0,
+                      spacing: 6.0,
+                      runSpacing: 4.0,
                       children: routeInfo.dates.map((date) {
                         return ActionChip(
                           label: Text(date),
@@ -389,7 +381,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                               MaterialTapTargetSize.shrinkWrap,
                           side: BorderSide.none,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                              horizontal: 6, vertical: 0),
                         );
                       }).toList(),
                     )

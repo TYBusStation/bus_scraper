@@ -1,8 +1,4 @@
-// lib/version_check_service.dart
-
-// 引入我們新建的平台檢查器
 import 'package:bus_scraper/utils/platform_checker.dart';
-// 移除了 'dart:io' 的 import
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
@@ -38,7 +34,6 @@ class VersionCheckService {
   }
 
   Future<bool> isUpdateRequired() async {
-    // MODIFIED: 使用我們新的 isAndroid getter
     if (!isAndroid) return false;
 
     final packageInfo = await PackageInfo.fromPlatform();
@@ -71,7 +66,6 @@ class VersionCheckService {
     String url,
     void Function(double) onProgress,
   ) async {
-    // MODIFIED: 使用我們新的 isAndroid getter
     if (!isAndroid) return;
 
     var status = await Permission.requestInstallPackages.status;

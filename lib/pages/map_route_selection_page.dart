@@ -1,5 +1,3 @@
-// lib/pages/map_route_selection_page.dart
-
 import 'package:flutter/material.dart';
 
 import '../data/bus_route.dart';
@@ -16,7 +14,6 @@ class RouteDirectionSelection {
 }
 
 class MapRouteSelectionPage extends StatefulWidget {
-  // [MODIFIED] 參數恢復為只接收路線選擇
   final Map<String, RouteDirectionSelection> initialSelections;
 
   const MapRouteSelectionPage({
@@ -37,7 +34,6 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
   @override
   void initState() {
     super.initState();
-    // 深拷貝初始選擇
     _selections = widget.initialSelections.map(
       (key, value) => MapEntry(
           key, RouteDirectionSelection(go: value.go, back: value.back)),
@@ -96,7 +92,7 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: FilledButton.icon(
-              icon: const Icon(Icons.check),
+              icon: const Icon(Icons.check, size: 18),
               label: const Text('完成'),
               onPressed: () => Navigator.pop(context, _selections),
             ),
@@ -105,26 +101,32 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
       ),
       body: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('顯示所有路線', style: textTheme.bodyLarge),
-              const SizedBox(width: 8),
-              Tooltip(
-                message: _isLoading ? '正在載入所有路線...' : '',
-                child: Switch(
-                  value: _showAllRoutes,
-                  onChanged: _isLoading ? null : _onSwitchChanged,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('顯示所有路線', style: textTheme.bodyMedium),
+                const SizedBox(width: 4),
+                Tooltip(
+                  message: _isLoading ? '正在載入所有路線...' : '',
+                  child: Transform.scale(
+                    scale: 0.8,
+                    child: Switch(
+                      value: _showAllRoutes,
+                      onChanged: _isLoading ? null : _onSwitchChanged,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : SearchableList<BusRoute>(
                     allItems: _displayedRoutes,
-                    searchHintText: '搜尋路線名稱、描述或編號（如：1）',
+                    searchHintText: '搜尋路線名稱、描述或編號',
                     filterCondition: (route, text) => text
                         .toUpperCase()
                         .split(" ")
@@ -142,12 +144,12 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
                       return Card(
                         elevation: 2,
                         margin: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                            horizontal: 8, vertical: 4),
                         color: selection.isSelected
                             ? colorScheme.primaryContainer.withOpacity(0.5)
                             : null,
                         child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -162,53 +164,54 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
                               Row(
                                 children: [
                                   const Icon(Icons.departure_board,
-                                      size: 20, color: Colors.green),
-                                  const SizedBox(width: 8),
-                                  Flexible(
+                                      size: 18, color: Colors.green),
+                                  const SizedBox(width: 6),
+                                  Expanded(
                                     child: Text(
                                       route.departure,
-                                      style: textTheme.bodyLarge?.copyWith(
+                                      style: textTheme.bodyMedium?.copyWith(
                                           fontWeight: FontWeight.bold),
                                     ),
                                   ),
                                   const Padding(
                                     padding:
-                                        EdgeInsets.symmetric(horizontal: 8.0),
-                                    child: Icon(Icons.arrow_forward, size: 18),
+                                        EdgeInsets.symmetric(horizontal: 6.0),
+                                    child: Icon(Icons.arrow_forward, size: 16),
                                   ),
                                   const Icon(Icons.flag,
-                                      size: 20, color: Colors.red),
-                                  const SizedBox(width: 8),
-                                  Flexible(
+                                      size: 18, color: Colors.red),
+                                  const SizedBox(width: 6),
+                                  Expanded(
                                     child: Text(
                                       route.destination,
-                                      style: textTheme.bodyLarge?.copyWith(
+                                      style: textTheme.bodyMedium?.copyWith(
                                           fontWeight: FontWeight.bold),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2),
                               Text(
                                 route.description,
-                                style: textTheme.bodyLarge?.copyWith(
+                                style: textTheme.bodyMedium?.copyWith(
                                   color: colorScheme.onSurface,
                                 ),
                               ),
                               Text(
                                 '編號：${route.id}',
-                                style: textTheme.bodyLarge?.copyWith(
+                                style: textTheme.bodySmall?.copyWith(
                                   color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
-                              const Divider(height: 20),
+                              const Divider(height: 12),
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
                                 children: [
                                   Expanded(
                                     child: CheckboxListTile(
-                                      title: Text('往 ${route.destination}'),
+                                      title: Text(
+                                        '往 ${route.destination}',
+                                        style: textTheme.bodySmall,
+                                      ),
                                       value: selection.go,
                                       dense: true,
                                       controlAffinity:
@@ -220,7 +223,10 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
                                   ),
                                   Expanded(
                                     child: CheckboxListTile(
-                                      title: Text('往 ${route.departure}'),
+                                      title: Text(
+                                        '往 ${route.departure}',
+                                        style: textTheme.bodySmall,
+                                      ),
                                       value: selection.back,
                                       dense: true,
                                       controlAffinity:
@@ -243,9 +249,9 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.search_off,
-                              size: 100,
+                              size: 80,
                               color: colorScheme.primary.withOpacity(0.7)),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           Text("找不到符合的路線", style: textTheme.headlineSmall),
                         ],
                       ),

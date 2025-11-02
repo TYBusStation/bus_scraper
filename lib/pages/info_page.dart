@@ -1,21 +1,19 @@
-import 'package:flutter/foundation.dart'
-    show kIsWeb; // <-- 步驟 1: 導入 kIsWeb 以偵測平台
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../static.dart';
 import '../widgets/theme_provider.dart';
 
-// --- 步驟 2: 定義您的 APK 下載連結 ---
-// !!! 請務必將此連結替換為您自己的 APK 檔案實際託管的網址 !!!
 const String apkDownloadUrl =
     'https://github.com/TYBusStation/bus_scraper/releases/latest/download/app-release.apk';
 
 class InfoPage extends StatelessWidget {
   const InfoPage({super.key});
 
-  // 處理分享功能的函式
   void _shareWebsite(BuildContext context) {
     final box = context.findRenderObject() as RenderBox?;
     SharePlus.instance.share(ShareParams(
@@ -25,12 +23,11 @@ class InfoPage extends StatelessWidget {
     ));
   }
 
-  // --- 步驟 3: 新增處理 APK 下載的函式 ---
   Future<void> _downloadApk(BuildContext context) async {
     final Uri uri = Uri.parse(apkDownloadUrl);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      // 如果無法開啟連結，顯示錯誤訊息
       if (context.mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('無法開啟下載連結: $apkDownloadUrl'),
@@ -41,12 +38,77 @@ class InfoPage extends StatelessWidget {
     }
   }
 
+  Widget _buildAnnouncementCard(BuildContext context, ThemeData themeData) {
+    if (Static.announcementMarkdown.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: FaIcon(FontAwesomeIcons.bullhorn,
+                  color: themeData.colorScheme.primary),
+              title: Text('最新公告', style: themeData.textTheme.titleLarge),
+            ),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            MarkdownBody(data: Static.announcementMarkdown),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpdateInfoCard(BuildContext context, ThemeData themeData) {
+    final currentVersion = Static.currentVersion;
+    final versionNotes = Static.versionNotes;
+
+    if (currentVersion == null || versionNotes == null) {
+      return const SizedBox.shrink();
+    }
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: FaIcon(FontAwesomeIcons.rocket,
+                  color: themeData.colorScheme.secondary),
+              title: Text(
+                '本次更新 (v$currentVersion)',
+                style: themeData.textTheme.titleLarge,
+              ),
+            ),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            Text(
+              versionNotes,
+              style: themeData.textTheme.bodyMedium?.copyWith(fontSize: 15),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ThemeProvider(
       builder: (BuildContext context, ThemeData themeData) =>
           SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
@@ -54,29 +116,28 @@ class InfoPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  "歡迎使用 桃園公車站動態追蹤\n目前提供桃園和台中的資料\n可至設定切換城市\n如有任何問題或建議\n請聯繫作者",
-                  style:
-                      themeData.textTheme.headlineSmall?.copyWith(fontSize: 25),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 30),
+                _buildAnnouncementCard(context, themeData),
+                const SizedBox(height: 4),
+                _buildUpdateInfoCard(context, themeData),
+                const SizedBox(height: 4),
                 Card(
                   elevation: 2,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  margin: const EdgeInsets.symmetric(vertical: 4),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: Column(
                       children: List.generate(contactItems.length, (index) {
                         final item = contactItems[index];
                         return Column(
                           children: [
                             ListTile(
+                              dense: true,
                               leading: FaIcon(
                                 item.icon,
-                                size: 28,
+                                size: 26,
                                 color: themeData.colorScheme.primary,
                               ),
                               title: Text(
@@ -104,40 +165,33 @@ class InfoPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 30),
-
-                // --- 分享按鈕 ---
+                const SizedBox(height: 16),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.share),
                   label: const Text('分享此網站'),
                   onPressed: () => _shareWebsite(context),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    textStyle: const TextStyle(fontSize: 18),
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    textStyle: const TextStyle(fontSize: 16),
                     backgroundColor: themeData.colorScheme.primary,
                     foregroundColor: themeData.colorScheme.onPrimary,
                   ),
                 ),
-
-                // --- 步驟 4: 新增下載 APK 按鈕 (僅在 Web 平台顯示) ---
                 if (kIsWeb) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   ElevatedButton.icon(
-                    icon: const FaIcon(FontAwesomeIcons.android, size: 22),
+                    icon: const FaIcon(FontAwesomeIcons.android, size: 20),
                     label: const Text('下載 Android 版 (APK)'),
-                    onPressed: () => _downloadApk(context), // 呼叫下載函式
+                    onPressed: () => _downloadApk(context),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      textStyle: const TextStyle(fontSize: 18),
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      textStyle: const TextStyle(fontSize: 16),
                       backgroundColor: const Color(0xFF3DDC84),
-                      // Android 綠色
-                      foregroundColor: Colors.black, // 在綠色上的文字顏色
+                      foregroundColor: Colors.black,
                     ),
                   ),
                 ],
-                // --- 下載按鈕結束 ---
-
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
               ],
             ),
           ),
@@ -157,7 +211,7 @@ class ContactItem {
 
 final List<ContactItem> contactItems = [
   ContactItem(
-    title: "Website",
+    title: "Linktree",
     icon: FontAwesomeIcons.link,
     url: "https://tybusstation.github.io",
   ),

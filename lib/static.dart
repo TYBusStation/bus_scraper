@@ -1,7 +1,13 @@
+import 'dart:convert';
+
+import 'package:bus_scraper/storage/city.dart';
 import 'package:bus_scraper/storage/local_storage.dart';
 import 'package:bus_scraper/storage/storage.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:random_user_agents/random_user_agents.dart';
 
 import 'data/bus_route.dart';
@@ -9,56 +15,33 @@ import 'data/car.dart';
 import 'data/route_detail.dart';
 import 'data/vehicle_history.dart';
 
-// 【新增】定義一個城市資料模型
-class AppCity {
-  final String code; // e.g., 'taoyuan'
-  final String name; // e.g., '桃園市'
-
-  const AppCity({required this.code, required this.name});
-}
-
 class Static {
   static Future<void>? _initFuture;
-
-  // 【新增】初始化 ID，用於防止競態條件
   static int _currentInitId = 0;
 
-  // --- Constants ---
-  static const String _primaryApiUrl = "https://myster.freeddns.org:25566";
-  static const String _fallbackApiUrl =
-      "http://192.168.1.159:25567"; // 使用 http 以便本地測試
+  static late final String announcementMarkdown;
+  static late final String? currentVersion;
+  static late final String? versionNotes;
 
-  static final DateFormat apiDateFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
-  static final DateFormat displayDateFormatNoSec =
+  static const String _primaryApiUrl = "https://myster.freeddns.org:25566";
+
+  // static const String _primaryApiUrl = "http://localhost:8000";
+  static const String _fallbackApiUrl = "http://192.168.1.159:25567";
+
+  static final DateFormat apiTimeFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
+  static final DateFormat displayTimeFormatNoSec =
       DateFormat('yyyy-MM-dd HH:mm');
-  static final DateFormat displayDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+  static final DateFormat displayTimeFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+  static final DateFormat displayDateFormat = DateFormat('yyyy/MM/dd');
 
   static RegExp letterNumber = RegExp(r"[^a-zA-Z0-9]");
-
-  // 【修改】將 apiBaseUrl 變為內部變數，並提供一個公共的 getter
   static String _currentApiBaseUrl = _primaryApiUrl;
 
   static String get apiBaseUrl => _currentApiBaseUrl;
 
-  // 【新增】定義可用的城市列表
-  static const List<AppCity> availableCities = [
-    AppCity(code: 'taoyuan', name: '桃園市'),
-    AppCity(code: 'taichung', name: '台中市'),
-  ];
+  static City get city => localStorage.city;
 
-  // 【修改】將 GraphQL API URL 改為動態 getter
-  static String get govWebUrl {
-    final city = localStorage.city;
-    if (city == 'taichung') {
-      return "https://citybus.taichung.gov.tw/ebus";
-    }
-    // 預設返回桃園的 URL
-    return "https://ebus.tycg.gov.tw/ebus";
-  }
-
-  static String get _graphqlApiUrl {
-    return "$govWebUrl/graphql";
-  }
+  static String get _graphqlUrl => "${city.url}/graphql";
 
   static const String _graphqlQueryRoutes = """
   query QUERY_ROUTES(\$lang: String!) {
@@ -110,7 +93,6 @@ class Static {
   }
   """;
 
-  // --- Dio Instance ---
   static final Dio dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 30),
     sendTimeout: const Duration(seconds: 30),
@@ -125,18 +107,13 @@ class Static {
     },
   ));
 
-  // --- Local Storage ---
   static final LocalStorage localStorage = LocalStorage();
 
-  // --- Static Data (late final and nullable) ---
   static late final List<BusRoute> opRouteData;
   static late final List<BusRoute> specialRouteData;
-  static late final List<BusRoute> routeData; // 營運中 + 特殊路線
+  static late final List<BusRoute> routeData;
   static late final List<Car> carData;
-
   static List<BusRoute>? allRouteData;
-
-  // --- Route detail cache ---
   static final Map<String, RouteDetail> _routeDetailCache = {};
 
   static Future<void> init() {
@@ -153,84 +130,103 @@ class Static {
       _currentApiBaseUrl = _primaryApiUrl;
       log("Switched to PRIMARY API: $_currentApiBaseUrl");
     }
-
-    _routeDetailCache.clear(); // 清除快取，因為後端可能不同步
+    _routeDetailCache.clear();
     allRouteData = null;
     _initFuture = null;
-
-    // 【修改】增加版本號以作廢舊的初始化流程
     _currentInitId++;
     log("Initialization ID incremented to: $_currentInitId");
-
     return init();
   }
 
   static Future<void> _performInit() async {
-    // 【修改】在執行開始時，捕獲當前的版本號
     final int initId = _currentInitId;
     log("Static initialization started with ID: $initId.");
-
-    // 【關鍵修改】將 StorageHelper.init() 移到最前面
     await StorageHelper.init();
-
     log("Using API Base URL: $apiBaseUrl");
-    log("Current city: ${localStorage.city}");
-
+    log("Current city: $city");
     try {
-      // 測試 API 連線
       await dio.getUri(Uri.parse(apiBaseUrl));
       log("API server connection successful for ID: $initId.");
-
-      // 步驟 3: 平行獲取所有必要的啟動資料
       final results = await Future.wait([
         _fetchOpRoutesFromServer(),
         _fetchSpecialRoutesFromServer(),
         _fetchCarDataFromServer(),
-      ], eagerError: true); // eagerError: true 可以在任何一個 future 失敗時立即失敗
-
-      // 【關鍵保護】在賦值之前，檢查當前的初始化是否仍然是最新版本
+        _fetchAnnouncementFromServer(),
+        _fetchVersionInfoFromServer(),
+      ], eagerError: true);
       if (initId != _currentInitId) {
         log("Initialization with ID: $initId is outdated. Aborting assignment.");
-        return; // 直接返回，不執行後續的賦值操作
+        return;
       }
-
       log("Initialization with ID: $initId is current. Proceeding with assignment.");
-      // 步驟 4: 安全地賦值
       opRouteData =
           (results[0] is List<BusRoute>) ? results[0] as List<BusRoute> : [];
       specialRouteData =
           (results[1] is List<BusRoute>) ? results[1] as List<BusRoute> : [];
       carData = (results[2] is List<Car>) ? results[2] as List<Car> : [];
-
+      announcementMarkdown = results[3] as String;
+      final versionInfo = results[4] as Map<String, String?>;
+      currentVersion = versionInfo['version'];
+      versionNotes = versionInfo['notes'];
       routeData = [...opRouteData, ...specialRouteData];
       final seen = <String>{};
       routeData.retainWhere((route) => seen.add(route.id));
-
       log("Static initialization complete for ID: $initId.");
       log("Operational routes loaded: ${opRouteData.length}");
       log("Special routes loaded: ${specialRouteData.length}");
       log("Total combined routes: ${routeData.length}");
       log("Car data loaded: ${carData.length}");
     } catch (e, stackTrace) {
-      // 【關鍵保護】也對錯誤進行檢查，避免舊的錯誤覆蓋新的狀態
       if (initId != _currentInitId) {
         log("Ignoring error from outdated initialization with ID: $initId. Error: $e");
         return;
       }
-
-      // 【關鍵】如果初始化過程中任何一步失敗，捕獲錯誤
       log("!!! CRITICAL: Static initialization failed for ID: $initId !!!");
       log("Error: $e");
       log("StackTrace: $stackTrace");
-
-      // 為所有 late final 變數提供一個安全的空列表作為預設值
-      // 這樣 App 雖然沒有資料，但不會因為 LateInitializationError 而崩潰
       opRouteData = [];
       specialRouteData = [];
       routeData = [];
       carData = [];
-
+      announcementMarkdown = '公告載入失敗：\n$e';
+      currentVersion = '未知版本';
+      versionNotes = '更新日誌載入失敗。';
       rethrow;
+    }
+  }
+
+  static Future<Map<String, String?>> _fetchVersionInfoFromServer() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersionStr =
+          '${packageInfo.version}+${packageInfo.buildNumber}';
+      final jsonString = await rootBundle.loadString('assets/versions.json');
+      final decodedJson = jsonDecode(jsonString) as Map<String, dynamic>;
+      return {
+        'version': currentVersionStr,
+        'notes': decodedJson[currentVersionStr]?.toString(),
+      };
+    } catch (e) {
+      log("Error fetching version info: $e");
+      return {
+        'version': '未知版本',
+        'notes': '更新日誌載入失敗: $e',
+      };
+    }
+  }
+
+  static Future<String> _fetchAnnouncementFromServer() async {
+    String url = "$apiBaseUrl/announcement";
+    log("Fetching announcement from API: $url");
+    try {
+      final response = await dio.getUri(Uri.parse(url));
+      if (response.statusCode == 200 && response.data is String) {
+        return response.data;
+      }
+      return '無法載入公告 (狀態碼: ${response.statusCode})';
+    } catch (e) {
+      log("Error fetching announcement: $e");
+      return '載入公告失敗，請檢查您的網路連線。';
     }
   }
 
@@ -242,17 +238,15 @@ class Static {
     try {
       return routeData.firstWhere((r) => r.id == routeId);
     } catch (e) {
-      /* Do nothing */
+      // Do nothing
     }
-
     if (allRouteData != null) {
       try {
         return allRouteData!.firstWhere((r) => r.id == routeId);
       } catch (e) {
-        /* Do nothing */
+        // Do nothing
       }
     }
-
     return BusRoute.unknown;
   }
 
@@ -265,11 +259,10 @@ class Static {
   static Future<BusRoute> fetchRouteDetailById(String routeId) async {
     final int? routeIdInt = int.tryParse(routeId);
     if (routeIdInt == null) return BusRoute.unknown;
-
     log("Fetching unknown route detail from API for ID: $routeId");
     try {
       final response = await dio.post(
-        _graphqlApiUrl, // 使用動態 getter
+        _graphqlUrl,
         data: {
           "operationName": "QUERY_ROUTE_DETAIL",
           "variables": {"routeId": routeIdInt, "lang": "zh"},
@@ -297,14 +290,12 @@ class Static {
     if (_routeDetailCache.containsKey(routeId)) {
       return _routeDetailCache[routeId]!;
     }
-
     final int? routeIdInt = int.tryParse(routeId);
     if (routeIdInt == null) return RouteDetail.unknown;
-
     log("Fetching route path and stops from API for ID: $routeId");
     try {
       final response = await dio.post(
-        _graphqlApiUrl, // 使用動態 getter
+        _graphqlUrl,
         data: {
           "operationName": "QUERY_ROUTE_DETAIL",
           "variables": {"routeId": routeIdInt, "lang": "zh"},
@@ -336,7 +327,7 @@ class Static {
   }
 
   static Future<List<BusRoute>> _fetchAllRoutesFromServer() async {
-    final String url = "$apiBaseUrl/${localStorage.city}/all_routes";
+    final String url = "$apiBaseUrl/${city.code}/all_routes";
     log("Fetching all routes from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
@@ -354,10 +345,10 @@ class Static {
   }
 
   static Future<List<BusRoute>> _fetchOpRoutesFromServer() async {
-    log("Fetching operational routes from API: $_graphqlApiUrl");
+    log("Fetching operational routes from API: $_graphqlUrl");
     try {
       final response = await dio.post(
-        _graphqlApiUrl, // 使用動態 getter
+        _graphqlUrl,
         data: {
           "operationName": "QUERY_ROUTES",
           "variables": {"lang": "zh"},
@@ -379,7 +370,7 @@ class Static {
   }
 
   static Future<List<BusRoute>> _fetchSpecialRoutesFromServer() async {
-    final String url = "$apiBaseUrl/${Static.localStorage.city}/special_routes";
+    final String url = "$apiBaseUrl/${city.code}/special_routes";
     log("Fetching special routes from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
@@ -397,7 +388,7 @@ class Static {
   }
 
   static Future<List<Car>> _fetchCarDataFromServer() async {
-    final String url = "$apiBaseUrl/${localStorage.city}/all_car_types";
+    final String url = "$apiBaseUrl/${city.code}/all_car_types";
     log("Fetching car data from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
@@ -544,78 +535,34 @@ class Static {
     return a.compareTo(b);
   }
 
-  /// 檢查對於**當前城市**的特定駕駛員是否存在備註。
   static bool hasDriverRemark(String driverId) {
-    // 1. 獲取當前選擇的城市
-    final currentCity = localStorage.city;
-    // 2. 呼叫 LocalStorage 中新的、正確的方法
-    return localStorage.getRemarksForCity(currentCity).containsKey(driverId);
+    return localStorage.getRemarksForCity(city).containsKey(driverId);
   }
 
-  /// 獲取對於**當前城市**的特定駕駛員的備註。
   static String? getDriverRemark(String driverId) {
-    // 1. 獲取當前選擇的城市
-    final currentCity = localStorage.city;
-    // 2. 呼叫 LocalStorage 中新的、正確的方法
-    return localStorage.getRemarksForCity(currentCity)[driverId];
+    return localStorage.getRemarksForCity(city)[driverId];
   }
 
-  /// 獲取駕駛員的顯示文字（如果**當前城市**有備註，則包含備註）。
   static String getDriverText(String driverId) {
     if (driverId == "0") {
-      return "未知駕駛";
+      return "未知駕駛長";
     }
-    // hasDriverRemark 和 getDriverRemark 現在已經是城市感知的了
     return hasDriverRemark(driverId)
         ? "$driverId(${getDriverRemark(driverId)})"
         : driverId;
   }
 
-  static Future<List<DriverDateInfo>> findVehicleDrivers({
-    required String plate,
-    DateTime? startDate, // 【新增】
-    DateTime? endDate, // 【新增】
-  }) async {
-    final String city = localStorage.city;
-    // 【修改】使用 Uri.parse().replace() 來安全地添加查詢參數
-    final uri = Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_drivers/$plate")
-        .replace(
-      queryParameters: {
-        if (startDate != null) 'start_time': apiDateFormat.format(startDate),
-        if (endDate != null) 'end_time': apiDateFormat.format(endDate),
-      },
-    );
-    log("Fetching drivers for plate $plate from API: $uri");
-    try {
-      final response = await dio.getUri(uri);
-      if (response.statusCode == 200 && response.data is List) {
-        return (response.data as List)
-            .map((json) => DriverDateInfo.fromJson(json))
-            .toList();
-      }
-    } on DioException catch (e) {
-      log("DioError fetching drivers for plate $plate: ${e.message}");
-    } catch (e) {
-      log("Unexpected error fetching drivers for plate $plate: $e");
-    }
-    return [];
-  }
-
-  /// 根據車輛車牌反查其所有行駛過的路線及日期
-  ///
-  /// 對應 API: `GET /{city}/tools/find_vehicle_routes/{plate}`
   static Future<List<VehicleRouteHistory>> findVehicleRoutes({
     required String plate,
-    DateTime? startDate, // 【新增】
-    DateTime? endDate, // 【新增】
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
-    final String city = localStorage.city;
-    // 【修改】使用 Uri.parse().replace()
     final uri =
-        Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_routes/$plate").replace(
+        Uri.parse("$apiBaseUrl/${city.code}/tools/find_vehicle_routes/$plate")
+            .replace(
       queryParameters: {
-        if (startDate != null) 'start_time': apiDateFormat.format(startDate),
-        if (endDate != null) 'end_time': apiDateFormat.format(endDate),
+        if (startDate != null) 'start_time': apiTimeFormat.format(startDate),
+        if (endDate != null) 'end_time': apiTimeFormat.format(endDate),
       },
     );
     log("Fetching routes for plate $plate from API: $uri");
@@ -639,19 +586,18 @@ class Static {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final String city = localStorage.city;
-    final uri = Uri.parse("$apiBaseUrl/$city/tools/find_driver_dates").replace(
+    final uri =
+        Uri.parse("$apiBaseUrl/${city.code}/tools/find_driver_dates").replace(
       queryParameters: {
-        'driver_id': driverId, // 注意後端參數可能是 driver_id
-        if (startDate != null) 'start_time': apiDateFormat.format(startDate),
-        if (endDate != null) 'end_time': apiDateFormat.format(endDate),
+        'driver_id': driverId,
+        if (startDate != null) 'start_time': apiTimeFormat.format(startDate),
+        if (endDate != null) 'end_time': apiTimeFormat.format(endDate),
       },
     );
     log("Fetching plates for driver $driverId from API: $uri");
     try {
       final response = await dio.getUri(uri);
       if (response.statusCode == 200 && response.data is List) {
-        // Dio 會自動解碼，我們直接使用
         return (response.data as List)
             .map((json) => PlateDrivingDates.fromJson(json))
             .toList();
@@ -664,21 +610,17 @@ class Static {
     return [];
   }
 
-  /// 根據路線 ID 查詢行駛過的車輛及日期
-  ///
-  /// 對應 API: `GET /{city}/tools/find_route_vehicles`
   static Future<List<VehicleDrivingDates>> findVehiclesOnRoute({
     required String routeId,
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final String city = localStorage.city;
     final uri =
-        Uri.parse("$apiBaseUrl/$city/tools/find_route_vehicles").replace(
+        Uri.parse("$apiBaseUrl/${city.code}/tools/find_route_vehicles").replace(
       queryParameters: {
-        'route_id': routeId, // 注意後端參數可能是 route_id
-        if (startDate != null) 'start_time': apiDateFormat.format(startDate),
-        if (endDate != null) 'end_time': apiDateFormat.format(endDate),
+        'route_id': routeId,
+        if (startDate != null) 'start_time': apiTimeFormat.format(startDate),
+        if (endDate != null) 'end_time': apiTimeFormat.format(endDate),
       },
     );
     log("Fetching vehicles for route $routeId from API: $uri");
@@ -702,19 +644,18 @@ class Static {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final String city = localStorage.city;
-    final uri = Uri.parse("$apiBaseUrl/$city/tools/find_vehicle_drivers/$plate")
-        .replace(
+    final uri =
+        Uri.parse("$apiBaseUrl/${city.code}/tools/find_vehicle_drivers/$plate")
+            .replace(
       queryParameters: {
-        if (startDate != null) 'start_time': apiDateFormat.format(startDate),
-        if (endDate != null) 'end_time': apiDateFormat.format(endDate),
+        if (startDate != null) 'start_time': apiTimeFormat.format(startDate),
+        if (endDate != null) 'end_time': apiTimeFormat.format(endDate),
       },
     );
     log("Fetching drivers for plate $plate from API: $uri");
     try {
       final response = await dio.getUri(uri);
       if (response.statusCode == 200 && response.data is List) {
-        // Dio 會自動解碼，我們直接使用
         return (response.data as List)
             .map((json) => DriverDateInfo.fromJson(json))
             .toList();
@@ -727,10 +668,93 @@ class Static {
     return [];
   }
 
-  static getExamplePlate() {
-    if (localStorage.city == "taichung") {
-      return "EAL-1277";
+  static final DateTime _firstSelectableDate = DateTime(2025, 6, 8);
+
+  static Future<void> selectDateTime({
+    required BuildContext context,
+    required bool isStart,
+    required DateTimeRange currentRange,
+    required DateTime lastSelectableDate,
+    required bool pickTime,
+    required Duration maxDuration,
+    required void Function(DateTimeRange newRange) onDateTimeChanged,
+  }) async {
+    final DateTime initialPickerDate =
+        isStart ? currentRange.start : currentRange.end;
+
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialPickerDate.isAfter(lastSelectableDate)
+          ? lastSelectableDate
+          : (initialPickerDate.isBefore(_firstSelectableDate)
+              ? _firstSelectableDate
+              : initialPickerDate),
+      firstDate: _firstSelectableDate,
+      lastDate: lastSelectableDate,
+      helpText: isStart ? '選擇開始日期' : '選擇結束日期',
+    );
+
+    if (pickedDate == null || !context.mounted) return;
+
+    final DateTime newDateTime;
+
+    if (pickTime) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(initialPickerDate),
+        helpText: isStart ? '選擇開始時間' : '選擇結束時間',
+      );
+
+      if (pickedTime == null) return;
+
+      newDateTime = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    } else {
+      newDateTime = isStart
+          ? DateTime(pickedDate.year, pickedDate.month, pickedDate.day)
+          : DateTime(pickedDate.year, pickedDate.month, pickedDate.day, 23, 59,
+              59, 999);
     }
-    return "KKA-3822";
+
+    var newStart = currentRange.start;
+    var newEnd = currentRange.end;
+
+    if (isStart) {
+      newStart = newDateTime;
+      if (newStart.isAfter(newEnd)) {
+        newEnd = newStart.add(const Duration(minutes: 1)); // 保持一個微小的有效範圍
+      }
+      if (newEnd.difference(newStart) > maxDuration) {
+        newEnd = newStart.add(maxDuration);
+      }
+      if (newEnd.isAfter(lastSelectableDate)) {
+        newEnd = lastSelectableDate;
+        if (newStart.isAfter(newEnd)) {
+          newStart = newEnd.subtract(const Duration(minutes: 1));
+        }
+      }
+    } else {
+      newEnd = newDateTime;
+      if (newEnd.isBefore(newStart)) {
+        newStart = newEnd.subtract(const Duration(minutes: 1));
+      }
+      if (newEnd.difference(newStart) > maxDuration) {
+        newStart = newEnd.subtract(maxDuration);
+      }
+      if (newStart.isBefore(_firstSelectableDate)) {
+        newStart = _firstSelectableDate;
+        if (newEnd.isBefore(newStart)) {
+          newEnd = newStart.add(const Duration(minutes: 1));
+        }
+      }
+    }
+
+    // 返回最終驗證過的範圍
+    onDateTimeChanged(DateTimeRange(start: newStart, end: newEnd));
   }
 }

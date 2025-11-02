@@ -1,5 +1,3 @@
-// lib/pages/live_osm_page.dart
-
 import 'dart:async';
 
 import 'package:dio/dio.dart';
@@ -43,6 +41,8 @@ class _LiveOsmPageState extends State<LiveOsmPage>
   bool _isFirstLoadComplete = false;
   final DateFormat _timeFormat = DateFormat('HH:mm:ss');
 
+  bool _isWarningAcknowledged = false;
+
   @override
   void initState() {
     super.initState();
@@ -75,38 +75,40 @@ class _LiveOsmPageState extends State<LiveOsmPage>
     super.dispose();
   }
 
-  // *** 新增：用於關閉錯誤提示框的方法 ***
   void _dismissError() {
     setState(() {
       _error = null;
+      _isWarningAcknowledged = true;
     });
   }
 
   Future<void> _fetchAndDrawMap({bool isInitialLoad = false}) async {
-    // 如果是自動刷新，先清除舊錯誤
-    if (!isInitialLoad) {
-      _dismissError();
+    if (!isInitialLoad && !_isWarningAcknowledged) {
+      setState(() {
+        _error = null;
+      });
     }
 
     if (isInitialLoad) {
       setState(() {
         _isLoading = true;
         _error = null;
+        _isWarningAcknowledged = false;
       });
     }
 
     try {
       final endTime = DateTime.now();
-      // --- 變更 1: 查詢開始時間從 1 小時前改為 20 分鐘前 ---
       final startTime = isInitialLoad || _lastPointTime == null
-          ? endTime.subtract(const Duration(minutes: 20))
+          ? endTime.subtract(
+              Duration(minutes: Static.localStorage.liveTrackDuration))
           : _lastPointTime!;
 
-      final formattedStartTime = Static.apiDateFormat.format(startTime);
-      final formattedEndTime = Static.apiDateFormat.format(endTime);
+      final formattedStartTime = Static.apiTimeFormat.format(startTime);
+      final formattedEndTime = Static.apiTimeFormat.format(endTime);
 
       final url = Uri.parse(
-          "${Static.apiBaseUrl}/${Static.localStorage.city}/bus_data/${widget.plate}?start_time=$formattedStartTime&end_time=$formattedEndTime");
+          "${Static.apiBaseUrl}/${Static.city.code}/bus_data/${widget.plate}?start_time=$formattedStartTime&end_time=$formattedEndTime");
 
       final response = await Static.dio.getUri(url);
 
@@ -114,18 +116,15 @@ class _LiveOsmPageState extends State<LiveOsmPage>
 
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> decodedData = response.data;
-        final newPoints = decodedData
-            .map((item) => BusPoint.fromJson(item))
-            .toList()
-            .toList();
+        final newPoints =
+            decodedData.map((item) => BusPoint.fromJson(item)).toList();
 
         if (isInitialLoad) {
           _points = newPoints;
         } else {
           _points.addAll(newPoints);
-          // --- 變更 2: 清除舊點位的基準從 1 小時前改為 20 分鐘前 ---
-          final twentyMinutesAgo =
-              DateTime.now().subtract(const Duration(minutes: 20));
+          final twentyMinutesAgo = DateTime.now().subtract(
+              Duration(minutes: Static.localStorage.liveTrackDuration));
           _points.removeWhere(
               (point) => point.dataTime.isBefore(twentyMinutesAgo));
         }
@@ -138,22 +137,30 @@ class _LiveOsmPageState extends State<LiveOsmPage>
 
         String? newError;
         if (_points.isEmpty) {
-          // --- 變更 3: 更新錯誤訊息 ---
-          newError = "過去 20 分鐘内沒有找到軌跡資料。";
+          if (!_isWarningAcknowledged) {
+            newError =
+                "過去 ${Static.localStorage.liveTrackDuration} 分鐘内沒有找到軌跡資料。";
+          }
         } else {
           final lastPointTime = _points.last.dataTime;
           final timeDifference = DateTime.now().difference(lastPointTime);
 
-          if (timeDifference.inMinutes >= 10) {
-            final minutesAgo = timeDifference.inMinutes;
-            newError = "車輛可能已離線 (最後訊號於 $minutesAgo 分鐘前)";
+          if (timeDifference.inMinutes < 5) {
+            _isWarningAcknowledged = false;
+          } else {
+            if (!_isWarningAcknowledged) {
+              final minutesAgo = timeDifference.inMinutes;
+              newError = "車輛可能已離線 (最後時間為 $minutesAgo 分鐘前)";
+            }
           }
         }
 
         setState(() {
           _isLoading = false;
           _lastFetchTime = DateTime.now();
-          _error = newError;
+          if (newError != null) {
+            _error = newError;
+          }
         });
       } else {
         throw DioException(
@@ -161,23 +168,33 @@ class _LiveOsmPageState extends State<LiveOsmPage>
       }
     } on DioException catch (e) {
       if (!mounted) return;
+
       if (e.response != null) {
         if (e.response!.statusCode == 404) {
-          _points.clear();
-          _prepareMapData();
-          setState(() {
-            // --- 變更 4: 更新 404 錯誤訊息 ---
-            _error = "過去 20 分鐘内沒有找到軌跡資料。";
-            _isLoading = false;
-            _lastFetchTime = DateTime.now();
-          });
+          if (!_isWarningAcknowledged) {
+            _points.clear();
+            _prepareMapData();
+            setState(() {
+              _error =
+                  "過去 ${Static.localStorage.liveTrackDuration} 分鐘内沒有找到軌跡資料。";
+              _isLoading = false;
+              _lastFetchTime = DateTime.now();
+            });
+          } else {
+            setState(() {
+              _isLoading = false;
+              _lastFetchTime = DateTime.now();
+            });
+          }
         } else {
+          _isWarningAcknowledged = false;
           setState(() {
             _error = "數據獲取失敗: ${e.response!.statusCode}";
             _isLoading = false;
           });
         }
       } else {
+        _isWarningAcknowledged = false;
         setState(() {
           _error = "網絡連線失敗，請檢查您的網絡設定。";
           _isLoading = false;
@@ -185,6 +202,7 @@ class _LiveOsmPageState extends State<LiveOsmPage>
       }
     } catch (e) {
       if (!mounted) return;
+      _isWarningAcknowledged = false;
       setState(() {
         _error = "發生未知錯誤: $e";
         _isLoading = false;
@@ -386,7 +404,6 @@ class _LiveOsmPageState extends State<LiveOsmPage>
         polylines: _polylines,
         markers: _markers,
         bounds: _isFirstLoadComplete ? _bounds : null,
-        // *** 核心修改：將關閉錯誤的方法傳遞給 BaseMapView ***
         onErrorDismiss: _dismissError,
       ),
     );

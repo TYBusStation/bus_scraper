@@ -1,9 +1,4 @@
-import 'dart:convert';
-
-import 'package:bus_scraper/static.dart'; // 假設您的 Static 類在此
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:package_info_plus/package_info_plus.dart';
 
 import 'cars_page.dart';
 import 'company_page.dart';
@@ -49,7 +44,7 @@ class _MainPageState extends State<MainPage> {
     NavigationDestination(
       icon: Icon(Icons.person_outline),
       selectedIcon: Icon(Icons.person),
-      label: '駕駛',
+      label: '駕駛長',
     ),
     NavigationDestination(
       icon: Icon(Icons.business_outlined),
@@ -71,78 +66,6 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadAndUpdateCheck();
-    });
-  }
-
-  Future<void> _loadAndUpdateCheck() async {
-    await _loadUpdateNotes();
-    if (mounted) {
-      _checkForUpdates();
-    }
-  }
-
-  Future<void> _loadUpdateNotes() async {
-    try {
-      final jsonString = await rootBundle.loadString('assets/versions.json');
-      final decodedJson = jsonDecode(jsonString) as Map<String, dynamic>;
-      setState(() {
-        _updateNotes = decodedJson.map(
-          (key, value) => MapEntry(key, value.toString()),
-        );
-      });
-    } catch (e) {
-      debugPrint('Failed to load version notes: $e');
-      setState(() {
-        _updateNotes = {};
-      });
-    }
-  }
-
-  Future<void> _checkForUpdates() async {
-    if (_updateNotes == null || _updateNotes!.isEmpty) {
-      return;
-    }
-
-    final packageInfo = await PackageInfo.fromPlatform();
-    final currentVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
-    final lastShownVersion = Static.localStorage.lastShownVersion;
-
-    if (currentVersion != lastShownVersion &&
-        _updateNotes!.containsKey(currentVersion)) {
-      if (mounted) {
-        _showUpdateDialog(
-          context,
-          currentVersion,
-          _updateNotes![currentVersion]!,
-        );
-      }
-      Static.localStorage.lastShownVersion = currentVersion;
-    }
-  }
-
-  void _showUpdateDialog(BuildContext context, String version, String notes) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('應用程式更新資訊 (v$version)'),
-          content: SingleChildScrollView(
-            child: Text(notes),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('我知道了'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Widget _buildPageContent(int index) {
@@ -165,7 +88,7 @@ class _MainPageState extends State<MainPage> {
       1 => "路線",
       2 => "車輛",
       3 => "收藏車輛",
-      4 => "駕駛反查",
+      4 => "駕駛長編號反查",
       5 => "監理資料",
       6 => "附近車輛",
       7 => "設定",

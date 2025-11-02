@@ -1,15 +1,12 @@
-// lib/pages/history_osm_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../data/TrajectorySegment.dart';
 import '../data/bus_point.dart';
-import '../pages/history_page.dart';
 import '../widgets/base_map_view.dart';
 import '../widgets/point_marker.dart';
 
-/// 一個簡單的顏色循環器，以確保所有線條顏色連續且獨立。
 class _ColorCycler {
   int _index = 0;
 
@@ -66,7 +63,6 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
       return;
     }
 
-    // --- 1. 處理背景軌跡段 (不變) ---
     if (widget.backgroundSegments != null) {
       for (final segment in widget.backgroundSegments!) {
         if (segment.points.isEmpty) continue;
@@ -81,11 +77,6 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
       }
     }
 
-    // --- [MODIFICATION START] ---
-    // 邏輯調整：
-    // - 遍歷所有 segment，為每個 segment 生成彩色線條和軌跡點。
-    // - 根據 isFiltered 狀態，決定如何添加起/終點旗幟。
-    // - 如果未篩選，則在 segment 之間添加實線連接，形成連續軌跡。
     if (widget.segments.isNotEmpty) {
       for (int i = 0; i < widget.segments.length; i++) {
         final segment = widget.segments[i];
@@ -93,62 +84,53 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
 
         final segmentColor = _colorCycler.nextColor;
 
-        // 1. 為當前軌跡段創建彩色的 Polyline
         allPolylines.add(Polyline(
           points: segment.points.map((p) => LatLng(p.lat, p.lon)).toList(),
           color: segmentColor,
           strokeWidth: 4,
         ));
 
-        // 2. 為當前軌跡段的所有點創建彩色的軌跡點標記 (小圓點)
         for (final point in segment.points) {
           allMarkers.add(_createTrackPointMarker(point, segmentColor));
         }
 
-        // 3. 根據篩選狀態添加起/終點旗幟標記
         if (widget.isFiltered) {
-          // A. 已篩選：每個軌跡段都有自己的起點和終點旗幟
           allMarkers
               .add(_createStartEndMarker(segment.points.first, isStart: true));
           allMarkers
               .add(_createStartEndMarker(segment.points.last, isStart: false));
         } else {
-          // B. 未篩選：只為整個行程的絕對起點和終點添加旗幟
           if (i == 0) {
-            // 這是第一個軌跡段，添加總起點旗幟
             allMarkers.add(
                 _createStartEndMarker(segment.points.first, isStart: true));
           }
           if (i == widget.segments.length - 1) {
-            // 這是最後一個軌跡段，添加總終點旗幟
             allMarkers.add(
                 _createStartEndMarker(segment.points.last, isStart: false));
           }
 
-          // C. 未篩選：在當前軌跡段和下一個軌跡段之間畫一條同色的實線，以形成連續視覺效果
           if (i < widget.segments.length - 1) {
             final nextSegment = widget.segments[i + 1];
             if (nextSegment.points.isNotEmpty) {
               final lastPoint = segment.points.last;
               final nextPoint = nextSegment.points.first;
-              allPolylines.add(Polyline(
-                points: [
-                  LatLng(lastPoint.lat, lastPoint.lon),
-                  LatLng(nextPoint.lat, nextPoint.lon),
-                ],
-                color: segmentColor, // 使用當前軌跡段的顏色進行連接
-                strokeWidth: 4, // 保持與主軌跡線相同的寬度
-              ));
+              allPolylines.add(
+                Polyline(
+                  points: [
+                    LatLng(lastPoint.lat, lastPoint.lon),
+                    LatLng(nextPoint.lat, nextPoint.lon),
+                  ],
+                  color: segmentColor,
+                  strokeWidth: 4,
+                ),
+              );
             }
           }
         }
       }
     }
-    // --- [MODIFICATION END] ---
-
-    // --- 4. 計算邊界 (不變) ---
     if (_allPointsForBounds.isNotEmpty) {
-      final LatLngBounds? calculatedBounds = LatLngBounds.fromPoints(
+      final LatLngBounds calculatedBounds = LatLngBounds.fromPoints(
           _allPointsForBounds.map((p) => LatLng(p.lat, p.lon)).toList());
       setState(() {
         _polylines = allPolylines;
@@ -164,7 +146,6 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
     }
   }
 
-  // --- 輔助方法 (不變) ---
   PointMarker _createTrackPointMarker(BusPoint point, Color color) {
     return PointMarker(
       busPoint: point,

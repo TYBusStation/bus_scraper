@@ -7,7 +7,6 @@ import '../data/company.dart';
 import '../static.dart';
 import '../widgets/theme_provider.dart';
 
-// --- 通用的彈出式選擇對話框 (已新增搜尋框) ---
 class SelectionDialog<T> extends StatefulWidget {
   final String title;
   final List<T> items;
@@ -34,7 +33,7 @@ class _SelectionDialogState<T> extends State<SelectionDialog<T>> {
   void initState() {
     super.initState();
     _searchController = TextEditingController();
-    _filteredItems = widget.items; // 初始顯示所有項目
+    _filteredItems = widget.items;
     _searchController.addListener(_filterItems);
   }
 
@@ -52,7 +51,6 @@ class _SelectionDialogState<T> extends State<SelectionDialog<T>> {
         _filteredItems = widget.items;
       } else {
         _filteredItems = widget.items.where((item) {
-          // 使用傳入的 itemBuilder 來取得每個項目的字串表示以進行搜尋
           return widget.itemBuilder(item).toLowerCase().contains(query);
         }).toList();
       }
@@ -63,42 +61,39 @@ class _SelectionDialogState<T> extends State<SelectionDialog<T>> {
   Widget build(BuildContext context) {
     final themeData = Theme.of(context);
     return AlertDialog(
-      title: Text(widget.title, style: themeData.textTheme.titleLarge),
-      contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      title: Text(widget.title, style: themeData.textTheme.titleMedium),
+      contentPadding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       content: SizedBox(
         width: double.maxFinite,
-        height: MediaQuery.of(context).size.height * 0.6,
-        // 使用 Column 來放置搜尋框和列表
+        height: MediaQuery.of(context).size.height * 0.5,
         child: Column(
           children: [
-            // --- 搜尋框 ---
             TextField(
               controller: _searchController,
-              autofocus: false, // 自動獲取焦點
-              style: themeData.textTheme.bodyMedium,
+              autofocus: false,
+              style: themeData.textTheme.bodySmall,
               decoration: InputDecoration(
                 isDense: true,
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 hintText: '搜尋...',
                 hintStyle: themeData.textTheme.bodySmall
                     ?.copyWith(color: themeData.hintColor),
                 prefixIcon: Icon(Icons.search,
-                    color: themeData.colorScheme.primary, size: 20),
+                    color: themeData.colorScheme.primary, size: 18),
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: Icon(Icons.clear,
-                            size: 18,
+                            size: 16,
                             color: themeData.colorScheme.onSurfaceVariant),
                         onPressed: () => _searchController.clear(),
                       )
                     : null,
               ),
             ),
-            const SizedBox(height: 12),
-            // --- 項目列表 ---
+            const SizedBox(height: 8),
             Expanded(
               child: _filteredItems.isEmpty
                   ? Center(
@@ -110,8 +105,11 @@ class _SelectionDialogState<T> extends State<SelectionDialog<T>> {
                       itemBuilder: (context, index) {
                         final item = _filteredItems[index];
                         return ListTile(
+                          dense: true,
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 8),
                           title: Text(widget.itemBuilder(item),
-                              overflow: TextOverflow.ellipsis),
+                              style: themeData.textTheme.bodyMedium),
                           selected: item == widget.initialValue,
                           selectedTileColor:
                               themeData.colorScheme.primary.withOpacity(0.1),
@@ -127,7 +125,7 @@ class _SelectionDialogState<T> extends State<SelectionDialog<T>> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(), // 返回 null
+          onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
       ],
@@ -143,14 +141,13 @@ class CompanyPage extends StatefulWidget {
 }
 
 class _CompanyPageState extends State<CompanyPage> {
-  // --- 狀態變數 ---
   List<Company> _companies = [];
   Company? _selectedCompany;
 
   final List<String> _dataTypes = ['cars', 'drivers'];
   final Map<String, String> _dataTypeDisplayNames = {
     'cars': '車輛',
-    'drivers': '駕駛員'
+    'drivers': '駕駛長'
   };
   String? _selectedDataType;
 
@@ -173,7 +170,6 @@ class _CompanyPageState extends State<CompanyPage> {
   String? _error;
   final TextEditingController _searchController = TextEditingController();
 
-  // --- 快取機制 ---
   final Map<String, dynamic> _cache = <String, dynamic>{};
   static const String _companiesCacheKey = 'companies_list';
 
@@ -232,7 +228,6 @@ class _CompanyPageState extends State<CompanyPage> {
         _isLoadingCompanies = false;
         _error = null;
       });
-      Static.log("公司列表從快取載入。");
       return;
     }
 
@@ -248,7 +243,6 @@ class _CompanyPageState extends State<CompanyPage> {
       final response = await Static.dio.get('${Static.apiBaseUrl}/companies');
       if (response.statusCode == 200 && response.data is List) {
         _cache[_companiesCacheKey] = response.data;
-        Static.log("公司列表從 API 獲取並快取。");
         setState(() {
           _companies = (response.data as List)
               .map((companyJson) => Company.fromJson(companyJson))
@@ -272,7 +266,6 @@ class _CompanyPageState extends State<CompanyPage> {
     setState(() {
       _selectedCompany = newCompany;
       _clearTimestampsList();
-      _clearFetchedData();
       if (_selectedCompany != null && _selectedDataType != null) {
         _fetchTimestamps();
       }
@@ -283,7 +276,6 @@ class _CompanyPageState extends State<CompanyPage> {
     setState(() {
       _selectedDataType = newDataTypeInternalValue;
       _clearTimestampsList();
-      _clearFetchedData();
       if (_selectedCompany != null && _selectedDataType != null) {
         _fetchTimestamps();
       }
@@ -302,7 +294,6 @@ class _CompanyPageState extends State<CompanyPage> {
         _error = null;
         _clearTimestampsSelection();
       });
-      Static.log("資料集 for ${_selectedCompany!.code}/$_selectedDataType 從快取載入。");
       return;
     }
 
@@ -318,11 +309,8 @@ class _CompanyPageState extends State<CompanyPage> {
       final response = await Static.dio.get(url);
       if (response.statusCode == 200 && response.data is List) {
         _cache[cacheKey] = response.data;
-        Static.log(
-            "資料集 for ${_selectedCompany!.code}/$_selectedDataType 從 API 獲取並快取。");
         setState(() {
           _timestamps = List<String>.from(response.data);
-          // 如果成功載入但列表為空，也給予提示
           if (_timestamps.isEmpty) {
             _error = "此類型下沒有可用的資料集。";
           }
@@ -332,9 +320,7 @@ class _CompanyPageState extends State<CompanyPage> {
             '無法載入資料集: ${response.statusCode} - ${response.data?['detail'] ?? response.statusMessage}');
       }
     } catch (e) {
-      // --- 修改開始 ---
       String errorMessage = '載入資料集時發生錯誤: $e';
-      // 判斷是否為 DioException 且狀態碼為 404
       if (e is DioException && e.response?.statusCode == 404) {
         final String dataTypeDisplayName =
             _dataTypeDisplayNames[_selectedDataType!] ?? _selectedDataType!;
@@ -342,9 +328,8 @@ class _CompanyPageState extends State<CompanyPage> {
       }
       setState(() {
         _error = errorMessage;
-        _timestamps = []; // 確保時間戳列表為空
+        _timestamps = [];
       });
-      // --- 修改結束 ---
     } finally {
       setState(() {
         _isLoadingTimestamps = false;
@@ -402,8 +387,6 @@ class _CompanyPageState extends State<CompanyPage> {
         _error = null;
         _applyFilter();
       });
-      Static.log(
-          "資料 for ${_selectedCompany!.code}/$_selectedDataType/$selectedTimestamp (資料集 $target) 從快取載入。");
       return;
     }
 
@@ -427,8 +410,6 @@ class _CompanyPageState extends State<CompanyPage> {
       if (response.statusCode == 200) {
         if (response.data is List) {
           _cache[cacheKey] = response.data;
-          Static.log(
-              "資料 for ${_selectedCompany!.code}/$_selectedDataType/$selectedTimestamp (資料集 $target) 從 API 獲取並快取。");
           setState(() {
             if (target == 1) {
               _fetchedData1 = response.data;
@@ -444,16 +425,13 @@ class _CompanyPageState extends State<CompanyPage> {
             '無法載入公司資料: ${response.statusCode} - ${response.data?['detail'] ?? response.statusMessage}');
       }
     } catch (e) {
-      // --- 修改開始 ---
       String errorMessage = '載入資料集 $target 時發生錯誤: $e';
-      // 判斷是否為 DioException 且狀態碼為 404
       if (e is DioException && e.response?.statusCode == 404) {
         errorMessage = '資料集檔案不存在或已移除 (404 Not Found)。';
       }
       setState(() {
         _error = errorMessage;
       });
-      // --- 修改結束 ---
     } finally {
       setState(() {
         if (target == 1) {
@@ -626,6 +604,7 @@ class _CompanyPageState extends State<CompanyPage> {
     await Clipboard.setData(ClipboardData(text: comparisonText));
 
     if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('比較結果已複製到剪貼簿！'),
@@ -660,8 +639,6 @@ class _CompanyPageState extends State<CompanyPage> {
     }
   }
 
-  // --- Widget 建構方法 ---
-
   Widget _buildSelectionButton<T>({
     required BuildContext context,
     required ThemeData themeData,
@@ -678,15 +655,14 @@ class _CompanyPageState extends State<CompanyPage> {
     if (isLoading) {
       return Expanded(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 4.0),
           child: Row(
             children: [
-              SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: themeData.colorScheme.primary)),
-              const SizedBox(width: 8),
+              const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
+              const SizedBox(width: 6),
               Text(loadingText ?? "載入中...",
                   style: themeData.textTheme.bodySmall),
             ],
@@ -698,15 +674,15 @@ class _CompanyPageState extends State<CompanyPage> {
     final bool isEnabled = enabled && items.isNotEmpty;
     final String currentText = value != null ? itemToString(value) : hintText;
     final Color textColor = value != null
-        ? themeData.textTheme.bodyMedium!.color!
+        ? themeData.textTheme.bodySmall!.color!
         : themeData.hintColor;
 
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+        padding: const EdgeInsets.symmetric(horizontal: 2.0),
         child: OutlinedButton(
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             side: BorderSide(
                 color: themeData.colorScheme.outline.withOpacity(0.5)),
             shape:
@@ -718,7 +694,6 @@ class _CompanyPageState extends State<CompanyPage> {
           onPressed: !isEnabled
               ? null
               : () async {
-                  // 注意：這裡現在調用的是我們修改後的 SelectionDialog
                   final selectedValue = await showDialog<T>(
                     context: context,
                     builder: (BuildContext context) => SelectionDialog<T>(
@@ -728,7 +703,6 @@ class _CompanyPageState extends State<CompanyPage> {
                       itemBuilder: itemToString,
                     ),
                   );
-                  // 處理返回的結果
                   if (selectedValue != null) {
                     onChanged(selectedValue);
                   }
@@ -738,13 +712,13 @@ class _CompanyPageState extends State<CompanyPage> {
               Expanded(
                 child: Text(
                   currentText,
-                  style: themeData.textTheme.bodyMedium
-                      ?.copyWith(color: textColor),
-                  overflow: TextOverflow.ellipsis,
+                  style:
+                      themeData.textTheme.bodySmall?.copyWith(color: textColor),
                 ),
               ),
               Icon(
                 Icons.arrow_drop_down,
+                size: 20,
                 color: isEnabled
                     ? themeData.colorScheme.onSurfaceVariant
                     : themeData.disabledColor,
@@ -769,7 +743,7 @@ class _CompanyPageState extends State<CompanyPage> {
     final String timestampText = selectedTimestamp ?? '未選';
     String countText = '';
     if (data is List) {
-      countText = ' (筆數: ${data.length})';
+      countText = ' (${data.length})';
     }
 
     String dataTypeDisplayName = selectedDataType != null
@@ -781,14 +755,12 @@ class _CompanyPageState extends State<CompanyPage> {
         themeData.colorScheme.onSurface.withAlpha((0.5 * 255).round());
 
     if (isLoading) {
-      content = Center(
-          child:
-              CircularProgressIndicator(color: themeData.colorScheme.primary));
+      content = const Center(child: CircularProgressIndicator());
     } else if (data == null) {
       content = Center(
           child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Text('請選擇資料集以載入$dataTypeDisplayName。',
+        padding: const EdgeInsets.all(4.0),
+        child: Text('請選擇資料集\n以載入$dataTypeDisplayName',
             textAlign: TextAlign.center,
             style: themeData.textTheme.bodySmall
                 ?.copyWith(color: placeholderColor)),
@@ -796,11 +768,11 @@ class _CompanyPageState extends State<CompanyPage> {
     } else if (data is List && data.isEmpty) {
       content = Center(
           child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(4.0),
         child: Text(
             _searchController.text.isEmpty
-                ? '此資料集下沒有$dataTypeDisplayName。'
-                : '沒有符合搜尋條件的$dataTypeDisplayName。',
+                ? '此資料集下\n沒有$dataTypeDisplayName'
+                : '沒有符合搜尋\n條件的$dataTypeDisplayName',
             textAlign: TextAlign.center,
             style: themeData.textTheme.bodySmall
                 ?.copyWith(color: placeholderColor)),
@@ -810,7 +782,7 @@ class _CompanyPageState extends State<CompanyPage> {
     } else {
       content = Center(
           child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(4.0),
         child: Text("無法顯示資料",
             textAlign: TextAlign.center,
             style: themeData.textTheme.bodySmall
@@ -820,7 +792,7 @@ class _CompanyPageState extends State<CompanyPage> {
 
     return Card(
       elevation: 1,
-      margin: const EdgeInsets.only(top: 4),
+      margin: const EdgeInsets.only(top: 2),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       color: themeData.cardColor,
       child: Column(
@@ -829,17 +801,18 @@ class _CompanyPageState extends State<CompanyPage> {
           Stack(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 6, 40, 6),
+                padding: const EdgeInsets.fromLTRB(8, 4, 32, 4),
                 child: RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
-                    style: themeData.textTheme.titleSmall
+                    style: themeData.textTheme.labelMedium
                         ?.copyWith(fontWeight: FontWeight.w600),
                     children: [
                       TextSpan(text: '$titleText$countText\n'),
                       TextSpan(
                         text: timestampText,
                         style: themeData.textTheme.bodySmall?.copyWith(
+                          fontSize: 10,
                           color: themeData.colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -849,13 +822,13 @@ class _CompanyPageState extends State<CompanyPage> {
               ),
               Positioned(
                 top: 0,
-                right: 4,
+                right: 2,
                 bottom: 0,
                 child: IconButton(
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   icon: Icon(Icons.link,
-                      size: 16, color: themeData.colorScheme.primary),
+                      size: 14, color: themeData.colorScheme.primary),
                   tooltip: '複製資料連結',
                   onPressed: selectedTimestamp == null
                       ? null
@@ -874,18 +847,18 @@ class _CompanyPageState extends State<CompanyPage> {
 
   Widget _buildListDisplay(ThemeData themeData, List<dynamic> dataList) {
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
       itemCount: dataList.length,
       itemBuilder: (context, index) {
         final item = dataList[index];
         if (item is String) {
           return Card(
             elevation: 0.5,
-            margin: const EdgeInsets.all(4.0),
+            margin: const EdgeInsets.all(2.0),
             color: themeData.colorScheme.surfaceContainerHighest.withAlpha(180),
             child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Text(item, style: themeData.textTheme.bodySmall),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Text(item, style: const TextStyle(fontSize: 11)),
             ),
           );
         }
@@ -907,33 +880,32 @@ class _CompanyPageState extends State<CompanyPage> {
       cardColor = colorScheme.tertiary.withAlpha(150);
       iconColor = colorScheme.tertiary;
       textColor = colorScheme.onTertiaryContainer;
-      icon = Icons.add_circle_outline;
+      icon = Icons.add;
     } else {
       cardColor = colorScheme.errorContainer.withAlpha(150);
       iconColor = colorScheme.error;
       textColor = colorScheme.onErrorContainer;
-      icon = Icons.remove_circle_outline;
+      icon = Icons.remove;
     }
 
     final String title = item['value'] as String? ?? 'N/A';
     final int count = item['count'] as int? ?? 1;
-    final String displayText = count > 1 ? '$title (數量: $count)' : title;
+    final String displayText = count > 1 ? '$title (x$count)' : title;
 
     return Card(
       elevation: 0.2,
       color: cardColor,
-      margin: const EdgeInsets.all(4.0),
+      margin: const EdgeInsets.all(2.0),
       child: Row(
         children: [
           Padding(
-            padding: const EdgeInsets.all(4),
-            child: Icon(icon, color: iconColor, size: 18),
+            padding: const EdgeInsets.all(2),
+            child: Icon(icon, color: iconColor, size: 14),
           ),
           Expanded(
             child: Text(
               displayText,
-              style: themeData.textTheme.bodySmall?.copyWith(color: textColor),
-              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: textColor),
             ),
           ),
         ],
@@ -953,7 +925,7 @@ class _CompanyPageState extends State<CompanyPage> {
       content = Center(
           child: Padding(
         padding: const EdgeInsets.all(4.0),
-        child: Text('請選擇兩個資料集以進行比較。',
+        child: Text('請選擇兩個資料集\n以進行比較',
             textAlign: TextAlign.center,
             style: themeData.textTheme.bodySmall
                 ?.copyWith(color: placeholderColor)),
@@ -962,7 +934,7 @@ class _CompanyPageState extends State<CompanyPage> {
       content = Center(
           child: Padding(
         padding: const EdgeInsets.all(4.0),
-        child: Text('資料載入中，請稍候...',
+        child: Text('資料載入中...',
             style: themeData.textTheme.bodySmall
                 ?.copyWith(color: placeholderColor)),
       ));
@@ -972,8 +944,8 @@ class _CompanyPageState extends State<CompanyPage> {
         padding: const EdgeInsets.all(4.0),
         child: Text(
             (_filteredData1 != null && _filteredData2 != null)
-                ? '正在準備比較結果...'
-                : '比較結果將顯示於此。',
+                ? '準備比較結果...'
+                : '比較結果',
             textAlign: TextAlign.center,
             style: themeData.textTheme.bodySmall
                 ?.copyWith(color: placeholderColor)),
@@ -994,7 +966,7 @@ class _CompanyPageState extends State<CompanyPage> {
         content = Center(
             child: Padding(
           padding: const EdgeInsets.all(4.0),
-          child: Text('兩個資料集之間沒有差異。',
+          child: Text('沒有差異',
               textAlign: TextAlign.center,
               style: themeData.textTheme.bodyMedium
                   ?.copyWith(color: colorScheme.primary)),
@@ -1004,31 +976,29 @@ class _CompanyPageState extends State<CompanyPage> {
         if (added.isNotEmpty) {
           final totalAdded = added.fold<int>(
               0, (sum, item) => sum + (item['count'] as int? ?? 0));
-          diffWidgets.add(Text('新增的$dataTypeDisplayName (共 $totalAdded 筆):',
+          diffWidgets.add(Text('新增 ($totalAdded):',
               textAlign: TextAlign.center,
-              style: themeData.textTheme.labelLarge
+              style: themeData.textTheme.labelMedium
                   ?.copyWith(color: colorScheme.tertiary)));
           for (var item in added) {
             diffWidgets.add(_buildDiffItemCard(themeData, item, '新增'));
           }
-          diffWidgets.add(const SizedBox(height: 4));
         }
         if (removed.isNotEmpty) {
           final totalRemoved = removed.fold<int>(
               0, (sum, item) => sum + (item['count'] as int? ?? 0));
           diffWidgets.add(
-            Text('移除的$dataTypeDisplayName (共 $totalRemoved 筆):',
+            Text('移除 ($totalRemoved):',
                 textAlign: TextAlign.center,
-                style: themeData.textTheme.labelLarge
+                style: themeData.textTheme.labelMedium
                     ?.copyWith(color: colorScheme.error)),
           );
           for (var item in removed) {
             diffWidgets.add(_buildDiffItemCard(themeData, item, '移除'));
           }
-          diffWidgets.add(const SizedBox(height: 4));
         }
         content = ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+            padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 2.0),
             children: diffWidgets);
       }
     }
@@ -1054,56 +1024,56 @@ class _CompanyPageState extends State<CompanyPage> {
                 _comparisonResult!['removed']!.isNotEmpty);
 
         return Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(4.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextField(
                 controller: _searchController,
-                style: themeData.textTheme.bodyMedium,
+                style: themeData.textTheme.bodySmall,
                 decoration: InputDecoration(
                   isDense: true,
                   contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   labelText: '搜尋已載入資料',
-                  labelStyle: themeData.textTheme.labelMedium,
+                  labelStyle: themeData.textTheme.labelSmall,
                   hintText: '輸入關鍵字...',
                   hintStyle: themeData.textTheme.bodySmall
                       ?.copyWith(color: themeData.hintColor),
                   prefixIcon: Icon(Icons.search,
-                      color: themeData.colorScheme.primary, size: 20),
+                      color: themeData.colorScheme.primary, size: 18),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6)),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
                           icon: Icon(Icons.clear,
-                              size: 18,
+                              size: 16,
                               color: themeData.colorScheme.onSurfaceVariant),
                           onPressed: () => _searchController.clear(),
                         )
                       : null,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Row(
                 children: [
                   _buildSelectionButton<Company>(
                     context: context,
                     themeData: themeData,
-                    hintText: '選擇公司',
+                    hintText: '公司',
                     dialogTitle: '選擇公司',
                     value: _selectedCompany,
                     items: _companies,
                     onChanged: _onCompanyChanged,
                     isLoading: _isLoadingCompanies,
                     loadingText: "載入公司...",
-                    itemToString: (Company c) => "${c.name} (${c.code})",
+                    itemToString: (Company c) => c.name,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   _buildSelectionButton<String>(
                     context: context,
                     themeData: themeData,
-                    hintText: '選擇資料類型',
+                    hintText: '類型',
                     dialogTitle: '選擇資料類型',
                     value: _selectedDataType,
                     items: _dataTypes,
@@ -1113,7 +1083,7 @@ class _CompanyPageState extends State<CompanyPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Row(
                 children: [
                   _buildSelectionButton<String>(
@@ -1129,7 +1099,7 @@ class _CompanyPageState extends State<CompanyPage> {
                     enabled: canSelectTimestamps,
                     itemToString: (String s) => s,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   _buildSelectionButton<String>(
                     context: context,
                     themeData: themeData,
@@ -1145,22 +1115,21 @@ class _CompanyPageState extends State<CompanyPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
               if (_error != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  padding: const EdgeInsets.symmetric(vertical: 2.0),
                   child: Text(_error!,
                       style: themeData.textTheme.bodySmall?.copyWith(
                           color: colorScheme.error,
                           fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center),
                 ),
+              const SizedBox(height: 4),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      flex: 1,
                       child: _buildDataPanel(
                         themeData: themeData,
                         panelIndex: 1,
@@ -1169,9 +1138,8 @@ class _CompanyPageState extends State<CompanyPage> {
                         selectedDataType: _selectedDataType,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     Expanded(
-                      flex: 1,
                       child: _buildDataPanel(
                         themeData: themeData,
                         panelIndex: 2,
@@ -1180,30 +1148,31 @@ class _CompanyPageState extends State<CompanyPage> {
                         selectedDataType: _selectedDataType,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     Expanded(
-                      flex: 1,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2.0),
+                            padding: const EdgeInsets.symmetric(vertical: 1.0),
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Spacer(flex: 2),
                                 Icon(Icons.compare_arrows,
-                                    size: 18, color: colorScheme.primary),
+                                    size: 16, color: colorScheme.primary),
                                 const SizedBox(width: 4),
-                                Text("差異比對",
+                                Expanded(
+                                  child: Text(
+                                    "差異比對",
                                     textAlign: TextAlign.center,
-                                    style: themeData.textTheme.titleSmall
-                                        ?.copyWith(
-                                            fontWeight: FontWeight.w600)),
-                                const Spacer(flex: 1),
+                                    style: themeData.textTheme.labelMedium
+                                        ?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                ),
                                 IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
                                   icon: Icon(Icons.content_copy,
-                                      size: 16, color: colorScheme.primary),
+                                      size: 14, color: colorScheme.primary),
                                   tooltip: '複製比較結果',
                                   onPressed: canCopyComparison
                                       ? _copyComparisonResult

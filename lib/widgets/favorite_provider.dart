@@ -1,49 +1,111 @@
-// lib/providers/favorites_provider.dart
-
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
-import '../static.dart'; // 假設 Static 類別在此路徑
+import '../static.dart';
 
-// 1. 建立一個專門管理收藏的 Notifier
 class FavoritesNotifier extends ChangeNotifier implements ReassembleHandler {
-  // 私有變數，儲存收藏列表的快取
-  List<String> _favoritePlates = [];
+  static const String defaultGroupName = '最愛';
 
-  // 初始化時，從 localStorage 讀取初始收藏列表
-  FavoritesNotifier(List<String> initialList) {
-    _favoritePlates = initialList;
+  Map<String, List<String>> _favoriteGroups = {};
+
+  FavoritesNotifier() {
+    _loadFavorites();
   }
 
-  void setFavoritePlates(List<String> list) {
-    _favoritePlates = list;
-    notifyListeners(); // 新增：確保外部變動時 UI 會更新
+  void _loadFavorites() {
+    _favoriteGroups =
+        Static.localStorage.getFavoriteGroupsForCity(Static.localStorage.city);
+    if (!_favoriteGroups.containsKey(defaultGroupName)) {
+      _favoriteGroups[defaultGroupName] = [];
+    }
   }
 
-  // 提供一個 getter 讓外部可以安全地讀取收藏列表
-  List<String> get favoritePlates => _favoritePlates;
+  Map<String, List<String>> get favoriteGroups => _favoriteGroups;
 
   bool isFavorite(String plate) {
-    return _favoritePlates.contains(plate);
+    return _favoriteGroups.values.any((plates) => plates.contains(plate));
   }
 
-  // 切換收藏狀態的核心方法
-  void toggleFavorite(String plate) {
-    if (isFavorite(plate)) {
-      // 如果已收藏，則從快取和 localStorage 中移除
-      _favoritePlates.remove(plate);
-    } else {
-      // 如果未收藏，則加入到快取和 localStorage
-      _favoritePlates.add(plate);
-    }
-    Static.localStorage.favoritePlates = _favoritePlates;
+  Set<String> getGroupsForPlate(String plate) {
+    return _favoriteGroups.entries
+        .where((entry) => entry.value.contains(plate))
+        .map((entry) => entry.key)
+        .toSet();
+  }
 
-    // 通知所有監聽者狀態已改變，需要重繪
+  void updatePlateGroups(String plate, Set<String> selectedGroups) {
+    _favoriteGroups.forEach((groupName, plates) {
+      plates.remove(plate);
+    });
+
+    for (var groupName in selectedGroups) {
+      if (_favoriteGroups.containsKey(groupName)) {
+        _favoriteGroups[groupName]!.add(plate);
+      }
+    }
+    _saveAndNotify();
+  }
+
+  void toggleFavorite(String plate) {
+    final favoriteGroup = _favoriteGroups[defaultGroupName] ?? [];
+    if (favoriteGroup.contains(plate)) {
+      favoriteGroup.remove(plate);
+    } else {
+      favoriteGroup.add(plate);
+    }
+    _favoriteGroups[defaultGroupName] = favoriteGroup;
+    _saveAndNotify();
+  }
+
+  void addGroup(String name) {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty || _favoriteGroups.containsKey(trimmedName)) return;
+    _favoriteGroups[trimmedName] = [];
+    _saveAndNotify();
+  }
+
+  void removeGroup(String name) {
+    if (name == defaultGroupName) return;
+    _favoriteGroups.remove(name);
+    _saveAndNotify();
+  }
+
+  void renameGroup(String oldName, String newName) {
+    final trimmedNewName = newName.trim();
+    if (oldName == defaultGroupName ||
+        trimmedNewName.isEmpty ||
+        _favoriteGroups.containsKey(trimmedNewName)) return;
+
+    final plates = _favoriteGroups[oldName] ?? [];
+    _favoriteGroups.remove(oldName);
+    _favoriteGroups[trimmedNewName] = plates;
+    _saveAndNotify();
+  }
+
+  void addPlateToGroup(String plate, String groupName) {
+    if (!_favoriteGroups.containsKey(groupName)) return;
+    final group = _favoriteGroups[groupName]!;
+    if (!group.contains(plate)) {
+      group.add(plate);
+      _saveAndNotify();
+    }
+  }
+
+  void removePlateFromGroup(String plate, String groupName) {
+    if (!_favoriteGroups.containsKey(groupName)) return;
+    _favoriteGroups[groupName]?.remove(plate);
+    _saveAndNotify();
+  }
+
+  void _saveAndNotify() {
+    Static.localStorage
+        .setFavoriteGroupsForCity(Static.localStorage.city, _favoriteGroups);
     notifyListeners();
   }
 
   @override
   void reassemble() {
-    setFavoritePlates(Static.localStorage.favoritePlates);
+    _loadFavorites();
+    notifyListeners();
   }
 }

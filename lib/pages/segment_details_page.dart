@@ -1,11 +1,9 @@
-// lib/pages/segment_details_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../data/TrajectorySegment.dart';
 import '../static.dart';
 import 'history_osm_page.dart';
-import 'history_page.dart';
 
 class SegmentDetailsPage extends StatelessWidget {
   final String plate;
@@ -25,14 +23,14 @@ class SegmentDetailsPage extends StatelessWidget {
         elevation: 1,
       ),
       body: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+        padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
         itemCount: segment.points.length,
         itemBuilder: (context, index) {
           final dataPoint = segment.points[index];
           return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 5.0),
+            margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4.0),
             child: Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -40,15 +38,16 @@ class SegmentDetailsPage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        Static.displayDateFormat.format(dataPoint.dataTime),
+                        Static.displayTimeFormat.format(dataPoint.dataTime),
                         style: Theme.of(context)
                             .textTheme
-                            .titleMedium
+                            .titleSmall
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       Row(
                         children: [
                           IconButton(
+                            iconSize: 20,
                             icon: const Icon(Icons.explore_outlined),
                             color: Theme.of(context).colorScheme.secondary,
                             tooltip: '在地圖上繪製此點',
@@ -61,7 +60,7 @@ class SegmentDetailsPage extends StatelessWidget {
                                   builder: (context) => HistoryOsmPage(
                                     plate: plate,
                                     segments: [singlePointSegment],
-                                    isFiltered: true, // 繪製單點時，視為篩選過的
+                                    isFiltered: true,
                                     backgroundSegments: null,
                                   ),
                                 ),
@@ -69,19 +68,20 @@ class SegmentDetailsPage extends StatelessWidget {
                             },
                           ),
                           IconButton(
+                            iconSize: 20,
                             icon: const Icon(Icons.map_sharp),
                             color: Colors.blueAccent,
                             tooltip: '在 Google Map 上查看',
                             onPressed: () async => await launchUrl(Uri.parse(
-                                "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${Uri.encodeComponent('${route.name} | ${route.description} | 往 ${dataPoint.goBack == 1 ? route.destination : route.departure} | ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 駕駛：${Static.getDriverText(dataPoint.driverId)} | ${Static.displayDateFormat.format(dataPoint.dataTime)}')} )")),
+                                "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${Uri.encodeComponent('${route.name} | ${route.description} | 往 ${dataPoint.goBack == 1 ? route.destination : route.departure} | ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 駕駛長：${Static.getDriverText(dataPoint.driverId)} | ${Static.displayTimeFormat.format(dataPoint.dataTime)}')} )")),
                           ),
                         ],
                       )
                     ],
                   ),
-                  const Divider(height: 12),
+                  const Divider(height: 8),
                   Wrap(
-                    spacing: 8.0,
+                    spacing: 6.0,
                     runSpacing: 4.0,
                     children: [
                       _buildInfoChip(
@@ -113,7 +113,8 @@ class SegmentDetailsPage extends StatelessWidget {
                       _buildInfoChip(
                         context,
                         icon: Icons.person_pin_circle_outlined,
-                        label: "駕駛：${Static.getDriverText(dataPoint.driverId)}",
+                        label:
+                            "駕駛長：${Static.getDriverText(dataPoint.driverId)}",
                       ),
                       _buildInfoChip(
                         context,
@@ -137,9 +138,9 @@ class SegmentDetailsPage extends StatelessWidget {
     final theme = Theme.of(context);
     return Chip(
       avatar: Icon(icon,
-          size: 16, color: color ?? theme.colorScheme.onSurfaceVariant),
-      label: Text(label, style: theme.textTheme.labelMedium),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+          size: 14, color: color ?? theme.colorScheme.onSurfaceVariant),
+      label: Text(label, style: theme.textTheme.labelSmall),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       visualDensity: VisualDensity.compact,
       backgroundColor: theme.colorScheme.surfaceContainerHighest,
     );

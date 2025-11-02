@@ -1,5 +1,3 @@
-// lib/pages/nearby_vehicles_page.dart
-
 import 'dart:async';
 import 'dart:math';
 
@@ -31,7 +29,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   final TextEditingController _latController = TextEditingController();
   final TextEditingController _lonController = TextEditingController();
 
-  LatLng _currentMapCenter = BaseMapView.getDefaultCenter();
+  LatLng _currentMapCenter = Static.city.exPos;
   StreamSubscription<MapEvent>? _mapEventSubscription;
   bool _isProgrammaticMove = false;
 
@@ -131,7 +129,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
 
   Future<void> _performSearch() async {
     if (_isLoading) return;
-    FocusScope.of(context).unfocus(); // 收起鍵盤
+    FocusScope.of(context).unfocus();
     setState(() {
       _isLoading = true;
       _searchCenterWhenSearched = _currentMapCenter;
@@ -142,13 +140,13 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
           _searchRadiusKm > 0 ? _searchRadiusKm : 0.01;
       final dio = Static.dio;
       final url =
-          "${Static.apiBaseUrl}/${Static.localStorage.city}/tools/find_nearby_vehicles";
+          "${Static.apiBaseUrl}/${Static.city.code}/tools/find_nearby_vehicles";
       final queryParameters = {
         'lat': _searchCenterWhenSearched.latitude.toString(),
         'lon': _searchCenterWhenSearched.longitude.toString(),
         'radius': effectiveRadius.toString(),
-        'start_time': Static.apiDateFormat.format(_startTime),
-        'end_time': Static.apiDateFormat.format(_endTime),
+        'start_time': Static.apiTimeFormat.format(_startTime),
+        'end_time': Static.apiTimeFormat.format(_endTime),
       };
 
       final response = await dio.get(url, queryParameters: queryParameters);
@@ -177,6 +175,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       }
     } catch (e) {
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('搜尋失敗: ${e.toString()}')));
       }
@@ -296,37 +295,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
     }
   }
 
-  Future<void> _pickTime(bool isStart) async {
-    final initialDate = isStart ? _startTime : _endTime;
-    final now = DateTime.now();
-    final newDate = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2025, 6, 8),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
-      helpText: isStart ? '選擇開始日期' : '選擇結束日期',
-    );
-    if (newDate == null || !mounted) return;
-    final newTime = await showTimePicker(
-        context: context, initialTime: TimeOfDay.fromDateTime(initialDate));
-    if (newTime == null) return;
-    setState(() {
-      final finalDateTime = DateTime(newDate.year, newDate.month, newDate.day,
-          newTime.hour, newTime.minute);
-      if (isStart) {
-        _startTime = finalDateTime;
-        if (_startTime.isAfter(_endTime)) {
-          _endTime = _startTime.add(const Duration(minutes: 30));
-        }
-      } else {
-        _endTime = finalDateTime;
-        if (_endTime.isBefore(_startTime)) {
-          _startTime = _endTime.subtract(const Duration(minutes: 30));
-        }
-      }
-    });
-  }
-
   Future<void> _recenterMap() async {
     LatLngBounds bounds;
     final center = _isSearched ? _searchCenterWhenSearched : _currentMapCenter;
@@ -411,24 +379,23 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
         final isLandscape = constraints.maxWidth > constraints.maxHeight &&
             constraints.maxWidth > 800;
 
-        // 【修改】將共用的 MapView 抽離出來
         final mapView = _buildMapView(isLandscape);
 
         if (isLandscape) {
           return Row(
             children: [
-              Expanded(child: mapView), // 左側是地圖
+              Expanded(child: mapView),
               SizedBox(
-                width: 220, // 右側控制面板的寬度
-                child: _buildControlPanel(isLandscape), // 右側是控制面板
+                width: 220,
+                child: _buildControlPanel(isLandscape),
               ),
             ],
           );
         } else {
           return Column(
             children: [
-              _buildControlPanel(isLandscape), // 頂部是控制面板
-              Expanded(child: mapView), // 下方是地圖
+              _buildControlPanel(isLandscape),
+              Expanded(child: mapView),
             ],
           );
         }
@@ -437,7 +404,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   }
 
   Widget _buildMapView(bool isLandscape) {
-    final theme = Theme.of(context); // 獲取主題以上色
+    final theme = Theme.of(context);
     final allMarkers = [..._resultMarkers];
     if (_highlightMarker != null) allMarkers.add(_highlightMarker!);
     if (_myLocation != null) allMarkers.add(_buildMyLocationMarker());
@@ -493,8 +460,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
             MarkerLayer(markers: allMarkers),
           ],
         ),
-
-        // 【核心修改】將版權資訊加回 Stack 的頂部
         Positioned(
           top: 0,
           left: 0,
@@ -512,14 +477,12 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
             ),
           ),
         ),
-
         Positioned(
           bottom:
               (_selectedPoint != null ? (isLandscape ? 140.0 : 190.0) : 0) + 16,
           right: 16,
           child: _buildFloatingMapControls(Theme.of(context)),
         ),
-
         _buildInfoPanel(isLandscape: isLandscape),
       ],
     );
@@ -593,7 +556,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Icon(Icons.pin_drop_outlined, size: 20, color: Colors.grey),
-              // 在橫向模式下，貼上按鈕空間更小，所以用 Transform 縮小一點
               Transform.scale(scale: 0.8, child: pasteButton),
             ],
           ),
@@ -682,7 +644,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
     }
   }
 
-  // 【核心修改】修正拉桿文字旋轉問題
   Widget _buildRadiusSlider(ThemeData theme, {required bool isLandscape}) {
     final slider = Slider(
       value: _searchRadiusKm,
@@ -745,7 +706,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   Widget _buildTimeButton(
       ThemeData theme, String label, DateTime time, bool isStart,
       {required bool isLandscape}) {
-    final formatter = Static.displayDateFormatNoSec;
+    final formatter = Static.displayTimeFormatNoSec;
 
     final buttonContent = Container(
       decoration: BoxDecoration(
@@ -753,7 +714,21 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextButton(
-        onPressed: _isSearched ? null : () => _pickTime(isStart),
+        onPressed: _isSearched
+            ? null
+            : () => Static.selectDateTime(
+                  context: context,
+                  isStart: isStart,
+                  currentRange: DateTimeRange(start: _startTime, end: _endTime),
+                  lastSelectableDate:
+                      DateTime.now().add(const Duration(days: 1)),
+                  pickTime: true,
+                  maxDuration: const Duration(hours: 12),
+                  onDateTimeChanged: (range) => setState(() {
+                    _startTime = range.start;
+                    _endTime = range.end;
+                  }),
+                ),
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           visualDensity: VisualDensity.compact,
@@ -767,7 +742,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       ),
     );
 
-    // 【修復】只有在非橫向模式下才使用 Expanded
     if (!isLandscape) {
       return Expanded(child: buttonContent);
     }
@@ -801,8 +775,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
             ),
           );
 
-    // 【修復】移除 SizedBox(width: double.infinity)，因為 Column 的
-    // crossAxisAlignment: CrossAxisAlignment.stretch 已經處理了寬度
     return button;
   }
 
@@ -922,7 +894,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
               child: Text(
                 displayText,
                 style: Theme.of(context).textTheme.bodyMedium,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -1039,7 +1010,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
     final theme = Theme.of(context);
     final isVisible = _selectedPoint != null;
 
-    // 【核心修改 1】根據佈局模式動態設定面板高度
     final double panelHeight = isLandscape ? 140.0 : 190.0;
 
     final route = _selectedRoute;
@@ -1049,12 +1019,8 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       bottom: isVisible ? 0 : -(panelHeight + 40),
-
-      // 【核心修改 2】無論是橫向還是縱向，都讓面板的左右兩邊貼齊螢幕邊緣
       left: 0,
       right: 0,
-      // <--- 將 right 設為 0
-
       child: SafeArea(
         top: false,
         child: Container(
@@ -1080,7 +1046,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                         children: [
                           Expanded(
                               child: Text(
-                                  Static.displayDateFormat
+                                  Static.displayTimeFormat
                                       .format(_selectedPoint!.dataTime),
                                   style: theme.textTheme.titleMedium
                                       ?.copyWith(fontWeight: FontWeight.bold))),
@@ -1095,8 +1061,8 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                           "${route.name} | ${route.description} "
                                           "| 往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'} "
                                           "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
-                                          "| 駕駛：${Static.getDriverText(_selectedPoint!.driverId)} "
-                                          "| ${Static.displayDateFormat.format(_selectedPoint!.dataTime)}";
+                                          "| 駕駛長：${Static.getDriverText(_selectedPoint!.driverId)} "
+                                          "| ${Static.displayTimeFormat.format(_selectedPoint!.dataTime)}";
                                       await launchUrl(Uri.parse(
                                           "https://www.google.com/maps?q=${_selectedPoint!.lat}"
                                           ",${_selectedPoint!.lon}($mapTitle)"));
@@ -1150,7 +1116,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                               _buildInfoChip(
                                   icon: Icons.person_pin_circle_outlined,
                                   label:
-                                      "駕駛：${Static.getDriverText(_selectedPoint!.driverId)}"),
+                                      "駕駛長：${Static.getDriverText(_selectedPoint!.driverId)}"),
                               InkWell(
                                 borderRadius: BorderRadius.circular(16.0),
                                 onTap: () {

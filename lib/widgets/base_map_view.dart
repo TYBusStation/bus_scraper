@@ -1,5 +1,3 @@
-// lib/widgets/base_map_view.dart
-
 import 'package:bus_scraper/widgets/point_marker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,14 +14,6 @@ import '../pages/map_route_selection_page.dart';
 import '../static.dart';
 
 class BaseMapView extends StatefulWidget {
-  static LatLng getDefaultCenter() {
-    if (Static.localStorage.city == "taichung") {
-      return const LatLng(24.137331792238204, 120.6869186637282);
-    }
-
-    return const LatLng(24.98893444390252, 121.31443803557084);
-  }
-
   static const List<Color> segmentColors = [
     Color(0xFFE53935),
     Color(0xFF1E88E5),
@@ -92,6 +82,7 @@ class BaseMapViewState extends State<BaseMapView> {
   (StationEdge, BusRoute, int)? _selectedStation;
   BusRoute? _panelRoute;
   bool _isFetchingPanelRoute = false;
+  bool _isFabMenuExpanded = false;
 
   @override
   void didUpdateWidget(covariant BaseMapView oldWidget) {
@@ -190,6 +181,7 @@ class BaseMapViewState extends State<BaseMapView> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled && mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text('請開啟裝置的定位服務'),
           showCloseIcon: true,
@@ -201,6 +193,7 @@ class BaseMapViewState extends State<BaseMapView> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied && mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: const Text('您已拒絕位置權限'),
             showCloseIcon: true,
@@ -210,6 +203,7 @@ class BaseMapViewState extends State<BaseMapView> {
         }
       }
       if (permission == LocationPermission.deniedForever && mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text('位置權限已被永久拒絕，請至應用程式設定中開啟'),
           showCloseIcon: true,
@@ -225,6 +219,7 @@ class BaseMapViewState extends State<BaseMapView> {
       _mapController.move(newLocation, 17.0);
     } catch (e) {
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('無法獲取位置: $e'),
           showCloseIcon: true,
@@ -279,13 +274,10 @@ class BaseMapViewState extends State<BaseMapView> {
       }
       final detail = await Static.fetchRoutePathAndStops(routeId);
 
-      // --- [MODIFICATION START] ---
-      // Logic changed to assign colors only for visible paths to ensure
-      // better color distribution and prevent premature color repetition.
       if (selection.go && detail.goPath.isNotEmpty) {
         final color = BaseMapView.segmentColorsReverse[
             colorIndex % BaseMapView.segmentColorsReverse.length];
-        colorIndex++; // Consume a color only when a polyline is added
+        colorIndex++;
         newPolylines.add(Polyline(
             points: detail.goPath,
             color: color.withOpacity(0.7),
@@ -298,7 +290,7 @@ class BaseMapViewState extends State<BaseMapView> {
       if (selection.back && detail.backPath.isNotEmpty) {
         final color = BaseMapView.segmentColorsReverse[
             colorIndex % BaseMapView.segmentColorsReverse.length];
-        colorIndex++; // Consume a color only when a polyline is added
+        colorIndex++;
         newPolylines.add(Polyline(
             points: detail.backPath,
             color: color.withOpacity(0.7),
@@ -308,7 +300,6 @@ class BaseMapViewState extends State<BaseMapView> {
               _createStationMarker(station, route, color.withOpacity(0.7), 2));
         }
       }
-      // --- [MODIFICATION END] ---
     }
     if (mounted) {
       setState(() {
@@ -414,25 +405,30 @@ class BaseMapViewState extends State<BaseMapView> {
       allMarkersToShow.add(_highlightMarker!);
     }
     if (_currentLocation != null) {
-      allMarkersToShow.add(Marker(
+      allMarkersToShow.add(
+        Marker(
           point: _currentLocation!,
           width: 20,
           height: 20,
           child: IgnorePointer(
-              child: Container(
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.blue,
-                      border: Border.all(color: Colors.white, width: 3),
-                      boxShadow: const [
-                BoxShadow(color: Colors.black26, blurRadius: 4)
-              ])))));
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.blue,
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 4)
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
     }
     final allPolylinesToShow = [...widget.polylines, ..._userSelectedPolylines];
 
     final body = LayoutBuilder(
       builder: (context, constraints) {
-        // --- [MODIFICATION START] ---
         final isLandscape = constraints.maxWidth > constraints.maxHeight &&
             constraints.maxWidth > 800;
         final double panelHeight = isLandscape ? 140.0 : 190.0;
@@ -444,23 +440,17 @@ class BaseMapViewState extends State<BaseMapView> {
         final double controlsBottom =
             (isPanelVisible ? panelHeight + panelMargin : 0.0) +
                 controlsPadding;
-        // --- [MODIFICATION END] ---
 
         return Stack(
           children: [
             FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                // 根據 bounds 決定初始視圖
-                // 1. 如果 bounds 是單一點，則直接置中並縮放
                 initialCenter: (widget.bounds != null &&
                         widget.bounds!.southWest == widget.bounds!.northEast)
                     ? widget.bounds!.center
-                    // 2. 如果沒有 bounds，使用預設中心點
-                    : BaseMapView.getDefaultCenter(),
+                    : Static.city.exPos,
                 initialZoom: BaseMapView.defaultZoom,
-
-                // 如果 bounds 是一個有效的區域 (非單點)，則使用 fitCamera
                 initialCameraFit: (widget.bounds != null &&
                         widget.bounds!.southWest != widget.bounds!.northEast)
                     ? CameraFit.bounds(
@@ -502,42 +492,44 @@ class BaseMapViewState extends State<BaseMapView> {
               const Center(child: CircularProgressIndicator())
             else if (widget.error != null)
               Center(
-                  child: Card(
-                      color: theme.colorScheme.primaryContainer,
-                      margin: const EdgeInsets.symmetric(horizontal: 40),
-                      elevation: 4,
-                      child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child:
-                              Column(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.warning_amber_rounded,
-                                size: 40,
-                                color: theme.colorScheme.onPrimaryContainer),
-                            const SizedBox(height: 16),
-                            Text(widget.error!,
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                    color:
-                                        theme.colorScheme.onPrimaryContainer)),
-                            if (widget.onErrorDismiss != null) ...[
-                              const SizedBox(height: 20),
-                              TextButton(
-                                  onPressed: widget.onErrorDismiss,
-                                  style: TextButton.styleFrom(
-                                      backgroundColor:
-                                          theme.colorScheme.primaryFixedDim,
-                                      foregroundColor:
-                                          theme.colorScheme.onPrimaryFixed),
-                                  child: const Text('關閉'))
-                            ]
-                          ])))),
+                child: Card(
+                  color: theme.colorScheme.primaryContainer,
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.warning_amber_rounded,
+                            size: 40,
+                            color: theme.colorScheme.onPrimaryContainer),
+                        const SizedBox(height: 16),
+                        Text(widget.error!,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer)),
+                        if (widget.onErrorDismiss != null) ...[
+                          const SizedBox(height: 20),
+                          TextButton(
+                              onPressed: widget.onErrorDismiss,
+                              style: TextButton.styleFrom(
+                                  backgroundColor:
+                                      theme.colorScheme.primaryFixedDim,
+                                  foregroundColor:
+                                      theme.colorScheme.onPrimaryFixed),
+                              child: const Text('關閉'))
+                        ]
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
-              // --- [MODIFICATION] Use dynamic bottom value ---
               bottom: controlsBottom,
               right: 16,
               child: _buildMapControls(),
             ),
-            // --- [MODIFICATION] Pass isLandscape flag ---
             _buildInfoPanel(isLandscape: isLandscape),
             _buildStationInfoPanel(isLandscape: isLandscape),
           ],
@@ -556,88 +548,126 @@ class BaseMapViewState extends State<BaseMapView> {
         backgroundColor: theme.colorScheme.surface,
         elevation: 1,
         bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(18.0),
-            child: Container(
-                color: theme.colorScheme.surface,
-                alignment: Alignment.center,
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Text(
-                    'Map data © OpenStreetMap contributors, Imagery © Esri, Maxar, Earthstar Geo',
-                    style: TextStyle(
-                        fontSize: 9,
-                        color: theme.colorScheme.onSurface.withOpacity(0.7))))),
+          preferredSize: const Size.fromHeight(18.0),
+          child: Container(
+            color: theme.colorScheme.surface,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Text(
+              'Map data © OpenStreetMap contributors, Imagery © Esri, Maxar, Earthstar Geo',
+              style: TextStyle(
+                fontSize: 9,
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+              ),
+            ),
+          ),
+        ),
       ),
       body: body,
     );
   }
 
-  Widget _buildMapControls() {
-    final theme = Theme.of(context);
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      Card(
-          elevation: 4,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          child: Container(
-              width: 40,
-              height: 120,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.satellite_alt_outlined,
-                        size: 18, color: theme.colorScheme.onSurface),
-                    Expanded(
-                        child: RotatedBox(
-                            quarterTurns: 3,
-                            child: SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                    trackHeight: 2.0,
-                                    thumbShape: const RoundSliderThumbShape(
-                                        enabledThumbRadius: 6.0),
-                                    overlayShape: const RoundSliderOverlayShape(
-                                        overlayRadius: 12.0)),
-                                child: Slider(
-                                    value: _satelliteOpacity,
-                                    activeColor: theme.colorScheme.primary,
-                                    onChanged: (v) => setState(
-                                        () => _satelliteOpacity = v)))))
-                  ]))),
-      const SizedBox(height: 4),
-      FloatingActionButton.small(
-          onPressed: _isProcessingUserRoutes ? null : _openRouteSelection,
-          tooltip: '選擇繪製路線',
-          elevation: 4,
-          heroTag: 'select_route_layer_btn',
-          child: const Icon(Icons.layers_outlined)),
-      const SizedBox(height: 4),
-      FloatingActionButton.small(
-          onPressed: _recenterMap,
-          tooltip: '重新置中',
-          elevation: 4,
-          heroTag: 'recenter_btn_nearby',
-          child: const Icon(Icons.center_focus_strong)),
-      const SizedBox(height: 4),
-      FloatingActionButton.small(
-          onPressed: _isLocating ? null : _locateMe,
-          tooltip: '定位我的位置',
-          elevation: 4,
-          backgroundColor: _isLocating
-              ? Colors.grey
-              : theme.floatingActionButtonTheme.backgroundColor,
-          heroTag: 'locate_me_btn_nearby',
-          child: _isLocating
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: Colors.white))
-              : const Icon(Icons.my_location)),
-      const SizedBox(height: 16),
-    ]);
+  void _toggleFabMenu() {
+    setState(() {
+      _isFabMenuExpanded = !_isFabMenuExpanded;
+    });
   }
 
-  // --- [MODIFICATION] Add isLandscape parameter and use it ---
+  Widget _buildMapControls() {
+    final theme = Theme.of(context);
+    return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (_isFabMenuExpanded)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Container(
+                    width: 40,
+                    height: 120,
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.satellite_alt_outlined,
+                            size: 18, color: theme.colorScheme.onSurface),
+                        Expanded(
+                          child: RotatedBox(
+                            quarterTurns: 3,
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 2.0,
+                                  thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 6.0),
+                                  overlayShape: const RoundSliderOverlayShape(
+                                      overlayRadius: 12.0)),
+                              child: Slider(
+                                  value: _satelliteOpacity,
+                                  activeColor: theme.colorScheme.primary,
+                                  onChanged: (v) =>
+                                      setState(() => _satelliteOpacity = v)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // 2. 縮小間距
+                const SizedBox(height: 4),
+                FloatingActionButton.small(
+                  onPressed:
+                      _isProcessingUserRoutes ? null : _openRouteSelection,
+                  tooltip: '選擇繪製路線',
+                  elevation: 4,
+                  heroTag: 'select_route_layer_btn',
+                  child: const Icon(Icons.layers_outlined),
+                ),
+                const SizedBox(height: 4),
+                FloatingActionButton.small(
+                  onPressed: _recenterMap,
+                  tooltip: '重新置中',
+                  elevation: 4,
+                  heroTag: 'recenter_btn_nearby',
+                  child: const Icon(Icons.center_focus_strong),
+                ),
+                const SizedBox(height: 4),
+                FloatingActionButton.small(
+                  onPressed: _isLocating ? null : _locateMe,
+                  tooltip: '定位我的位置',
+                  elevation: 4,
+                  backgroundColor: _isLocating
+                      ? Colors.grey
+                      : theme.floatingActionButtonTheme.backgroundColor,
+                  heroTag: 'locate_me_btn_nearby',
+                  child: _isLocating
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2.5, color: Colors.white))
+                      : const Icon(Icons.my_location),
+                ),
+              ],
+            ),
+          const SizedBox(height: 4),
+          FloatingActionButton(
+            onPressed: _toggleFabMenu,
+            tooltip: _isFabMenuExpanded ? '關閉選單' : '開啟選單',
+            elevation: 4,
+            heroTag: 'main_fab_toggle',
+            child: Icon(_isFabMenuExpanded ? Icons.close : Icons.menu_open),
+          ),
+          const SizedBox(height: 16),
+        ]);
+  }
+
   Widget _buildStationInfoPanel({required bool isLandscape}) {
     final theme = Theme.of(context);
     final isVisible = _selectedStation != null;
@@ -684,10 +714,11 @@ class BaseMapViewState extends State<BaseMapView> {
                       padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
                       child: Row(children: [
                         Expanded(
-                            child: Text(station.name,
-                                style: theme.textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                                overflow: TextOverflow.ellipsis)),
+                            child: Text(
+                          station.name,
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        )),
                         IconButton(
                             icon: const Icon(Icons.map_sharp),
                             color: Colors.blueAccent,
@@ -706,51 +737,53 @@ class BaseMapViewState extends State<BaseMapView> {
                         child: Center(child: CircularProgressIndicator()))
                   else if (routeForDisplay != null)
                     Expanded(
-                        child: SingleChildScrollView(
-                            child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0, vertical: 8.0),
-                                child: Wrap(
-                                    spacing: 8.0,
-                                    runSpacing: 4.0,
-                                    children: [
-                                      _buildInfoChip(
-                                          icon: Icons.route_outlined,
-                                          label:
-                                              "${routeForDisplay.name} (${routeForDisplay.id})"),
-                                      if (routeForDisplay
-                                          .description.isNotEmpty)
-                                        _buildInfoChip(
-                                            icon: Icons.description_outlined,
-                                            label: routeForDisplay.description),
-                                      _buildInfoChip(
-                                          icon: Icons.swap_horiz,
-                                          label: "往 $direction"),
-                                      _buildInfoChip(
-                                          icon: Icons.format_list_numbered,
-                                          label: stationOrder),
-                                      InkWell(
-                                          borderRadius:
-                                              BorderRadius.circular(16.0),
-                                          onTap: () {
-                                            Clipboard.setData(ClipboardData(
-                                                text: latLonString));
-                                            if (mounted) {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(SnackBar(
-                                                      content: Text(
-                                                          '已複製經緯度: $latLonString'),
-                                                      duration: const Duration(
-                                                          seconds: 2),
-                                                      backgroundColor: theme
-                                                          .colorScheme.primary,
-                                                      showCloseIcon: true));
-                                            }
-                                          },
-                                          child: _buildInfoChip(
-                                              icon: Icons.gps_fixed,
-                                              label: latLonString))
-                                    ]))))
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 8.0),
+                          child: Wrap(
+                            spacing: 8.0,
+                            runSpacing: 4.0,
+                            children: [
+                              _buildInfoChip(
+                                  icon: Icons.route_outlined,
+                                  label:
+                                      "${routeForDisplay.name} (${routeForDisplay.id})"),
+                              if (routeForDisplay.description.isNotEmpty)
+                                _buildInfoChip(
+                                    icon: Icons.description_outlined,
+                                    label: routeForDisplay.description),
+                              _buildInfoChip(
+                                  icon: Icons.swap_horiz,
+                                  label: "往 $direction"),
+                              _buildInfoChip(
+                                  icon: Icons.format_list_numbered,
+                                  label: stationOrder),
+                              InkWell(
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  onTap: () {
+                                    Clipboard.setData(
+                                        ClipboardData(text: latLonString));
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                              content:
+                                                  Text('已複製經緯度: $latLonString'),
+                                              duration:
+                                                  const Duration(seconds: 2),
+                                              backgroundColor:
+                                                  theme.colorScheme.primary,
+                                              showCloseIcon: true));
+                                    }
+                                  },
+                                  child: _buildInfoChip(
+                                      icon: Icons.gps_fixed,
+                                      label: latLonString))
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
                   else
                     Expanded(
                       child: Center(
@@ -799,121 +832,127 @@ class BaseMapViewState extends State<BaseMapView> {
               ]),
           child: !isVisible
               ? const SizedBox.shrink()
-              : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
-                      child: Row(children: [
-                        Expanded(
-                            child: Text(
-                                Static.displayDateFormat
-                                    .format(_selectedPoint!.dataTime),
-                                style: theme.textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.bold))),
-                        IconButton(
-                            icon: const Icon(Icons.map_sharp),
-                            color: Colors.blueAccent,
-                            tooltip: '在 Google Map 上查看',
-                            onPressed: route == null
-                                ? null
-                                : () async {
-                                    final mapTitle = (plate != null
-                                            ? "$plate | "
-                                            : "") +
-                                        "${route.name} | ${route.description} "
-                                            "| 往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'} "
-                                            "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
-                                            "| 駕駛：${Static.getDriverText(_selectedPoint!.driverId)} "
-                                            "| ${Static.displayDateFormat.format(_selectedPoint!.dataTime)}";
-                                    await launchUrl(Uri.parse(
-                                        "https://www.google.com/maps?q=${_selectedPoint!.lat}"
-                                        ",${_selectedPoint!.lon}($mapTitle)"));
-                                  }),
-                        IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => selectPoint(_selectedPoint!))
-                      ])),
-                  const Divider(
-                      height: 1, thickness: 1, indent: 16, endIndent: 16),
-                  if (_isFetchingRouteDetail)
-                    const Expanded(
-                        child: Center(child: CircularProgressIndicator()))
-                  else if (route != null)
-                    Expanded(
-                        child: SingleChildScrollView(
-                            child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0, vertical: 8.0),
-                                child: Wrap(
-                                    spacing: 8.0,
-                                    runSpacing: 4.0,
-                                    children: [
-                                      if (plate != null)
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
+                        child: Row(children: [
+                          Expanded(
+                              child: Text(
+                                  Static.displayTimeFormat
+                                      .format(_selectedPoint!.dataTime),
+                                  style: theme.textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold))),
+                          IconButton(
+                              icon: const Icon(Icons.map_sharp),
+                              color: Colors.blueAccent,
+                              tooltip: '在 Google Map 上查看',
+                              onPressed: route == null
+                                  ? null
+                                  : () async {
+                                      final mapTitle =
+                                          "${plate != null ? "$plate | " : ""}${route.name} | ${route.description} | 往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'} | ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} | 駕駛長：${Static.getDriverText(_selectedPoint!.driverId)} | ${Static.displayTimeFormat.format(_selectedPoint!.dataTime)}";
+                                      await launchUrl(Uri.parse(
+                                          "https://www.google.com/maps?q=${_selectedPoint!.lat}"
+                                          ",${_selectedPoint!.lon}($mapTitle)"));
+                                    }),
+                          IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () => selectPoint(_selectedPoint!))
+                        ])),
+                    const Divider(
+                        height: 1, thickness: 1, indent: 16, endIndent: 16),
+                    if (_isFetchingRouteDetail)
+                      const Expanded(
+                          child: Center(child: CircularProgressIndicator()))
+                    else if (route != null)
+                      Expanded(
+                          child: SingleChildScrollView(
+                              child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0, vertical: 8.0),
+                                  child: Wrap(
+                                      spacing: 8.0,
+                                      runSpacing: 4.0,
+                                      children: [
+                                        if (plate != null)
+                                          _buildInfoChip(
+                                              icon: Icons.numbers,
+                                              label: "車牌：$plate",
+                                              color: theme.colorScheme.primary),
                                         _buildInfoChip(
-                                            icon: Icons.numbers,
-                                            label: "車牌：$plate",
-                                            color: theme.colorScheme.primary),
-                                      _buildInfoChip(
-                                          icon: Icons.route_outlined,
-                                          label: "${route.name} (${route.id})"),
-                                      _buildInfoChip(
-                                          icon: Icons.description_outlined,
-                                          label: route.description),
-                                      _buildInfoChip(
-                                          icon: Icons.swap_horiz,
-                                          label:
-                                              "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'}"),
-                                      _buildInfoChip(
-                                          icon: _selectedPoint!.dutyStatus == 0
-                                              ? Icons.work_outline
-                                              : Icons.work_off_outlined,
-                                          label: _selectedPoint!.dutyStatus == 0
-                                              ? "營運"
-                                              : "非營運",
-                                          color: _selectedPoint!.dutyStatus == 0
-                                              ? Colors.green
-                                              : Colors.orange),
-                                      _buildInfoChip(
-                                          icon:
-                                              Icons.person_pin_circle_outlined,
-                                          label:
-                                              "駕駛：${Static.getDriverText(_selectedPoint!.driverId)}"),
-                                      InkWell(
-                                          borderRadius:
-                                              BorderRadius.circular(16.0),
-                                          onTap: () {
-                                            final lat = _selectedPoint!.lat;
-                                            final lon = _selectedPoint!.lon;
-                                            final latLonString = '$lat, $lon';
-                                            Clipboard.setData(ClipboardData(
-                                                text: latLonString));
-                                            if (mounted) {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(SnackBar(
-                                                      content: Text(
-                                                          '已複製經緯度：$latLonString'),
-                                                      duration: const Duration(
-                                                          seconds: 2),
-                                                      backgroundColor: theme
-                                                          .colorScheme.primary,
-                                                      showCloseIcon: true));
-                                            }
-                                          },
-                                          child: _buildInfoChip(
-                                              icon: Icons.gps_fixed,
-                                              label:
-                                                  "${_selectedPoint!.lat.toString()}, ${_selectedPoint!.lon.toString()}"))
-                                    ]))))
-                  else
-                    Expanded(
+                                            icon: Icons.route_outlined,
+                                            label:
+                                                "${route.name} (${route.id})"),
+                                        _buildInfoChip(
+                                            icon: Icons.description_outlined,
+                                            label: route.description),
+                                        _buildInfoChip(
+                                            icon: Icons.swap_horiz,
+                                            label:
+                                                "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'}"),
+                                        _buildInfoChip(
+                                            icon:
+                                                _selectedPoint!.dutyStatus == 0
+                                                    ? Icons.work_outline
+                                                    : Icons.work_off_outlined,
+                                            label:
+                                                _selectedPoint!.dutyStatus == 0
+                                                    ? "營運"
+                                                    : "非營運",
+                                            color:
+                                                _selectedPoint!.dutyStatus == 0
+                                                    ? Colors.green
+                                                    : Colors.orange),
+                                        _buildInfoChip(
+                                            icon: Icons
+                                                .person_pin_circle_outlined,
+                                            label:
+                                                "駕駛長：${Static.getDriverText(_selectedPoint!.driverId)}"),
+                                        InkWell(
+                                            borderRadius:
+                                                BorderRadius.circular(16.0),
+                                            onTap: () {
+                                              final lat = _selectedPoint!.lat;
+                                              final lon = _selectedPoint!.lon;
+                                              final latLonString = '$lat, $lon';
+                                              Clipboard.setData(ClipboardData(
+                                                  text: latLonString));
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(SnackBar(
+                                                        content: Text(
+                                                            '已複製經緯度：$latLonString'),
+                                                        duration:
+                                                            const Duration(
+                                                                seconds: 2),
+                                                        backgroundColor: theme
+                                                            .colorScheme
+                                                            .primary,
+                                                        showCloseIcon: true));
+                                              }
+                                            },
+                                            child: _buildInfoChip(
+                                                icon: Icons.gps_fixed,
+                                                label:
+                                                    "${_selectedPoint!.lat.toString()}, ${_selectedPoint!.lon.toString()}"))
+                                      ]))))
+                    else
+                      Expanded(
                         child: Center(
-                            child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Text(
-                                    '無法載入路線 ${_selectedPoint!.routeId} 的詳細資訊。',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                        color: theme.colorScheme.error)))))
-                ]),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              '無法載入路線 ${_selectedPoint!.routeId} 的詳細資訊。',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: theme.colorScheme.error),
+                            ),
+                          ),
+                        ),
+                      )
+                  ],
+                ),
         ),
       ),
     );

@@ -1,8 +1,7 @@
-// settings_page.dart
-
-import 'dart:ui'; // 用於 BackdropFilter
+import 'dart:ui';
 
 import 'package:bus_scraper/static.dart';
+import 'package:bus_scraper/storage/city.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
@@ -19,13 +18,11 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   late final TextEditingController _remarksController;
-  late String _currentCityForRemarks;
 
   @override
   void initState() {
     super.initState();
     _remarksController = TextEditingController();
-    _currentCityForRemarks = Static.localStorage.city;
     _loadRemarksIntoController();
   }
 
@@ -36,39 +33,16 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _loadRemarksIntoController() {
-    final remarksMap =
-        Static.localStorage.getRemarksForCity(_currentCityForRemarks);
+    final remarksMap = Static.localStorage.getRemarksForCity(Static.city);
     final csvText =
         remarksMap.entries.map((e) => '${e.key},${e.value}').join('\n');
     _remarksController.text = csvText;
   }
 
-  void _formatTextInController() {
-    final formattedText = _formatCsvString(_remarksController.text);
-    _remarksController.text = formattedText;
-  }
-
-  void _saveRemarks() {
-    final formattedText = _formatCsvString(_remarksController.text);
-    _remarksController.text = formattedText;
-    final remarksMap = _parseCsvToMap(formattedText);
-    Static.localStorage.setRemarksForCity(_currentCityForRemarks, remarksMap);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('駕駛員備註已保存'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-          showCloseIcon: true,
-        ),
-      );
-    }
-  }
-
-  String _formatCsvString(String rawText) {
+  String? _formatAndDeduplicateCsvString(String rawText,
+      {bool showAlert = false}) {
     final lines = rawText.split('\n');
-    final validEntries = <List<String>>[];
+    final Map<String, Set<String>> entries = {};
     for (final line in lines) {
       final trimmedLine = line.trim();
       if (trimmedLine.isEmpty) continue;
@@ -77,10 +51,81 @@ class _SettingsPageState extends State<SettingsPage> {
       final driverId = parts[0].trim();
       if (driverId.isEmpty) continue;
       final remark = parts.sublist(1).join(',').trim();
-      validEntries.add([driverId, remark]);
+      entries.putIfAbsent(driverId, () => {}).add(remark);
     }
-    validEntries.sort((a, b) => a[0].compareTo(b[0]));
-    return validEntries.map((e) => '${e[0]},${e[1]}').join('\n');
+
+    final duplicatesWithDifferentRemarks = entries.entries
+        .where((e) => e.value.length > 1)
+        .map((e) => '駕駛長編號「${e.key}」存在多個不同的備註：\n- ${e.value.join('\n- ')}')
+        .toList();
+
+    if (duplicatesWithDifferentRemarks.isNotEmpty) {
+      if (showAlert && mounted) {
+        _showDuplicateWarningDialog(duplicatesWithDifferentRemarks);
+      }
+      return null;
+    }
+
+    final uniqueEntries = entries.entries.map((e) {
+      return [e.key, e.value.first];
+    }).toList();
+
+    uniqueEntries.sort((a, b) => a[0].compareTo(b[0]));
+    return uniqueEntries.map((e) => '${e[0]},${e[1]}').join('\n');
+  }
+
+  void _formatTextInController() {
+    final formattedText = _formatAndDeduplicateCsvString(
+        _remarksController.text,
+        showAlert: true);
+    if (formattedText != null) {
+      _remarksController.text = formattedText;
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('駕駛長備註已格式化'),
+            backgroundColor: Colors.blue,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _saveRemarks() {
+    final formattedText = _formatAndDeduplicateCsvString(
+        _remarksController.text,
+        showAlert: true);
+
+    if (formattedText == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('儲存失敗：請先解決有衝突的重複備註。'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
+    _remarksController.text = formattedText;
+    final remarksMap = _parseCsvToMap(formattedText);
+    Static.localStorage.setRemarksForCity(Static.city, remarksMap);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('駕駛長備註已保存'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Map<String, String> _parseCsvToMap(String csvText) {
@@ -100,7 +145,49 @@ class _SettingsPageState extends State<SettingsPage> {
     return remarksMap;
   }
 
-  void _showForceRestartDialog(String newCityName) {
+  void _showDuplicateWarningDialog(List<String> issues) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('發現重複備註'),
+            ],
+          ),
+          content: SizedBox(
+            height: 200,
+            child: SingleChildScrollView(
+              child: ListBody(
+                children: [
+                  const Text('以下駕駛長編號擁有多個不同的備註，請手動修正後再儲存：'),
+                  const SizedBox(height: 12),
+                  ...issues
+                      .map((issue) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Text(issue,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                          ))
+                      .toList(),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('我知道了'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showForceRestartDialog(City newCity) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -121,15 +208,14 @@ class _SettingsPageState extends State<SettingsPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('城市已切換為「$newCityName」。'),
+                  Text('城市已切換為「${newCity.name}」。'),
                   const SizedBox(height: 16),
                   const Text(
-                    '為確保所有資料正確載入，請重新整理網頁。',
+                    '為確保所有資料正確載入，請重新整理網頁或重新開啟程式。',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-              actions: const [],
             ),
           ),
         );
@@ -142,142 +228,156 @@ class _SettingsPageState extends State<SettingsPage> {
     return Consumer<ThemeChangeNotifier>(
       builder: (context, notifier, child) {
         final theme = Theme.of(context);
-        // 獲取當前城市名稱用於顯示
-        final currentCityName = Static.availableCities
-            .firstWhere((c) => c.code == _currentCityForRemarks,
-                orElse: () => Static.availableCities.first)
-            .name;
-
         return ListView(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          padding: const EdgeInsets.all(8.0),
           children: [
-            // 主題與色系區塊
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ExpansionTile(
-                title: const Text('主題與色系'),
-                subtitle: Text('當前設定：${notifier.theme.uiName}'),
-                leading: const Icon(Icons.display_settings),
-                shape: Border.all(color: Colors.transparent),
-                children: [
-                  const SizedBox(height: 12),
-                  SegmentedButton<AppTheme>(
-                    segments: AppTheme.values
-                        .map((e) => ButtonSegment(
-                            value: e, label: Text(e.uiName), icon: e.icon))
-                        .toList(),
-                    selected: {notifier.theme},
-                    onSelectionChanged: (value) {
-                      notifier.setTheme(value.first);
-                    },
+            ExpansionTile(
+              title: const Text('主題與色系'),
+              subtitle: Text('當前：${notifier.theme.uiName}'),
+              leading: const Icon(Icons.display_settings),
+              shape: Border.all(color: Colors.transparent),
+              tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+              childrenPadding: const EdgeInsets.symmetric(horizontal: 8),
+              children: [
+                SegmentedButton<AppTheme>(
+                  segments: AppTheme.values
+                      .map((e) => ButtonSegment(
+                          value: e, label: Text(e.uiName), icon: e.icon))
+                      .toList(),
+                  selected: {notifier.theme},
+                  onSelectionChanged: (value) => notifier.setTheme(value.first),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.colorize),
+                  title: const Text('自訂強調色'),
+                  trailing: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: ColoredBox(
+                      color: theme.colorScheme.primary,
+                      child: const SizedBox(width: 40, height: 40),
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    leading: const Icon(Icons.colorize),
-                    title: const Text('自訂強調色'),
-                    trailing: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: ColoredBox(
+                  onTap: () => _showColorPickerDialog(context, notifier),
+                ),
+              ],
+            ),
+            ExpansionTile(
+              title: const Text('動態軌跡時間'),
+              subtitle:
+                  Text('顯示過去 ${Static.localStorage.liveTrackDuration} 分鐘的軌跡'),
+              leading: const Icon(Icons.timeline),
+              shape: Border.all(color: Colors.transparent),
+              tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Slider(
+                        value: Static.localStorage.liveTrackDuration.toDouble(),
+                        min: 3,
+                        max: 30,
+                        divisions: 27,
+                        label: '${Static.localStorage.liveTrackDuration} 分鐘',
+                        onChanged: (double value) {
+                          setState(() {
+                            Static.localStorage.liveTrackDuration =
+                                value.round();
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      '${Static.localStorage.liveTrackDuration} 分鐘',
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.primary,
-                        child: const SizedBox(width: 48, height: 48),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    onTap: () {
-                      _showColorPickerDialog(context, notifier);
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
-
-            // 城市選擇區塊
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ExpansionTile(
-                title: const Text('當前城市'),
-                subtitle: Text(currentCityName),
-                // 顯示當前選擇的城市名稱
-                leading: const Icon(Icons.location_city),
-                shape: Border.all(color: Colors.transparent),
-                children: [
-                  const SizedBox(height: 12),
-                  SegmentedButton<String>(
-                    segments: Static.availableCities.map((city) {
-                      return ButtonSegment<String>(
-                        value: city.code,
-                        label: Text(city.name),
-                      );
-                    }).toList(),
-                    selected: {_currentCityForRemarks},
-                    onSelectionChanged: (Set<String> newSelection) {
-                      final newValue = newSelection.first;
-                      if (newValue != _currentCityForRemarks) {
-                        setState(() {
-                          Static.localStorage.city = newValue;
-                          _currentCityForRemarks = newValue;
-                        });
-
-                        final newCityName = Static.availableCities
-                            .firstWhere((c) => c.code == newValue)
-                            .name;
-                        _showForceRestartDialog(newCityName);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-
-            // 駕駛員備註區塊
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ExpansionTile(
-                title: const Text('駕駛員備註'),
-                subtitle: Text('正在編輯 $currentCityName 的備註'),
-                // 標題顯示當前城市
-                leading: const Icon(Icons.edit_note),
-                initiallyExpanded: false,
-                shape: Border.all(color: Colors.transparent),
-                children: [
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: TextField(
-                      controller: _remarksController,
-                      maxLines: 10,
-                      minLines: 5,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: '駕駛員ID,備註',
-                        hintText: '12345,備註1\n67890,備註2',
-                        alignLabelWithHint: true,
+            ExpansionTile(
+              title: const Text('當前城市'),
+              subtitle: Text(Static.city.name),
+              leading: const Icon(Icons.location_city),
+              shape: Border.all(color: Colors.transparent),
+              tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+              childrenPadding: const EdgeInsets.symmetric(horizontal: 8),
+              children: [
+                SegmentedButton<City>(
+                  segments: City.values.map((city) {
+                    return ButtonSegment<City>(
+                      value: city,
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: city.icon,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(city.name),
+                        ],
                       ),
+                    );
+                  }).toList(),
+                  selected: {Static.city},
+                  onSelectionChanged: (Set<City> newSelection) {
+                    final newValue = newSelection.first;
+                    if (newValue != Static.city) {
+                      setState(() {
+                        Static.localStorage.city = newValue;
+                      });
+                      _showForceRestartDialog(newValue);
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+            ExpansionTile(
+              title: const Text('駕駛長備註'),
+              subtitle: Text('編輯 ${Static.city.name} 的備註'),
+              leading: const Icon(Icons.edit_note),
+              initiallyExpanded: false,
+              shape: Border.all(color: Colors.transparent),
+              tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+              childrenPadding: const EdgeInsets.symmetric(horizontal: 8),
+              children: [
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _remarksController,
+                  maxLines: 10,
+                  minLines: 5,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: '駕駛長編號,備註',
+                    hintText: '12345,備註1\n67890,備註2',
+                    alignLabelWithHint: true,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      child: const Text('格式化'),
+                      onPressed: _formatTextInController,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      FilledButton.icon(
-                        icon: const Icon(Icons.format_align_left),
-                        label: const Text('格式化'),
-                        onPressed: _formatTextInController,
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton.icon(
-                        icon: const Icon(Icons.save),
-                        label: const Text('儲存'),
-                        onPressed: _saveRemarks,
-                      ),
-                      const SizedBox(width: 16),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            )
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      child: const Text('儲存'),
+                      onPressed: _saveRemarks,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
           ],
         );
       },
@@ -292,17 +392,9 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context) => AlertDialog(
         title: const Text('請選擇強調色'),
         content: SingleChildScrollView(
-          child: StatefulBuilder(
-            builder: (BuildContext context, StateSetter dialogSetState) {
-              return ColorPicker(
-                pickerColor: pickerColor,
-                onColorChanged: (color) {
-                  dialogSetState(() {
-                    pickerColor = color;
-                  });
-                },
-              );
-            },
+          child: ColorPicker(
+            pickerColor: pickerColor,
+            onColorChanged: (color) => pickerColor = color,
           ),
         ),
         actions: [
@@ -317,7 +409,7 @@ class _SettingsPageState extends State<SettingsPage> {
             },
             child: const Text('預設'),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () {
               notifier.setAccentColor(pickerColor);
               Navigator.of(context).pop();

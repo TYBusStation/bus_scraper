@@ -1,6 +1,4 @@
-// lib/data/route_detail.dart
-
-import 'package:flutter_polyline_points/flutter_polyline_points.dart'; // <--- 【新增】導入
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:latlong2/latlong.dart';
 

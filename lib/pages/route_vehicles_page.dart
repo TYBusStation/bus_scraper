@@ -1,14 +1,11 @@
-// lib/pages/route_vehicles_page.dart
-
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../data/bus_route.dart';
 import '../data/vehicle_history.dart';
 import '../static.dart';
 import '../widgets/car_list_item.dart';
 import '../widgets/empty_state_indicator.dart';
-import '../widgets/searchable_list.dart'; // 【核心修改】導入 SearchableList
+import '../widgets/searchable_list.dart';
 
 class RouteVehiclesPage extends StatefulWidget {
   final BusRoute route;
@@ -29,11 +26,10 @@ class RouteVehiclesPage extends StatefulWidget {
 class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
   late DateTime _startDate;
   late DateTime _endDate;
-  final _displayDateFormat = DateFormat('yyyy/MM/dd');
 
   bool _hasSearched = false;
+  bool _needsRefresh = false;
   Future<List<VehicleDrivingDates>>? _searchFuture;
-  String? _promptMessage;
 
   @override
   void initState() {
@@ -42,30 +38,9 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
         DateTime.now().subtract(const Duration(days: 7));
     _endDate = widget.initialEndDate ?? DateTime.now();
 
-    _promptMessage = "請選擇日期範圍後\n點擊查詢按鈕";
-  }
-
-  Future<void> _selectDate(BuildContext context, bool isStart) async {
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: isStart ? _startDate : _endDate,
-      firstDate: DateTime(2025, 6, 8),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
-    );
-
-    if (pickedDate != null) {
-      setState(() {
-        if (isStart) {
-          _startDate = pickedDate;
-          if (_startDate.isAfter(_endDate)) _endDate = _startDate;
-        } else {
-          _endDate = pickedDate;
-          if (_endDate.isBefore(_startDate)) _startDate = _endDate;
-        }
-        if (_hasSearched) {
-          _hasSearched = false;
-          _promptMessage = "日期已更新，請重新點擊「查詢」。";
-        }
+    if (widget.initialStartDate != null && widget.initialEndDate != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _triggerSearch();
       });
     }
   }
@@ -74,7 +49,7 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
     FocusScope.of(context).unfocus();
     setState(() {
       _hasSearched = true;
-      _promptMessage = null;
+      _needsRefresh = false;
       final finalEndDate =
           DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
       _searchFuture = Static.findVehiclesOnRoute(
@@ -92,12 +67,12 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
         title: Text('${widget.route.name} 行駛車輛查詢'),
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildControlCard(),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Expanded(
               child: _hasSearched ? _buildResultsList() : _buildPromptArea(),
             ),
@@ -110,34 +85,68 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
   Widget _buildControlCard() {
     return Card(
       elevation: 1,
-      margin: const EdgeInsets.only(top: 12),
+      margin: const EdgeInsets.only(top: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
             Row(
               children: [
                 Expanded(
-                    child: _buildDatePicker(
-                        label: "起始日期",
-                        value: _startDate,
-                        onPressed: () => _selectDate(context, true))),
+                  child: _buildDatePicker(
+                    label: "起始",
+                    value: _startDate,
+                    onPressed: () => Static.selectDateTime(
+                      context: context,
+                      isStart: true,
+                      currentRange:
+                          DateTimeRange(start: _startDate, end: _endDate),
+                      lastSelectableDate:
+                          DateTime.now().add(const Duration(days: 1)),
+                      pickTime: false,
+                      maxDuration: const Duration(days: 14),
+                      onDateTimeChanged: (range) => setState(() {
+                        _startDate = range.start;
+                        _endDate = range.end;
+                        _needsRefresh = true;
+                        _hasSearched = false;
+                      }),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
-                    child: _buildDatePicker(
-                        label: "結束日期",
-                        value: _endDate,
-                        onPressed: () => _selectDate(context, false))),
+                  child: _buildDatePicker(
+                    label: "結束",
+                    value: _endDate,
+                    onPressed: () => Static.selectDateTime(
+                      context: context,
+                      isStart: false,
+                      currentRange:
+                          DateTimeRange(start: _startDate, end: _endDate),
+                      lastSelectableDate:
+                          DateTime.now().add(const Duration(days: 1)),
+                      pickTime: false,
+                      maxDuration: const Duration(days: 14),
+                      onDateTimeChanged: (range) => setState(() {
+                        _startDate = range.start;
+                        _endDate = range.end;
+                        _needsRefresh = true;
+                        _hasSearched = false;
+                      }),
+                    ),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             FilledButton.icon(
               onPressed: _triggerSearch,
-              icon: const Icon(Icons.search_rounded),
+              icon: const Icon(Icons.search_rounded, size: 18),
               label: const Text("查詢車輛"),
               style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48)),
+                  minimumSize: const Size.fromHeight(40)),
             ),
           ],
         ),
@@ -150,13 +159,13 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
       required DateTime value,
       required VoidCallback onPressed}) {
     final theme = Theme.of(context);
-    final displayText = _displayDateFormat.format(value);
+    final displayText = Static.displayDateFormat.format(value);
 
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outline.withOpacity(0.5)),
           borderRadius: BorderRadius.circular(8),
@@ -173,13 +182,13 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
                 ),
                 Text(
                   displayText,
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
-            const Icon(Icons.calendar_month_outlined, size: 20),
+            const Icon(Icons.calendar_month_outlined, size: 18),
           ],
         ),
       ),
@@ -187,15 +196,16 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
   }
 
   Widget _buildPromptArea() {
-    final title = _promptMessage?.contains("更新") ?? false ? "請重新查詢" : "開始查詢";
+    final title = _needsRefresh ? "請重新查詢" : "開始查詢";
+    final subtitle = _needsRefresh ? "時間已更新，請點擊查詢。" : "請選擇日期範圍後\n點擊查詢按鈕";
+
     return EmptyStateIndicator(
       icon: Icons.directions_bus_filled_outlined,
       title: title,
-      subtitle: _promptMessage ?? '',
+      subtitle: subtitle,
     );
   }
 
-  // 【核心修改】使用 SearchableList 來顯示結果
   Widget _buildResultsList() {
     return FutureBuilder<List<VehicleDrivingDates>>(
       future: _searchFuture,
@@ -219,7 +229,7 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
         final records = snapshot.data!;
         return SearchableList<VehicleDrivingDates>(
           allItems: records,
-          searchHintText: "搜尋車牌（如：${Static.getExamplePlate()}）",
+          searchHintText: "搜尋車牌（如：${Static.city.exPlate}）",
           filterCondition: (record, text) {
             return record.plate.toUpperCase().contains(text.toUpperCase());
           },
@@ -227,13 +237,15 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
           itemBuilder: (context, record) {
             final car = Static.carData.firstWhere(
               (c) => c.plate == record.plate,
+              orElse: () =>
+                  Static.carData.firstWhere((c) => c.plate == record.plate),
             );
             return CarListItem(
               car: car,
               showLiveButton: true,
               drivingDates: record.dates,
               routeId: widget.route.id,
-              margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
             );
           },
           emptyStateWidget: const EmptyStateIndicator(

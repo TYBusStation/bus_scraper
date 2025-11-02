@@ -12,7 +12,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// --- Data Models ---
 class InitializationResult {
   final bool updateRequired;
   final Map<String, dynamic>? updateInfo;
@@ -20,13 +19,11 @@ class InitializationResult {
   InitializationResult({this.updateRequired = false, this.updateInfo});
 }
 
-// --- Main Entry Point ---
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const AppLoader());
 }
 
-// --- App Loader Widget ---
 class AppLoader extends StatefulWidget {
   const AppLoader({super.key});
 
@@ -44,8 +41,6 @@ class _AppLoaderState extends State<AppLoader> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // *** 修改這裡 ***
-      // 不再需要 kIsWeb 判斷，因為我們的抽象層會處理
       getWebInterop().hideFlutterLoader();
       _startInitialization();
     });
@@ -97,6 +92,7 @@ class _AppLoaderState extends State<AppLoader> {
     _lastTapTime = now;
     if (_tapCount >= 5) {
       _tapCount = 0;
+      ScaffoldMessenger.of(scaffoldContext).clearSnackBars();
       ScaffoldMessenger.of(scaffoldContext).showSnackBar(
         SnackBar(
           content: const Text('已強制切換 API 伺服器，正在重新載入...'),
@@ -110,7 +106,6 @@ class _AppLoaderState extends State<AppLoader> {
 
   @override
   Widget build(BuildContext context) {
-    // 狀態：發生錯誤
     if (_error != null) {
       Static.log(_error.toString());
       final themeData = ThemeData.dark(useMaterial3: true);
@@ -200,7 +195,6 @@ class _AppLoaderState extends State<AppLoader> {
       );
     }
 
-    // 狀態：載入完成
     if (_initializationResult != null) {
       final result = _initializationResult!;
       if (result.updateRequired) {
@@ -214,8 +208,6 @@ class _AppLoaderState extends State<AppLoader> {
       }
     }
 
-    // *** 核心修改在此 ***
-    // 狀態：初始狀態或載入中，顯示帶有轉圈動畫和強制重載功能的載入畫面
     return MaterialApp(
       theme: ThemeData.dark(useMaterial3: true),
       debugShowCheckedModeBanner: false,
@@ -224,7 +216,7 @@ class _AppLoaderState extends State<AppLoader> {
           return Scaffold(
             body: GestureDetector(
               onTap: () => _handleTap(materialAppContext),
-              behavior: HitTestBehavior.opaque, // 確保整個 body 區域都能接收點擊事件
+              behavior: HitTestBehavior.opaque,
               child: const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -246,7 +238,6 @@ class _AppLoaderState extends State<AppLoader> {
   }
 }
 
-// --- Update Page Widget (維持不變) ---
 class UpdatePage extends StatefulWidget {
   final Map<String, dynamic> updateInfo;
 
@@ -374,7 +365,6 @@ class _UpdatePageState extends State<UpdatePage> {
   }
 }
 
-// --- Main App Widget (維持不變) ---
 class App extends StatelessWidget {
   const App({super.key});
 
@@ -384,9 +374,7 @@ class App extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
             create: (_) => ThemeChangeNotifier(Static.localStorage.appTheme)),
-        ChangeNotifierProvider(
-            create: (_) =>
-                FavoritesNotifier(Static.localStorage.favoritePlates)),
+        ChangeNotifierProvider(create: (_) => FavoritesNotifier()),
       ],
       child: ThemeProvider(
         builder: (BuildContext context, ThemeData themeData) => MaterialApp(

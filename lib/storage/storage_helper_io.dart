@@ -1,4 +1,3 @@
-// storage_helper_io.dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -27,27 +26,20 @@ class StorageHelper {
   }
 
   static T get<T>(String key, [T? defaultValue]) {
-    // 【關鍵修正】在使用前檢查 _data 是否為 null
     if (_data == null) {
-      // 這是個嚴重問題，表示 init() 還沒被呼叫
-      // 在這種情況下，返回 defaultValue 是最安全的選擇
       if (defaultValue != null) {
         return defaultValue;
       }
-      // 如果連 defaultValue 都沒有，就只能拋出錯誤了
       throw StateError(
           'StorageHelper.get() called before StorageHelper.init() was complete, and no defaultValue was provided.');
     }
 
-    // 如果 _data 存在，則安全地返回值
     final value = _data![key];
 
-    // 如果 key 不存在，返回 defaultValue
     if (value == null) {
       return defaultValue as T;
     }
 
-    // 如果 key 存在，但類型不匹配，也返回 defaultValue
     if (value is T) {
       return value;
     }

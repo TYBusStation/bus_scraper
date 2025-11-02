@@ -1,46 +1,13 @@
-// lib/pages/history_page.dart
-
 import 'package:bus_scraper/data/bus_route.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import '../data/TrajectorySegment.dart';
 import '../data/bus_point.dart';
 import '../static.dart';
+import '../widgets/empty_state_indicator.dart';
 import 'history_osm_page.dart';
 import 'segment_details_page.dart';
-
-// TrajectorySegment class and HistoryPage StatefulWidget remain unchanged...
-class TrajectorySegment {
-  final List<BusPoint> points;
-  final DateTime startTime;
-  final DateTime endTime;
-  final Duration duration;
-  final String routeId;
-  final int goBack;
-  final int dutyStatus;
-  final String driverId;
-
-  TrajectorySegment({required this.points})
-      : startTime = points.first.dataTime,
-        endTime = points.last.dataTime,
-        duration = points.last.dataTime.difference(points.first.dataTime),
-        routeId = points.first.routeId,
-        goBack = points.first.goBack,
-        dutyStatus = points.first.dutyStatus,
-        driverId = points.first.driverId;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is TrajectorySegment &&
-          runtimeType == other.runtimeType &&
-          startTime == other.startTime &&
-          routeId == other.routeId &&
-          driverId == other.driverId;
-
-  @override
-  int get hashCode => startTime.hashCode ^ routeId.hashCode ^ driverId.hashCode;
-}
 
 class HistoryPage extends StatefulWidget {
   final String plate;
@@ -63,15 +30,14 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  // ... all methods until _buildSegmentCard remain unchanged ...
   bool _isLoading = false;
   List<BusPoint> _allHistoryData = [];
   List<TrajectorySegment> _segments = [];
   String? _error;
   String? _message;
 
-  late DateTime _selectedStartTime;
-  late DateTime _selectedEndTime;
+  late DateTime _startTime;
+  late DateTime _endTime;
 
   List<TrajectorySegment> _filteredSegments = [];
 
@@ -85,121 +51,22 @@ class _HistoryPageState extends State<HistoryPage> {
   void initState() {
     super.initState();
 
-    _selectedStartTime = widget.initialStartTime ??
+    _startTime = widget.initialStartTime ??
         DateTime.now().subtract(const Duration(hours: 1));
-    _selectedEndTime = widget.initialEndTime ?? DateTime.now();
+    _endTime = widget.initialEndTime ?? DateTime.now();
 
     if (widget.initialDriverId != null) {
       _selectedDriverIds = [widget.initialDriverId!];
     }
-
     if (widget.initialRouteId != null) {
       _selectedRouteIds = [widget.initialRouteId!];
     }
-
     _message = "請選擇時間範圍後點擊查詢。";
-  }
 
-  Future<void> _pickDateTime(BuildContext context, bool isStartTime) async {
-    final DateTime initialDate =
-        isStartTime ? _selectedStartTime : _selectedEndTime;
-
-    // 定義日期選擇器的絕對邊界
-    final absoluteFirstDate = DateTime(2025, 6, 8);
-    final absoluteLastDate = DateTime.now().add(const Duration(days: 1));
-
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: initialDate.isAfter(absoluteLastDate)
-          ? absoluteLastDate
-          : (initialDate.isBefore(absoluteFirstDate)
-              ? absoluteFirstDate
-              : initialDate),
-      firstDate: absoluteFirstDate,
-      lastDate: absoluteLastDate,
-      helpText: isStartTime ? '選擇開始日期' : '選擇結束日期',
-    );
-
-    if (pickedDate != null && mounted) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(initialDate),
-        helpText: isStartTime ? '選擇開始時間' : '選擇結束時間',
-      );
-
-      if (pickedTime != null) {
-        setState(() {
-          final newDateTime = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
-
-          const maxDuration = Duration(days: 2);
-          final now = DateTime.now();
-
-          // 將當前時間值複製到臨時變數中進行計算
-          var tempStartTime = _selectedStartTime;
-          var tempEndTime = _selectedEndTime;
-
-          if (isStartTime) {
-            // 1. 更新開始時間
-            tempStartTime = newDateTime;
-
-            // 2. 檢查並修正：如果開始時間晚於結束時間，則自動調整結束時間
-            if (tempStartTime.isAfter(tempEndTime)) {
-              tempEndTime = tempStartTime.add(const Duration(minutes: 1));
-            }
-
-            // 3. 檢查並修正：時間範圍不能超過2天
-            if (tempEndTime.difference(tempStartTime) > maxDuration) {
-              tempEndTime = tempStartTime.add(maxDuration);
-            }
-
-            // 4. 檢查並修正：結束時間不能超過當前時間
-            if (tempEndTime.isAfter(now)) {
-              tempEndTime = now;
-              // 再次檢查，防止調整後開始時間又晚於結束時間
-              if (tempStartTime.isAfter(tempEndTime)) {
-                tempStartTime =
-                    tempEndTime.subtract(const Duration(minutes: 1));
-              }
-            }
-          } else {
-            // 選擇結束時間
-            // 1. 更新結束時間
-            tempEndTime = newDateTime;
-
-            // 2. 檢查並修正：如果結束時間早於開始時間，則自動調整開始時間
-            if (tempEndTime.isBefore(tempStartTime)) {
-              tempStartTime = tempEndTime.subtract(const Duration(minutes: 1));
-            }
-
-            // 3. 檢查並修正：時間範圍不能超過2天
-            if (tempEndTime.difference(tempStartTime) > maxDuration) {
-              tempStartTime = tempEndTime.subtract(maxDuration);
-            }
-
-            // 4. 檢查並修正：開始時間不能早於絕對起始日期
-            if (tempStartTime.isBefore(absoluteFirstDate)) {
-              tempStartTime = absoluteFirstDate;
-              // 再次檢查，防止調整後結束時間又早於開始時間
-              if (tempEndTime.isBefore(tempStartTime)) {
-                tempEndTime = tempStartTime.add(const Duration(minutes: 1));
-              }
-            }
-          }
-
-          // 將計算完成的結果賦值回去
-          _selectedStartTime = tempStartTime;
-          _selectedEndTime = tempEndTime;
-
-          _message = "時間已更新，請點擊查詢。";
-          _clearDataAndFilters();
-        });
-      }
+    if (widget.initialStartTime != null && widget.initialEndTime != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fetchHistory();
+      });
     }
   }
 
@@ -247,30 +114,10 @@ class _HistoryPageState extends State<HistoryPage> {
     if (currentSegmentPoints.isNotEmpty) {
       segments.add(TrajectorySegment(points: List.from(currentSegmentPoints)));
     }
-
     return segments;
   }
 
   Future<void> _fetchHistory() async {
-    if (_selectedStartTime.isAfter(_selectedEndTime)) {
-      setState(() {
-        _error = "錯誤：開始時間不能晚於結束時間。";
-        _message = null;
-        _clearDataAndFilters();
-      });
-      return;
-    }
-
-    // 保留此最終檢查，確保 API 請求的範圍正確
-    if (_selectedEndTime.difference(_selectedStartTime).inHours > 48) {
-      setState(() {
-        _error = "錯誤：查詢範圍不能超過 2 天。";
-        _message = null;
-        _clearDataAndFilters();
-      });
-      return;
-    }
-
     final routesToKeep = List<String>.from(_selectedRouteIds);
     final driversToKeep = List<String>.from(_selectedDriverIds);
 
@@ -286,20 +133,16 @@ class _HistoryPageState extends State<HistoryPage> {
     });
 
     try {
-      final String formattedStartTime =
-          Static.apiDateFormat.format(_selectedStartTime);
-      final String formattedEndTime =
-          Static.apiDateFormat.format(_selectedEndTime);
+      final String formattedStartTime = Static.apiTimeFormat.format(_startTime);
+      final String formattedEndTime = Static.apiTimeFormat.format(_endTime);
       final url = Uri.parse(
-          "${Static.apiBaseUrl}/${Static.localStorage.city}/bus_data/${widget.plate}?start_time=$formattedStartTime&end_time=$formattedEndTime");
+          "${Static.apiBaseUrl}/${Static.city.code}/bus_data/${widget.plate}?start_time=$formattedStartTime&end_time=$formattedEndTime");
 
       final response = await Static.dio.getUri(url);
 
       if (!mounted) return;
-
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> decodedData = response.data;
-
         if (decodedData.isEmpty) {
           setState(() {
             _message = "找不到車牌 ${widget.plate} 在此時間範圍內的資料。";
@@ -312,7 +155,6 @@ class _HistoryPageState extends State<HistoryPage> {
             decodedData.map((item) => BusPoint.fromJson(item)).toList();
         final segments = _processDataIntoSegments(allHistoryData);
         final uniqueRouteIds = segments.map((s) => s.routeId).toSet();
-
         final fetchFutures = uniqueRouteIds
             .map((id) async => await Static.getRouteById(id))
             .toList();
@@ -396,10 +238,10 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget _buildControlPanel() {
     return Card(
       elevation: 2,
-      margin: const EdgeInsets.all(12),
+      margin: const EdgeInsets.all(8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
             Row(
@@ -408,29 +250,59 @@ class _HistoryPageState extends State<HistoryPage> {
                   child: _buildDateTimePickerButton(
                     context: context,
                     isStart: true,
-                    time: _selectedStartTime,
-                    onPressed: () => _pickDateTime(context, true),
+                    time: _startTime,
+                    onPressed: () => Static.selectDateTime(
+                      context: context,
+                      isStart: true,
+                      currentRange:
+                          DateTimeRange(start: _startTime, end: _endTime),
+                      lastSelectableDate:
+                          DateTime.now().add(const Duration(days: 1)),
+                      pickTime: true,
+                      maxDuration: const Duration(days: 2),
+                      onDateTimeChanged: (range) => setState(() {
+                        _startTime = range.start;
+                        _endTime = range.end;
+                        _message = "時間已更新，請點擊查詢。";
+                        _clearDataAndFilters();
+                      }),
+                    ),
                   ),
                 ),
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Icon(Icons.arrow_forward_rounded),
+                  padding: EdgeInsets.symmetric(horizontal: 6.0),
+                  child: Icon(Icons.arrow_forward_rounded, size: 20),
                 ),
                 Expanded(
                   child: _buildDateTimePickerButton(
                     context: context,
                     isStart: false,
-                    time: _selectedEndTime,
-                    onPressed: () => _pickDateTime(context, false),
+                    time: _endTime,
+                    onPressed: () => Static.selectDateTime(
+                      context: context,
+                      isStart: false,
+                      currentRange:
+                          DateTimeRange(start: _startTime, end: _endTime),
+                      lastSelectableDate:
+                          DateTime.now().add(const Duration(days: 1)),
+                      pickTime: true,
+                      maxDuration: const Duration(days: 2),
+                      onDateTimeChanged: (range) => setState(() {
+                        _startTime = range.start;
+                        _endTime = range.end;
+                        _message = "時間已更新，請點擊查詢。";
+                        _clearDataAndFilters();
+                      }),
+                    ),
                   ),
                 ),
               ],
             ),
             if (_segments.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _buildFilterDropdowns(),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -439,14 +311,14 @@ class _HistoryPageState extends State<HistoryPage> {
                     label: const Text('查詢'),
                     onPressed: _isLoading ? null : _fetchHistory,
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
                 if (_allHistoryData.isNotEmpty) ...[
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: FilledButton.tonalIcon(
                       icon: const Icon(Icons.map_outlined),
@@ -455,18 +327,15 @@ class _HistoryPageState extends State<HistoryPage> {
                           ? null
                           : () {
                               final filteredSet = _filteredSegments.toSet();
-
                               final backgroundSegments = _segments
                                   .where((segment) =>
                                       !filteredSet.contains(segment))
                                   .toList();
-
                               final bool isFiltered =
                                   _filteredSegments.length !=
                                           _segments.length ||
                                       _selectedRouteIds.isNotEmpty ||
                                       _selectedDriverIds.isNotEmpty;
-
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -483,7 +352,7 @@ class _HistoryPageState extends State<HistoryPage> {
                               );
                             },
                       style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
@@ -522,11 +391,11 @@ class _HistoryPageState extends State<HistoryPage> {
             },
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Expanded(
           child: _buildMultiSelectFilterChip(
             icon: Icons.person_pin_circle_outlined,
-            label: '駕駛',
+            label: '駕駛長',
             allOptions: {
               for (var driverId in _availableDrivers)
                 driverId: Static.getDriverText(driverId)
@@ -568,7 +437,6 @@ class _HistoryPageState extends State<HistoryPage> {
           items: allOptions,
           initialSelectedValues: selectedOptions,
         );
-
         if (result != null) {
           onSelectionChanged(result);
         }
@@ -576,15 +444,14 @@ class _HistoryPageState extends State<HistoryPage> {
       borderRadius: BorderRadius.circular(12),
       child: InputDecorator(
         decoration: InputDecoration(
+          isDense: true,
           labelText: label,
           prefixIcon: Icon(icon),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         ),
-        child: Text(displayText,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyMedium),
+        child: Text(displayText, style: Theme.of(context).textTheme.bodySmall),
       ),
     );
   }
@@ -595,7 +462,6 @@ class _HistoryPageState extends State<HistoryPage> {
     required List<String> initialSelectedValues,
   }) async {
     final tempSelectedValues = Set<String>.from(initialSelectedValues);
-
     return showDialog<List<String>>(
       context: context,
       builder: (BuildContext context) {
@@ -603,6 +469,7 @@ class _HistoryPageState extends State<HistoryPage> {
           builder: (context, setStateDialog) {
             return AlertDialog(
               title: Text(title),
+              contentPadding: const EdgeInsets.symmetric(vertical: 8),
               content: SizedBox(
                 width: double.maxFinite,
                 child: SingleChildScrollView(
@@ -611,6 +478,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       final key = entry.key;
                       final value = entry.value;
                       return CheckboxListTile(
+                        dense: true,
                         title: Text(value,
                             style: Theme.of(context).textTheme.bodyMedium),
                         value: tempSelectedValues.contains(key),
@@ -631,15 +499,12 @@ class _HistoryPageState extends State<HistoryPage> {
               actions: <Widget>[
                 TextButton(
                   child: const Text('取消'),
-                  onPressed: () {
-                    Navigator.pop(context, null);
-                  },
+                  onPressed: () => Navigator.pop(context, null),
                 ),
                 FilledButton(
                   child: const Text('確定'),
-                  onPressed: () {
-                    Navigator.pop(context, tempSelectedValues.toList());
-                  },
+                  onPressed: () =>
+                      Navigator.pop(context, tempSelectedValues.toList()),
                 ),
               ],
             );
@@ -660,7 +525,7 @@ class _HistoryPageState extends State<HistoryPage> {
       onTap: onPressed,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outlineVariant),
           borderRadius: BorderRadius.circular(12),
@@ -670,13 +535,13 @@ class _HistoryPageState extends State<HistoryPage> {
           children: [
             Text(
               isStart ? "開始時間" : "結束時間",
-              style: theme.textTheme.labelMedium
+              style: theme.textTheme.labelSmall
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             Text(
-              Static.displayDateFormatNoSec.format(time),
-              style: theme.textTheme.bodyLarge
+              Static.displayTimeFormatNoSec.format(time),
+              style: theme.textTheme.bodyMedium
                   ?.copyWith(fontWeight: FontWeight.w500),
             ),
           ],
@@ -691,80 +556,30 @@ class _HistoryPageState extends State<HistoryPage> {
     }
 
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline,
-                  color: Theme.of(context).colorScheme.error, size: 60),
-              const SizedBox(height: 16),
-              Text('查詢失敗',
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(color: Theme.of(context).colorScheme.error)),
-              const SizedBox(height: 8),
-              Text(_error!,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge),
-            ],
-          ),
-        ),
+      return EmptyStateIndicator(
+        icon: Icons.error_outline,
+        title: '查詢失敗',
+        subtitle: _error!,
+        iconColor: Theme.of(context).colorScheme.error,
       );
     }
 
     if (_segments.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.info_outline,
-                  color: Theme.of(context).colorScheme.primary, size: 60),
-              const SizedBox(height: 16),
-              Text(
-                _message ?? '沒有可顯示的軌跡段',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-            ],
-          ),
-        ),
+      return EmptyStateIndicator(
+        icon: Icons.info_outline,
+        title: _message ?? '請點擊查詢以載入歷史軌跡',
       );
     }
 
     if (_filteredSegments.isEmpty && _segments.isNotEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.filter_alt_off_outlined,
-                  color: Theme.of(context).colorScheme.secondary, size: 60),
-              const SizedBox(height: 16),
-              Text(
-                '無符合篩選的結果',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '請嘗試調整路線或駕駛員篩選條件。',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ],
-          ),
-        ),
+      return const EmptyStateIndicator(
+        icon: Icons.filter_alt_off_outlined,
+        title: '無符合篩選的結果',
+        subtitle: '請嘗試調整路線或駕駛長篩選條件。',
       );
     }
 
     final segments = _filteredSegments.reversed.toList();
-
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
       itemCount: segments.length,
@@ -795,9 +610,9 @@ class _HistoryPageState extends State<HistoryPage> {
         : Colors.orange.shade700;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 5.0),
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4.0),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -807,34 +622,38 @@ class _HistoryPageState extends State<HistoryPage> {
               runSpacing: 4,
               children: [
                 Chip(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.all(2),
                   avatar: Icon(Icons.route_outlined,
-                      size: 18, color: theme.colorScheme.primary),
+                      size: 16, color: theme.colorScheme.primary),
                   label: Text("${route.name} (${route.id})",
-                      style: theme.textTheme.labelMedium),
+                      style: theme.textTheme.labelSmall),
                   backgroundColor:
                       theme.colorScheme.primaryContainer.withOpacity(0.4),
                 ),
                 Chip(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.all(2),
                   avatar: Icon(Icons.swap_horiz,
-                      size: 18, color: theme.colorScheme.primary),
+                      size: 16, color: theme.colorScheme.primary),
                   label: Text(
                       "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (segment.goBack == 1 ? route.destination : route.departure) : '未知'}",
-                      style: theme.textTheme.labelMedium),
+                      style: theme.textTheme.labelSmall),
                   backgroundColor:
                       theme.colorScheme.primaryContainer.withOpacity(0.4),
                 ),
               ],
             ),
-            const Divider(height: 16),
+            const Divider(height: 12),
             _buildSegmentDetailRow(Icons.timer_outlined, "持續時間", durationStr),
             _buildSegmentDetailRow(Icons.play_circle_outline, "開始",
-                Static.displayDateFormat.format(segment.startTime)),
+                Static.displayTimeFormat.format(segment.startTime)),
             _buildSegmentDetailRow(Icons.stop_circle_outlined, "結束",
-                Static.displayDateFormat.format(segment.endTime)),
+                Static.displayTimeFormat.format(segment.endTime)),
             _buildSegmentDetailRow(Icons.scatter_plot_outlined, "軌跡點數",
                 "${segment.points.length} 點"),
             _buildSegmentDetailRow(
-                Icons.person_pin_circle_outlined, "駕駛", driverText),
+                Icons.person_pin_circle_outlined, "駕駛長", driverText),
             _buildSegmentDetailRow(
                 segment.dutyStatus == 0
                     ? Icons.work_outline
@@ -842,12 +661,12 @@ class _HistoryPageState extends State<HistoryPage> {
                 "狀態",
                 dutyText,
                 valueColor: dutyColor),
-            const Divider(height: 16),
+            const Divider(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton.icon(
-                  icon: const Icon(Icons.view_list_rounded),
+                  icon: const Icon(Icons.view_list_rounded, size: 16),
                   label: const Text('查看點位'),
                   onPressed: () {
                     Navigator.push(
@@ -859,7 +678,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 ),
                 const SizedBox(width: 8),
                 FilledButton.icon(
-                  icon: const Icon(Icons.explore_outlined),
+                  icon: const Icon(Icons.explore_outlined, size: 16),
                   label: const Text('繪製此段'),
                   onPressed: () {
                     Navigator.push(
@@ -868,7 +687,7 @@ class _HistoryPageState extends State<HistoryPage> {
                             builder: (context) => HistoryOsmPage(
                                   plate: widget.plate,
                                   segments: [segment],
-                                  isFiltered: true, // 繪製單段時，視為篩選過的
+                                  isFiltered: true,
                                   backgroundSegments: null,
                                 )));
                   },
@@ -885,19 +704,22 @@ class _HistoryPageState extends State<HistoryPage> {
       {Color? valueColor}) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3.0),
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 12),
+          Icon(icon, size: 14, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
           SizedBox(
-              width: 70, child: Text(title, style: theme.textTheme.bodyMedium)),
+              width: 60, child: Text(title, style: theme.textTheme.bodySmall)),
           Expanded(
-              child: Text(value,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: valueColor,
-                  ))),
+            child: Text(
+              value,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: valueColor,
+              ),
+            ),
+          ),
         ],
       ),
     );
