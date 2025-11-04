@@ -1,6 +1,8 @@
+import 'package:bus_scraper/pages/multi_history_osm_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../data/car.dart';
 import '../static.dart';
 import '../widgets/car_list_item.dart';
 import '../widgets/empty_state_indicator.dart';
@@ -92,7 +94,7 @@ class FavoritesPage extends StatelessWidget {
       builder: (context) {
         return AlertDialog(
           title: const Text('確認刪除'),
-          content: Text('確定要刪除 "$groupName" 群組嗎？群組內的車輛將會保留在其他收藏群組中。'),
+          content: Text('確定要刪除 「$groupName」 群組嗎？'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -113,6 +115,55 @@ class FavoritesPage extends StatelessWidget {
     );
   }
 
+  Future<void> _showLastPosition(
+      BuildContext context, List<String> plateList) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+
+    try {
+      await Static.updateCarData();
+
+      if (context.mounted) Navigator.of(context).pop();
+
+      final List<Car> carsInGroup =
+          Static.carData.where((car) => plateList.contains(car.plate)).toList();
+
+      if (carsInGroup.isNotEmpty) {
+        if (context.mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => MultiHistoryOsmPage(cars: carsInGroup),
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('更新後，在此群組中找不到對應的車輛詳細資料'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('更新車輛資料失敗: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<FavoritesNotifier>(
@@ -128,24 +179,19 @@ class FavoritesPage extends StatelessWidget {
           );
         }
 
-        final sortedGroupKeys = groups.keys.toList()
-          ..sort((a, b) {
-            if (a == FavoritesNotifier.defaultGroupName) return -1;
-            if (b == FavoritesNotifier.defaultGroupName) return 1;
-            return a.compareTo(b);
-          });
+        final sortedGroupKeys = notifier.getGroupOrder();
 
-        return ListView(
-          padding: const EdgeInsets.all(8),
+        return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
               child: ElevatedButton.icon(
                 onPressed: () => _showAddGroupDialog(context),
                 icon: const Icon(Icons.add),
                 label: const Text('新增群組'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
+                  minimumSize: const Size.fromHeight(48),
                   textStyle: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -153,8 +199,19 @@ class FavoritesPage extends StatelessWidget {
                 ),
               ),
             ),
-            for (final groupName in sortedGroupKeys)
-              _buildGroupCard(context, notifier, groupName, groups[groupName]!),
+            Expanded(
+              child: ReorderableListView(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                onReorder: (oldIndex, newIndex) {
+                  notifier.reorderGroup(oldIndex, newIndex);
+                },
+                children: [
+                  for (final groupName in sortedGroupKeys)
+                    _buildGroupCard(
+                        context, notifier, groupName, groups[groupName]!),
+                ],
+              ),
+            ),
           ],
         );
       },
@@ -168,16 +225,12 @@ class FavoritesPage extends StatelessWidget {
         .toList()
       ..sort((a, b) => a.plate.compareTo(b.plate));
 
-    if (carList.isEmpty && groupName != FavoritesNotifier.defaultGroupName) {
-      return const SizedBox.shrink();
-    }
-
     return Card(
+      key: ValueKey(groupName),
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        key: PageStorageKey(groupName),
-        initiallyExpanded: groupName == FavoritesNotifier.defaultGroupName,
+        initiallyExpanded: false,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -215,24 +268,56 @@ class FavoritesPage extends StatelessWidget {
           if (carList.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => MultiLiveOsmPage(plates: plateList),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              MultiLiveOsmPage(plates: plateList),
+                        ),
+                      );
+                    },
+                    label: const Text('顯示此群組車輛動態'),
+                    icon: const Icon(Icons.map_outlined),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(40),
                     ),
-                  );
-                },
-                label: const Text('顯示此群組車輛動態'),
-                icon: const Icon(Icons.map_outlined),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(40),
-                ),
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    onPressed: () => _showLastPosition(context, plateList),
+                    label: const Text('顯示最後位置'),
+                    icon: const Icon(Icons.history_toggle_off),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(40),
+                      backgroundColor: Theme.of(context).colorScheme.secondary,
+                      foregroundColor:
+                          Theme.of(context).colorScheme.onSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
           ...carList.map((car) {
-            return CarListItem(car: car, showLiveButton: true);
+            final carFromStatic = Static.carData.firstWhere(
+              (c) => c.plate == car.plate,
+              orElse: () => car,
+            );
+            return CarListItem(car: carFromStatic, showLiveButton: true);
           }).toList(),
+          if (carList.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24.0),
+              child: Center(
+                child: Text(
+                  '此群組內沒有車輛',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
         ],
       ),
     );

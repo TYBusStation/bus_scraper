@@ -37,6 +37,7 @@ class LocalStorage {
       StorageHelper.set<int>(_liveTrackDurationKey, value);
 
   static const String _favoriteGroupsKey = 'favorite_groups_by_city';
+  static const String _favoriteGroupOrderKey = 'favorite_group_order_by_city';
   static const String _veryOldFavoritePlatesKey = 'favorite_plates';
 
   Map<String, List<String>> getFavoriteGroupsForCity(City city) {
@@ -99,6 +100,25 @@ class LocalStorage {
     mutableAllGroups[city.code] = groups;
     StorageHelper.set<Map<String, dynamic>>(
         _favoriteGroupsKey, mutableAllGroups);
+  }
+
+  List<String> getFavoriteGroupOrderForCity(City city) {
+    final allCityOrders =
+        StorageHelper.get<Map<String, dynamic>>(_favoriteGroupOrderKey, {});
+    final currentCityOrder = allCityOrders[city.code];
+    if (currentCityOrder is List) {
+      return List<String>.from(currentCityOrder);
+    }
+    return [];
+  }
+
+  void setFavoriteGroupOrderForCity(City city, List<String> order) {
+    final allCityOrders =
+        StorageHelper.get<Map<String, dynamic>>(_favoriteGroupOrderKey, {});
+    final mutableAllOrders = Map<String, dynamic>.from(allCityOrders);
+    mutableAllOrders[city.code] = order;
+    StorageHelper.set<Map<String, dynamic>>(
+        _favoriteGroupOrderKey, mutableAllOrders);
   }
 
   List<String> get favoritePlates {

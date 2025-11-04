@@ -24,8 +24,6 @@ class Static {
   static late final String? versionNotes;
 
   static const String _primaryApiUrl = "https://myster.freeddns.org:25566";
-
-  // static const String _primaryApiUrl = "http://localhost:8000";
   static const String _fallbackApiUrl = "http://192.168.1.159:25567";
 
   static final DateFormat apiTimeFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
@@ -112,7 +110,7 @@ class Static {
   static late final List<BusRoute> opRouteData;
   static late final List<BusRoute> specialRouteData;
   static late final List<BusRoute> routeData;
-  static late final List<Car> carData;
+  static late List<Car> carData;
   static List<BusRoute>? allRouteData;
   static final Map<String, RouteDetail> _routeDetailCache = {};
 
@@ -191,6 +189,18 @@ class Static {
       announcementMarkdown = '公告載入失敗：\n$e';
       currentVersion = '未知版本';
       versionNotes = '更新日誌載入失敗。';
+      rethrow;
+    }
+  }
+
+  static Future<void> updateCarData() async {
+    log("Attempting to update carData from server...");
+    try {
+      final List<Car> updatedCarData = await _fetchCarDataFromServer();
+      carData = updatedCarData;
+      log("Successfully updated carData. Total cars: ${carData.length}");
+    } catch (e) {
+      log("!!! FAILED to update carData: $e !!!");
       rethrow;
     }
   }
@@ -754,7 +764,6 @@ class Static {
       }
     }
 
-    // 返回最終驗證過的範圍
     onDateTimeChanged(DateTimeRange(start: newStart, end: newEnd));
   }
 }
