@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../data/TrajectorySegment.dart';
+import '../data/trajectory_segment.dart';
 import '../static.dart';
 import 'history_osm_page.dart';
 

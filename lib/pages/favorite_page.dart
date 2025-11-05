@@ -1,4 +1,3 @@
-import 'package:bus_scraper/pages/multi_history_osm_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,6 +6,7 @@ import '../static.dart';
 import '../widgets/car_list_item.dart';
 import '../widgets/empty_state_indicator.dart';
 import '../widgets/favorite_provider.dart';
+import 'multi_history_osm_page.dart'; // 確認引用正確的頁面
 import 'multi_live_osm_page.dart';
 
 class FavoritesPage extends StatelessWidget {
@@ -126,18 +126,23 @@ class FavoritesPage extends StatelessWidget {
     );
 
     try {
-      await Static.updateCarData();
+      final List<Car> updatedCars = await Static.fetchCarsByPlates(plateList);
 
       if (context.mounted) Navigator.of(context).pop();
 
-      final List<Car> carsInGroup =
-          Static.carData.where((car) => plateList.contains(car.plate)).toList();
+      if (updatedCars.isNotEmpty) {
+        for (final updatedCar in updatedCars) {
+          final index =
+              Static.carData.indexWhere((c) => c.plate == updatedCar.plate);
+          if (index != -1) {
+            Static.carData[index] = updatedCar;
+          }
+        }
 
-      if (carsInGroup.isNotEmpty) {
         if (context.mounted) {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => MultiHistoryOsmPage(cars: carsInGroup),
+              builder: (context) => MultiHistoryOsmPage(cars: updatedCars),
             ),
           );
         }
@@ -145,7 +150,7 @@ class FavoritesPage extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('更新後，在此群組中找不到對應的車輛詳細資料'),
+              content: Text('在此群組中找不到任何可用的車輛詳細資料'),
               duration: Duration(seconds: 2),
             ),
           );
@@ -156,7 +161,7 @@ class FavoritesPage extends StatelessWidget {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('更新車輛資料失敗: $e'),
+            content: Text('獲取車輛資料失敗: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -280,22 +285,19 @@ class FavoritesPage extends StatelessWidget {
                         ),
                       );
                     },
-                    label: const Text('顯示此群組車輛動態'),
+                    label: const Text('群組即時動態'),
                     icon: const Icon(Icons.map_outlined),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(40),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   FilledButton.icon(
                     onPressed: () => _showLastPosition(context, plateList),
-                    label: const Text('顯示最後位置'),
+                    label: const Text('群組最後軌跡'),
                     icon: const Icon(Icons.history_toggle_off),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(40),
-                      backgroundColor: Theme.of(context).colorScheme.secondary,
-                      foregroundColor:
-                          Theme.of(context).colorScheme.onSecondary,
                     ),
                   ),
                 ],

@@ -1,14 +1,14 @@
-import 'package:bus_scraper/widgets/base_map_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../data/TrajectorySegment.dart';
 import '../data/bus_point.dart';
+import '../data/trajectory_segment.dart';
 import '../widgets/point_marker.dart';
+import 'map_utils.dart';
 
 class MultiSegmentProcessor {
-  int _colorIndex = 0;
+  final colorCycler = ColorCycler();
 
   void processAndAdd(
     TrajectorySegment segment, {
@@ -19,8 +19,7 @@ class MultiSegmentProcessor {
       return;
     }
 
-    final color = BaseMapView
-        .segmentColors[_colorIndex % BaseMapView.segmentColors.length];
+    final color = colorCycler.nextColor;
     polylines.add(
       Polyline(
         points: segment.points.map((p) => LatLng(p.lat, p.lon)).toList(),
@@ -37,8 +36,6 @@ class MultiSegmentProcessor {
       markers.add(_createStartEndMarker(segment.points.last,
           isStart: false, color: color));
     }
-
-    _colorIndex++;
   }
 
   PointMarker _createSinglePointMarker(BusPoint point, Color color) {

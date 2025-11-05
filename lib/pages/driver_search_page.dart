@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../data/vehicle_history.dart';
@@ -22,6 +23,36 @@ class _DriverSearchPageState extends State<DriverSearchPage> {
   bool _needsRefresh = false;
   Future<List<DriverDateInfo>>? _searchFuture;
 
+  static Future<List<DriverDateInfo>> findDriversForVehicle({
+    required String plate,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final uri = Uri.parse(
+            "${Static.apiBaseUrl}/${Static.city.code}/tools/find_vehicle_drivers/$plate")
+        .replace(
+      queryParameters: {
+        if (startDate != null)
+          'start_time': Static.apiTimeFormat.format(startDate),
+        if (endDate != null) 'end_time': Static.apiTimeFormat.format(endDate),
+      },
+    );
+    Static.log("Fetching drivers for plate $plate from API: $uri");
+    try {
+      final response = await Static.dio.getUri(uri);
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map((json) => DriverDateInfo.fromJson(json))
+            .toList();
+      }
+    } on DioException catch (e) {
+      Static.log("DioError fetching drivers for plate $plate: ${e.message}");
+    } catch (e) {
+      Static.log("Unexpected error fetching drivers for plate $plate: $e");
+    }
+    return [];
+  }
+
   void _triggerSearch() {
     FocusScope.of(context).unfocus();
     setState(() {
@@ -29,7 +60,7 @@ class _DriverSearchPageState extends State<DriverSearchPage> {
       _needsRefresh = false;
       final finalEndDate =
           DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
-      _searchFuture = Static.findDriversForVehicle(
+      _searchFuture = findDriversForVehicle(
         plate: widget.plate,
         startDate: _startDate,
         endDate: finalEndDate,

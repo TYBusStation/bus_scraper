@@ -15,7 +15,7 @@ import 'data/car.dart';
 import 'data/route_detail.dart';
 import 'data/vehicle_history.dart';
 
-class Static {
+abstract class Static {
   static Future<void>? _initFuture;
   static int _currentInitId = 0;
 
@@ -189,18 +189,6 @@ class Static {
       announcementMarkdown = '公告載入失敗：\n$e';
       currentVersion = '未知版本';
       versionNotes = '更新日誌載入失敗。';
-      rethrow;
-    }
-  }
-
-  static Future<void> updateCarData() async {
-    log("Attempting to update carData from server...");
-    try {
-      final List<Car> updatedCarData = await _fetchCarDataFromServer();
-      carData = updatedCarData;
-      log("Successfully updated carData. Total cars: ${carData.length}");
-    } catch (e) {
-      log("!!! FAILED to update carData: $e !!!");
       rethrow;
     }
   }
@@ -413,6 +401,27 @@ class Static {
     return [];
   }
 
+  static Future<List<Car>> fetchCarsByPlates(List<String> plates) async {
+    log("Fetching data for ${plates.length} specific cars from API.");
+    final futures = plates.map((plate) async {
+      final url = "$apiBaseUrl/${city.code}/car/$plate";
+      try {
+        final response = await dio.getUri(Uri.parse(url));
+        if (response.statusCode == 200 && response.data != null) {
+          return Car.fromJson(response.data);
+        }
+      } on DioException catch (e) {
+        log("DioError fetching car data for $plate: ${e.message}");
+      } catch (e) {
+        log("Unexpected error fetching car data for $plate: $e");
+      }
+      return null;
+    }).toList();
+
+    final results = await Future.wait(futures);
+    return results.where((car) => car != null).cast<Car>().toList();
+  }
+
   static Map<String, dynamic> _parseRoute(String route) {
     String type = 'UNKNOWN';
     int? baseNum;
@@ -562,64 +571,6 @@ class Static {
         : driverId;
   }
 
-  static Future<List<VehicleRouteHistory>> findVehicleRoutes({
-    required String plate,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    final uri =
-        Uri.parse("$apiBaseUrl/${city.code}/tools/find_vehicle_routes/$plate")
-            .replace(
-      queryParameters: {
-        if (startDate != null) 'start_time': apiTimeFormat.format(startDate),
-        if (endDate != null) 'end_time': apiTimeFormat.format(endDate),
-      },
-    );
-    log("Fetching routes for plate $plate from API: $uri");
-    try {
-      final response = await dio.getUri(uri);
-      if (response.statusCode == 200 && response.data is List) {
-        return (response.data as List)
-            .map((json) => VehicleRouteHistory.fromJson(json))
-            .toList();
-      }
-    } on DioException catch (e) {
-      log("DioError fetching routes for plate $plate: ${e.message}");
-    } catch (e) {
-      log("Unexpected error fetching routes for plate $plate: $e");
-    }
-    return [];
-  }
-
-  static Future<List<PlateDrivingDates>> findDriverDrivingDates({
-    required String driverId,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    final uri =
-        Uri.parse("$apiBaseUrl/${city.code}/tools/find_driver_dates").replace(
-      queryParameters: {
-        'driver_id': driverId,
-        if (startDate != null) 'start_time': apiTimeFormat.format(startDate),
-        if (endDate != null) 'end_time': apiTimeFormat.format(endDate),
-      },
-    );
-    log("Fetching plates for driver $driverId from API: $uri");
-    try {
-      final response = await dio.getUri(uri);
-      if (response.statusCode == 200 && response.data is List) {
-        return (response.data as List)
-            .map((json) => PlateDrivingDates.fromJson(json))
-            .toList();
-      }
-    } on DioException catch (e) {
-      log("DioError fetching plates for driver $driverId: ${e.message}");
-    } catch (e) {
-      log("Unexpected error fetching plates for driver $driverId: $e");
-    }
-    return [];
-  }
-
   static Future<List<VehicleDrivingDates>> findVehiclesOnRoute({
     required String routeId,
     DateTime? startDate,
@@ -645,35 +596,6 @@ class Static {
       log("DioError fetching vehicles for route $routeId: ${e.message}");
     } catch (e) {
       log("Unexpected error fetching vehicles for route $routeId: $e");
-    }
-    return [];
-  }
-
-  static Future<List<DriverDateInfo>> findDriversForVehicle({
-    required String plate,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    final uri =
-        Uri.parse("$apiBaseUrl/${city.code}/tools/find_vehicle_drivers/$plate")
-            .replace(
-      queryParameters: {
-        if (startDate != null) 'start_time': apiTimeFormat.format(startDate),
-        if (endDate != null) 'end_time': apiTimeFormat.format(endDate),
-      },
-    );
-    log("Fetching drivers for plate $plate from API: $uri");
-    try {
-      final response = await dio.getUri(uri);
-      if (response.statusCode == 200 && response.data is List) {
-        return (response.data as List)
-            .map((json) => DriverDateInfo.fromJson(json))
-            .toList();
-      }
-    } on DioException catch (e) {
-      log("DioError fetching drivers for plate $plate: ${e.message}");
-    } catch (e) {
-      log("Unexpected error fetching drivers for plate $plate: $e");
     }
     return [];
   }

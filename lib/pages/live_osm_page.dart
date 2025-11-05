@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../data/bus_point.dart';
 import '../static.dart';
-import '../utils/map_data_processor.dart';
+import '../utils/map_utils.dart';
 import '../widgets/base_map_view.dart';
 import '../widgets/point_marker.dart';
 
@@ -220,7 +220,7 @@ class _LiveOsmPageState extends State<LiveOsmPage>
   }
 
   void _prepareMapData() {
-    final processedData = processBusPoints(_points);
+    final processedData = MapUtils.processBusPoints(_points);
     final List<Marker> allMarkers = processedData.markers;
 
     if (_points.isNotEmpty) {

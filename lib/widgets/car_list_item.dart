@@ -1,11 +1,15 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import '../data/bus_point.dart';
 import '../data/car.dart';
 import '../pages/driver_search_page.dart';
+import '../pages/history_osm_page.dart';
 import '../pages/history_page.dart';
 import '../pages/live_osm_page.dart';
 import '../pages/route_search_page.dart';
 import '../static.dart';
+import '../utils/map_utils.dart';
 import 'favorite_button.dart';
 
 class CarListItem extends StatelessWidget {
@@ -63,6 +67,103 @@ class CarListItem extends StatelessWidget {
                   );
                 },
               ),
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.timeline_rounded),
+                title: const Text('最後軌跡'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (BuildContext dialogContext) {
+                      return const Center(child: CircularProgressIndicator());
+                    },
+                  );
+
+                  try {
+                    final List<Car> updatedCars =
+                        await Static.fetchCarsByPlates([car.plate]);
+
+                    if (updatedCars.isEmpty) {
+                      if (context.mounted) Navigator.of(context).pop();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('找不到此車輛的最新狀態。')),
+                        );
+                      }
+                      return;
+                    }
+                    final Car updatedCar = updatedCars.first;
+
+                    final index = Static.carData
+                        .indexWhere((c) => c.plate == updatedCar.plate);
+                    if (index != -1) {
+                      Static.carData[index] = updatedCar;
+                    }
+
+                    final DateTime endTime = updatedCar.lastSeen;
+                    final DateTime startTime = endTime.subtract(Duration(
+                        minutes: Static.localStorage.liveTrackDuration));
+                    final String formattedStartTime =
+                        Static.apiTimeFormat.format(startTime);
+                    final String formattedEndTime =
+                        Static.apiTimeFormat.format(endTime);
+
+                    final url = Uri.parse(
+                        "${Static.apiBaseUrl}/${Static.city.code}/bus_data/${car.plate}?start_time=$formattedStartTime&end_time=$formattedEndTime");
+
+                    final response = await Static.dio.getUri(url);
+
+                    if (context.mounted) Navigator.of(context).pop();
+
+                    if (response.statusCode == 200 && response.data != null) {
+                      final List<dynamic> decodedData = response.data;
+                      if (decodedData.isNotEmpty) {
+                        final points = decodedData
+                            .map((item) => BusPoint.fromJson(item))
+                            .toList();
+                        final segments =
+                            MapUtils.processPointsIntoSegments(points);
+
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => HistoryOsmPage(
+                                plate: car.plate,
+                                segments: segments,
+                                isFiltered: false,
+                              ),
+                            ),
+                          );
+                        }
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('找不到此車輛最近的軌跡資料。')),
+                          );
+                        }
+                      }
+                    }
+                  } on DioException catch (e) {
+                    if (context.mounted) Navigator.of(context).pop();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('獲取軌跡失敗: ${e.message}')),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) Navigator.of(context).pop();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('發生未知錯誤: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
               const Divider(height: 1),
               ListTile(
                 dense: true,
@@ -109,7 +210,6 @@ class CarListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-
     final bool hasDates = drivingDates != null && drivingDates!.isNotEmpty;
 
     return Card(
@@ -200,7 +300,6 @@ class CarListItem extends StatelessWidget {
                                 selectedDate.month,
                                 selectedDate.day,
                               ).add(const Duration(days: 1));
-
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(

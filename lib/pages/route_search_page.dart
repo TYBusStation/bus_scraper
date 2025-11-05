@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -34,9 +35,39 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   bool _needsRefresh = false;
   Future<List<BusRouteWithHistory>>? _searchFuture;
 
+  static Future<List<VehicleRouteHistory>> findVehicleRoutes({
+    required String plate,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final uri = Uri.parse(
+            "${Static.apiBaseUrl}/${Static.city.code}/tools/find_vehicle_routes/$plate")
+        .replace(
+      queryParameters: {
+        if (startDate != null)
+          'start_time': Static.apiTimeFormat.format(startDate),
+        if (endDate != null) 'end_time': Static.apiTimeFormat.format(endDate),
+      },
+    );
+    Static.log("Fetching routes for plate $plate from API: $uri");
+    try {
+      final response = await Static.dio.getUri(uri);
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map((json) => VehicleRouteHistory.fromJson(json))
+            .toList();
+      }
+    } on DioException catch (e) {
+      Static.log("DioError fetching routes for plate $plate: ${e.message}");
+    } catch (e) {
+      Static.log("Unexpected error fetching routes for plate $plate: $e");
+    }
+    return [];
+  }
+
   Future<List<BusRouteWithHistory>> _fetchAndProcessRoutes(
       DateTime startDate, DateTime endDate) async {
-    final histories = await Static.findVehicleRoutes(
+    final histories = await findVehicleRoutes(
       plate: widget.plate,
       startDate: startDate,
       endDate: endDate,

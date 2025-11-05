@@ -12,28 +12,9 @@ import '../data/bus_route.dart';
 import '../data/route_detail.dart';
 import '../pages/map_route_selection_page.dart';
 import '../static.dart';
+import '../utils/map_utils.dart';
 
 class BaseMapView extends StatefulWidget {
-  static const List<Color> segmentColors = [
-    Color(0xFFE53935),
-    Color(0xFF1E88E5),
-    Color(0xFF43A047),
-    Color(0xFFFB8C00),
-    Color(0xFF00897B),
-    Color(0xFF5E35B1),
-    Color(0xFFFFB300),
-    Color(0xFF039BE5),
-    Color(0xFF6D4C41),
-    Color(0xFFF4511E),
-    Color(0xFFC0CA33),
-    Color(0xFF00ACC1),
-    Color(0xFF7CB342),
-    Color(0xFF673AB7),
-    Color(0xFF455A64),
-  ];
-  static List<Color> segmentColorsReverse = segmentColors.reversed.toList();
-  static const double defaultZoom = 17;
-
   final String appBarTitle;
   final List<Widget>? appBarActions;
   final bool isLoading;
@@ -145,7 +126,7 @@ class BaseMapViewState extends State<BaseMapView> {
   void _recenterMap() {
     if (widget.points.isEmpty && _userSelectedPolylines.isEmpty) {
       if (_currentLocation != null) {
-        _mapController.move(_currentLocation!, BaseMapView.defaultZoom);
+        _mapController.move(_currentLocation!, MapUtils.defaultZoom);
       }
       return;
     }
@@ -158,19 +139,19 @@ class BaseMapViewState extends State<BaseMapView> {
     }
     if (boundsToFit != null) {
       if (boundsToFit.southWest == boundsToFit.northEast) {
-        _mapController.move(boundsToFit.center, BaseMapView.defaultZoom);
+        _mapController.move(boundsToFit.center, MapUtils.defaultZoom);
       } else {
         _mapController.fitCamera(
           CameraFit.bounds(
               bounds: boundsToFit,
               padding: const EdgeInsets.all(50),
-              maxZoom: BaseMapView.defaultZoom),
+              maxZoom: MapUtils.defaultZoom),
         );
       }
     } else if (widget.points.isNotEmpty) {
       final lastPoint = widget.points.last;
       _mapController.move(
-          LatLng(lastPoint.lat, lastPoint.lon), BaseMapView.defaultZoom);
+          LatLng(lastPoint.lat, lastPoint.lon), MapUtils.defaultZoom);
     }
   }
 
@@ -275,8 +256,8 @@ class BaseMapViewState extends State<BaseMapView> {
       final detail = await Static.fetchRoutePathAndStops(routeId);
 
       if (selection.go && detail.goPath.isNotEmpty) {
-        final color = BaseMapView.segmentColorsReverse[
-            colorIndex % BaseMapView.segmentColorsReverse.length];
+        final color = MapUtils.segmentColorsReverse[
+            colorIndex % MapUtils.segmentColorsReverse.length];
         colorIndex++;
         newPolylines.add(Polyline(
             points: detail.goPath,
@@ -288,8 +269,8 @@ class BaseMapViewState extends State<BaseMapView> {
         }
       }
       if (selection.back && detail.backPath.isNotEmpty) {
-        final color = BaseMapView.segmentColorsReverse[
-            colorIndex % BaseMapView.segmentColorsReverse.length];
+        final color = MapUtils.segmentColorsReverse[
+            colorIndex % MapUtils.segmentColorsReverse.length];
         colorIndex++;
         newPolylines.add(Polyline(
             points: detail.backPath,
@@ -367,10 +348,6 @@ class BaseMapViewState extends State<BaseMapView> {
     );
   }
 
-  double getPanelHeight(bool isLandscape) {
-    return isLandscape ? 100.0 : 160.0;
-  }
-
   @override
   void dispose() {
     _mapController.dispose();
@@ -440,9 +417,10 @@ class BaseMapViewState extends State<BaseMapView> {
 
         final bool isPanelVisible =
             _selectedPoint != null || _selectedStation != null;
-        final double controlsBottom =
-            (isPanelVisible ? getPanelHeight(isLandscape) + panelMargin : 0.0) +
-                controlsPadding;
+        final double controlsBottom = (isPanelVisible
+                ? MapUtils.getPanelHeight(isLandscape) + panelMargin
+                : 0.0) +
+            controlsPadding;
 
         return Stack(
           children: [
@@ -452,14 +430,17 @@ class BaseMapViewState extends State<BaseMapView> {
                 initialCenter: (widget.bounds != null &&
                         widget.bounds!.southWest == widget.bounds!.northEast)
                     ? widget.bounds!.center
-                    : Static.city.exPos,
-                initialZoom: BaseMapView.defaultZoom,
+                    : (widget.points.isNotEmpty
+                        ? LatLng(
+                            widget.points.first.lat, widget.points.first.lon)
+                        : Static.city.exPos),
+                initialZoom: MapUtils.defaultZoom,
                 initialCameraFit: (widget.bounds != null &&
                         widget.bounds!.southWest != widget.bounds!.northEast)
                     ? CameraFit.bounds(
                         bounds: widget.bounds!,
                         padding: const EdgeInsets.all(50.0),
-                        maxZoom: BaseMapView.defaultZoom)
+                        maxZoom: MapUtils.defaultZoom)
                     : null,
                 onTap: (_, __) {
                   setState(() {
@@ -691,13 +672,13 @@ class BaseMapViewState extends State<BaseMapView> {
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      bottom: isVisible ? 0 : -(getPanelHeight(isLandscape) + 40),
+      bottom: isVisible ? 0 : -(MapUtils.getPanelHeight(isLandscape) + 40),
       left: 0,
       right: 0,
       child: SafeArea(
         top: false,
         child: Container(
-          height: getPanelHeight(isLandscape),
+          height: MapUtils.getPanelHeight(isLandscape),
           margin: const EdgeInsets.all(12.0),
           decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainer,
@@ -744,18 +725,22 @@ class BaseMapViewState extends State<BaseMapView> {
                               horizontal: 16.0, vertical: 8.0),
                           child: Wrap(
                             children: [
-                              _buildInfoChip(
+                              MapUtils.buildInfoChip(
+                                  context: context,
                                   icon: Icons.route_outlined,
                                   label:
                                       "${routeForDisplay.name} (${routeForDisplay.id})"),
                               if (routeForDisplay.description.isNotEmpty)
-                                _buildInfoChip(
+                                MapUtils.buildInfoChip(
+                                    context: context,
                                     icon: Icons.description_outlined,
                                     label: routeForDisplay.description),
-                              _buildInfoChip(
+                              MapUtils.buildInfoChip(
+                                  context: context,
                                   icon: Icons.swap_horiz,
                                   label: "往 $direction"),
-                              _buildInfoChip(
+                              MapUtils.buildInfoChip(
+                                  context: context,
                                   icon: Icons.format_list_numbered,
                                   label: stationOrder),
                               InkWell(
@@ -775,7 +760,8 @@ class BaseMapViewState extends State<BaseMapView> {
                                               showCloseIcon: true));
                                     }
                                   },
-                                  child: _buildInfoChip(
+                                  child: MapUtils.buildInfoChip(
+                                      context: context,
                                       icon: Icons.gps_fixed,
                                       label: latLonString))
                             ],
@@ -810,13 +796,13 @@ class BaseMapViewState extends State<BaseMapView> {
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      bottom: isVisible ? 0 : -(getPanelHeight(isLandscape) + 40),
+      bottom: isVisible ? 0 : -(MapUtils.getPanelHeight(isLandscape) + 40),
       left: 0,
       right: 0,
       child: SafeArea(
         top: false,
         child: Container(
-          height: getPanelHeight(isLandscape),
+          height: MapUtils.getPanelHeight(isLandscape),
           margin: const EdgeInsets.all(12.0),
           decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainer,
@@ -871,21 +857,26 @@ class BaseMapViewState extends State<BaseMapView> {
                                       horizontal: 16.0, vertical: 8.0),
                                   child: Wrap(children: [
                                     if (plate != null)
-                                      _buildInfoChip(
+                                      MapUtils.buildInfoChip(
+                                          context: context,
                                           icon: Icons.numbers,
                                           label: "車牌：$plate",
                                           color: theme.colorScheme.primary),
-                                    _buildInfoChip(
+                                    MapUtils.buildInfoChip(
+                                        context: context,
                                         icon: Icons.route_outlined,
                                         label: "${route.name} (${route.id})"),
-                                    _buildInfoChip(
+                                    MapUtils.buildInfoChip(
+                                        context: context,
                                         icon: Icons.description_outlined,
                                         label: route.description),
-                                    _buildInfoChip(
+                                    MapUtils.buildInfoChip(
+                                        context: context,
                                         icon: Icons.swap_horiz,
                                         label:
                                             "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'}"),
-                                    _buildInfoChip(
+                                    MapUtils.buildInfoChip(
+                                        context: context,
                                         icon: _selectedPoint!.dutyStatus == 0
                                             ? Icons.work_outline
                                             : Icons.work_off_outlined,
@@ -895,7 +886,8 @@ class BaseMapViewState extends State<BaseMapView> {
                                         color: _selectedPoint!.dutyStatus == 0
                                             ? Colors.green
                                             : Colors.orange),
-                                    _buildInfoChip(
+                                    MapUtils.buildInfoChip(
+                                        context: context,
                                         icon: Icons.person_pin_circle_outlined,
                                         label:
                                             "駕駛長：${Static.getDriverText(_selectedPoint!.driverId)}"),
@@ -920,7 +912,8 @@ class BaseMapViewState extends State<BaseMapView> {
                                                     showCloseIcon: true));
                                           }
                                         },
-                                        child: _buildInfoChip(
+                                        child: MapUtils.buildInfoChip(
+                                            context: context,
                                             icon: Icons.gps_fixed,
                                             label:
                                                 "${_selectedPoint!.lat.toString()}, ${_selectedPoint!.lon.toString()}"))
@@ -941,21 +934,6 @@ class BaseMapViewState extends State<BaseMapView> {
                   ],
                 ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(
-      {required IconData icon, required String label, Color? color}) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      child: Chip(
-        avatar: Icon(icon,
-            size: 16, color: color ?? theme.colorScheme.onSurfaceVariant),
-        label: Text(label, style: theme.textTheme.labelMedium),
-        visualDensity: VisualDensity.compact,
-        backgroundColor: theme.colorScheme.surfaceContainerHighest,
       ),
     );
   }

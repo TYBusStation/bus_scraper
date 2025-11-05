@@ -13,7 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/bus_point.dart';
 import '../data/bus_route.dart';
 import '../static.dart';
-import '../widgets/base_map_view.dart';
+import '../utils/map_utils.dart';
 import '../widgets/point_marker.dart';
 import 'history_page.dart';
 
@@ -192,11 +192,10 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
         groupBy<BusPoint, String>(pointsToDisplay, (p) => p.plate);
     final newPolylines = <Polyline>[];
     final newMarkers = <Marker>[];
-    int colorIndex = 0;
+    final colorCycler = ColorCycler();
     pointsByPlate.forEach((plate, points) {
       if (points.isEmpty) return;
-      final color = BaseMapView
-          .segmentColors[colorIndex % BaseMapView.segmentColors.length];
+      final color = colorCycler.nextColor;
       points.sort((a, b) => a.dataTime.compareTo(b.dataTime));
       final latlngs = points.map((p) => LatLng(p.lat, p.lon)).toList();
       if (latlngs.length > 1) {
@@ -206,7 +205,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       for (final point in points) {
         newMarkers.add(_buildPointMarker(point, color));
       }
-      colorIndex++;
     });
     setState(() {
       _resultPolylines = newPolylines;
@@ -478,8 +476,10 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
           ),
         ),
         Positioned(
-          bottom:
-              (_selectedPoint != null ? (isLandscape ? 140.0 : 190.0) : 0) + 16,
+          bottom: (_selectedPoint != null
+                  ? MapUtils.getPanelHeight(isLandscape)
+                  : 0) +
+              16,
           right: 16,
           child: _buildFloatingMapControls(Theme.of(context)),
         ),
@@ -1010,21 +1010,19 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
     final theme = Theme.of(context);
     final isVisible = _selectedPoint != null;
 
-    final double panelHeight = isLandscape ? 140.0 : 190.0;
-
     final route = _selectedRoute;
     final String plate = _selectedPoint?.plate ?? '未知';
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      bottom: isVisible ? 0 : -(panelHeight + 40),
+      bottom: isVisible ? 0 : -(MapUtils.getPanelHeight(isLandscape) + 40),
       left: 0,
       right: 0,
       child: SafeArea(
         top: false,
         child: Container(
-          height: panelHeight,
+          height: MapUtils.getPanelHeight(isLandscape),
           margin: const EdgeInsets.all(12.0),
           decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainer,
@@ -1085,24 +1083,27 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16.0, vertical: 8.0),
                           child: Wrap(
-                            spacing: 8.0,
-                            runSpacing: 4.0,
                             children: [
-                              _buildInfoChip(
+                              MapUtils.buildInfoChip(
+                                  context: context,
                                   icon: Icons.numbers,
                                   label: "車牌：$plate",
                                   color: theme.colorScheme.primary),
-                              _buildInfoChip(
+                              MapUtils.buildInfoChip(
+                                  context: context,
                                   icon: Icons.route_outlined,
                                   label: "${route.name} (${route.id})"),
-                              _buildInfoChip(
+                              MapUtils.buildInfoChip(
+                                  context: context,
                                   icon: Icons.description_outlined,
                                   label: route.description),
-                              _buildInfoChip(
+                              MapUtils.buildInfoChip(
+                                  context: context,
                                   icon: Icons.swap_horiz,
                                   label:
                                       "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'}"),
-                              _buildInfoChip(
+                              MapUtils.buildInfoChip(
+                                context: context,
                                 icon: _selectedPoint!.dutyStatus == 0
                                     ? Icons.work_outline
                                     : Icons.work_off_outlined,
@@ -1113,7 +1114,8 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                     ? Colors.green
                                     : Colors.orange,
                               ),
-                              _buildInfoChip(
+                              MapUtils.buildInfoChip(
+                                  context: context,
                                   icon: Icons.person_pin_circle_outlined,
                                   label:
                                       "駕駛長：${Static.getDriverText(_selectedPoint!.driverId)}"),
@@ -1137,7 +1139,8 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                     );
                                   }
                                 },
-                                child: _buildInfoChip(
+                                child: MapUtils.buildInfoChip(
+                                    context: context,
                                     icon: Icons.gps_fixed,
                                     label:
                                         "${_selectedPoint!.lat}, ${_selectedPoint!.lon}"),
@@ -1163,19 +1166,6 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                 ),
         ),
       ),
-    );
-  }
-
-  Widget _buildInfoChip(
-      {required IconData icon, required String label, Color? color}) {
-    final theme = Theme.of(context);
-    return Chip(
-      avatar: Icon(icon,
-          size: 16, color: color ?? theme.colorScheme.onSurfaceVariant),
-      label: Text(label, style: theme.textTheme.labelMedium),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      visualDensity: VisualDensity.compact,
-      backgroundColor: theme.colorScheme.surfaceContainerHighest,
     );
   }
 }

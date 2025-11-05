@@ -2,8 +2,8 @@ import 'package:bus_scraper/data/bus_route.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
-import '../data/TrajectorySegment.dart';
 import '../data/bus_point.dart';
+import '../data/trajectory_segment.dart';
 import '../static.dart';
 import '../widgets/empty_state_indicator.dart';
 import 'history_osm_page.dart';

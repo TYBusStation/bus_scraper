@@ -8,7 +8,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../data/bus_point.dart';
 import '../static.dart';
-import '../utils/map_data_processor.dart';
+import '../utils/map_utils.dart';
 import '../widgets/base_map_view.dart';
 import '../widgets/point_marker.dart';
 
@@ -221,16 +221,15 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
     final List<LatLng> allPointsForBounds = [];
 
     final Map<LatLng, Color> pointColorMap = {};
-    int globalColorIndex = 0;
+    final colorCycler = ColorCycler();
 
     _pointsByPlate.forEach((plate, points) {
       if (points.isEmpty) return;
 
-      final processedData = processBusPoints(points);
+      final processedData = MapUtils.processBusPoints(points);
 
       for (final segmentPolyline in processedData.polylines) {
-        final segmentColor = BaseMapView
-            .segmentColors[globalColorIndex % BaseMapView.segmentColors.length];
+        final segmentColor = colorCycler.nextColor;
 
         allPolylines.add(
           Polyline(
@@ -243,15 +242,13 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
         for (final point in segmentPolyline.points) {
           pointColorMap[point] = segmentColor;
         }
-
-        globalColorIndex++;
       }
 
       for (final point in points) {
         final latLng = LatLng(point.lat, point.lon);
         allPointsForBounds.add(latLng);
 
-        final color = pointColorMap[latLng] ?? BaseMapView.segmentColors.first;
+        final color = pointColorMap[latLng] ?? MapUtils.segmentColors.first;
         allMarkers.add(_buildPointMarker(point, color, plate));
       }
 

@@ -2,21 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../data/TrajectorySegment.dart';
 import '../data/bus_point.dart';
+import '../data/trajectory_segment.dart';
+import '../utils/map_utils.dart';
 import '../widgets/base_map_view.dart';
 import '../widgets/point_marker.dart';
-
-class _ColorCycler {
-  int _index = 0;
-
-  Color get nextColor {
-    final color =
-        BaseMapView.segmentColors[_index % BaseMapView.segmentColors.length];
-    _index++;
-    return color;
-  }
-}
 
 class HistoryOsmPage extends StatefulWidget {
   final String plate;
@@ -51,7 +41,7 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
   void _prepareMapData() {
     final List<Polyline> allPolylines = [];
     final List<Marker> allMarkers = [];
-    final _colorCycler = _ColorCycler();
+    final colorCycler = ColorCycler();
 
     _allPointsForBounds = [
       ...widget.segments.expand((s) => s.points),
@@ -82,7 +72,7 @@ class _HistoryOsmPageState extends State<HistoryOsmPage> {
         final segment = widget.segments[i];
         if (segment.points.isEmpty) continue;
 
-        final segmentColor = _colorCycler.nextColor;
+        final segmentColor = colorCycler.nextColor;
 
         allPolylines.add(Polyline(
           points: segment.points.map((p) => LatLng(p.lat, p.lon)).toList(),

@@ -262,7 +262,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
             ExpansionTile(
-              title: const Text('動態軌跡時間'),
+              title: const Text('軌跡時長'),
               subtitle:
                   Text('顯示過去 ${Static.localStorage.liveTrackDuration} 分鐘的軌跡'),
               leading: const Icon(Icons.timeline),
@@ -275,9 +275,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     Expanded(
                       child: Slider(
                         value: Static.localStorage.liveTrackDuration.toDouble(),
-                        min: 3,
+                        min: 2,
                         max: 30,
-                        divisions: 27,
+                        divisions: 28,
                         label: '${Static.localStorage.liveTrackDuration} 分鐘',
                         onChanged: (double value) {
                           setState(() {
