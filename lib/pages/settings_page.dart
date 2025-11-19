@@ -339,45 +339,46 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 8),
               ],
             ),
-            ExpansionTile(
-              title: const Text('駕駛長備註'),
-              subtitle: Text('編輯 ${Static.city.name} 的備註'),
-              leading: const Icon(Icons.edit_note),
-              initiallyExpanded: false,
-              shape: Border.all(color: Colors.transparent),
-              tilePadding: const EdgeInsets.symmetric(horizontal: 8),
-              childrenPadding: const EdgeInsets.symmetric(horizontal: 8),
-              children: [
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _remarksController,
-                  maxLines: 10,
-                  minLines: 5,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: '駕駛長編號,備註',
-                    hintText: '12345,備註1\n67890,備註2',
-                    alignLabelWithHint: true,
+            if (Static.city.hasDriverInfo)
+              ExpansionTile(
+                title: const Text('駕駛長備註'),
+                subtitle: Text('編輯 ${Static.city.name} 的備註'),
+                leading: const Icon(Icons.edit_note),
+                initiallyExpanded: false,
+                shape: Border.all(color: Colors.transparent),
+                tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+                childrenPadding: const EdgeInsets.symmetric(horizontal: 8),
+                children: [
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _remarksController,
+                    maxLines: 10,
+                    minLines: 5,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: '駕駛長編號,備註',
+                      hintText: '12345,備註1\n67890,備註2',
+                      alignLabelWithHint: true,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton(
-                      child: const Text('格式化'),
-                      onPressed: _formatTextInController,
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      child: const Text('儲存'),
-                      onPressed: _saveRemarks,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton(
+                        child: const Text('格式化'),
+                        onPressed: _formatTextInController,
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        child: const Text('儲存'),
+                        onPressed: _saveRemarks,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
           ],
         );
       },

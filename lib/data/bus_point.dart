@@ -7,7 +7,7 @@ class BusPoint {
   @JsonKey(name: "plate")
   final String plate;
   @JsonKey(name: "driver_id")
-  final String driverId;
+  final String? driverId;
   @JsonKey(name: "route_id")
   final String routeId;
   @JsonKey(name: "go_back")
@@ -23,7 +23,7 @@ class BusPoint {
 
   BusPoint({
     required this.plate,
-    required this.driverId,
+    this.driverId,
     required this.routeId,
     required this.goBack,
     required this.lat,

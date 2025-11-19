@@ -165,20 +165,22 @@ class CarListItem extends StatelessWidget {
                 },
               ),
               const Divider(height: 1),
-              ListTile(
-                dense: true,
-                leading: const Icon(Icons.person_search_rounded),
-                title: const Text('查詢駕駛長'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DriverSearchPage(plate: car.plate),
-                    ),
-                  );
-                },
-              ),
+              if (Static.city.hasDriverInfo)
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.person_search_rounded),
+                  title: const Text('查詢駕駛長'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            DriverSearchPage(plate: car.plate),
+                      ),
+                    );
+                  },
+                ),
               ListTile(
                 dense: true,
                 leading: const Icon(Icons.route_rounded),

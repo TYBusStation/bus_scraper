@@ -24,7 +24,7 @@ abstract class Static {
   static late final String? versionNotes;
 
   static const String _primaryApiUrl = "https://myster.freeddns.org:25566";
-  static const String _fallbackApiUrl = "http://192.168.1.159:25567";
+  static const String _fallbackApiUrl = "http://192.168.1.249:25567";
 
   static final DateFormat apiTimeFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
   static final DateFormat displayTimeFormatNoSec =
@@ -145,18 +145,25 @@ abstract class Static {
     try {
       await dio.getUri(Uri.parse(apiBaseUrl));
       log("API server connection successful for ID: $initId.");
+
+      final Future<List<BusRoute>> opRoutesFuture = (city == City.taipei)
+          ? _fetchTaipeiOpRoutesFromServer()
+          : _fetchOpRoutesFromServer();
+
       final results = await Future.wait([
-        _fetchOpRoutesFromServer(),
+        opRoutesFuture,
         _fetchSpecialRoutesFromServer(),
         _fetchCarDataFromServer(),
         _fetchAnnouncementFromServer(),
         _fetchVersionInfoFromServer(),
       ], eagerError: true);
+
       if (initId != _currentInitId) {
         log("Initialization with ID: $initId is outdated. Aborting assignment.");
         return;
       }
       log("Initialization with ID: $initId is current. Proceeding with assignment.");
+
       opRouteData =
           (results[0] is List<BusRoute>) ? results[0] as List<BusRoute> : [];
       specialRouteData =
@@ -166,9 +173,11 @@ abstract class Static {
       final versionInfo = results[4] as Map<String, String?>;
       currentVersion = versionInfo['version'];
       versionNotes = versionInfo['notes'];
+
       routeData = [...opRouteData, ...specialRouteData];
       final seen = <String>{};
       routeData.retainWhere((route) => seen.add(route.id));
+
       log("Static initialization complete for ID: $initId.");
       log("Operational routes loaded: ${opRouteData.length}");
       log("Special routes loaded: ${specialRouteData.length}");
@@ -284,13 +293,81 @@ abstract class Static {
     return BusRoute.unknown;
   }
 
+  static Future<List<BusRoute>> _fetchSpecialRoutesFromServer() async {
+    final String url = "$apiBaseUrl/${city.code}/special_routes";
+    log("Fetching special routes from API: $url");
+    try {
+      final response = await dio.getUri(Uri.parse(url));
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map((r) => BusRoute.fromJson(r))
+            .toList();
+      }
+    } on DioException catch (e) {
+      log("DioError fetching special routes: ${e.message}");
+    } catch (e) {
+      log("Unexpected error fetching special routes: $e");
+    }
+    return [];
+  }
+
   static Future<RouteDetail> fetchRoutePathAndStops(String routeId) async {
     if (_routeDetailCache.containsKey(routeId)) {
       return _routeDetailCache[routeId]!;
     }
+
+    RouteDetail routeDetail;
+    if (city == City.taipei) {
+      final route = getRouteByIdSync(routeId);
+
+      if (route == BusRoute.unknown ||
+          route.nid == null ||
+          route.nid!.isEmpty) {
+        log("無法為台北路線 ID '$routeId' 找到對應的 nid，無法獲取路線詳情。");
+        return RouteDetail.unknown;
+      }
+
+      final String nidToFetch = route.nid!;
+      routeDetail = await _fetchTaipeiRoutePathAndStops(nid: nidToFetch);
+    } else {
+      routeDetail = await _fetchGraphQLRoutePathAndStops(routeId: routeId);
+    }
+
+    if (routeDetail != RouteDetail.unknown) {
+      _routeDetailCache[routeId] = routeDetail;
+    }
+    return routeDetail;
+  }
+
+  static Future<RouteDetail> _fetchTaipeiRoutePathAndStops(
+      {required String nid}) async {
+    // 增加一個檢查，避免傳入空的 nid
+    if (nid.isEmpty) {
+      log("無法獲取台北路線詳情：傳入的 NID 是空的。");
+      return RouteDetail.unknown;
+    }
+
+    final String url = "$apiBaseUrl/${city.code}/route_info/$nid";
+    log("Fetching Taipei route path and stops from new API for NID: $nid, URL: $url");
+    try {
+      final response = await dio.getUri(Uri.parse(url));
+      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+        final routeDetail = RouteDetail.fromJson(response.data);
+        return routeDetail;
+      }
+    } on DioException catch (e) {
+      log("DioError fetching Taipei path/stops for NID $nid: ${e.response?.data ?? e.message}");
+    } catch (e, stackTrace) {
+      log("Unexpected error fetching Taipei path/stops for NID $nid: $e\nStackTrace: $stackTrace");
+    }
+    return RouteDetail.unknown;
+  }
+
+  static Future<RouteDetail> _fetchGraphQLRoutePathAndStops(
+      {required String routeId}) async {
     final int? routeIdInt = int.tryParse(routeId);
     if (routeIdInt == null) return RouteDetail.unknown;
-    log("Fetching route path and stops from API for ID: $routeId");
+    log("Fetching route path and stops from GraphQL for ID: $routeId");
     try {
       final response = await dio.post(
         _graphqlUrl,
@@ -304,18 +381,21 @@ abstract class Static {
           response.data?['data']?['route'] is Map) {
         final routeDetail =
             RouteDetail.fromJson(response.data['data']['route']);
-        _routeDetailCache[routeId] = routeDetail;
         return routeDetail;
       }
     } on DioException catch (e) {
-      log("DioError fetching path/stops for ID $routeId: ${e.message}");
+      log("DioError fetching GraphQL path/stops for ID $routeId: ${e.message}");
     } catch (e) {
-      log("Unexpected error fetching path/stops for ID $routeId: $e");
+      log("Unexpected error fetching GraphQL path/stops for ID $routeId: $e");
     }
     return RouteDetail.unknown;
   }
 
   static Future<List<BusRoute>> fetchAllRoutes() async {
+    if (city == City.taipei) {
+      log("fetchAllRoutes is not supported for Taipei city.");
+      return [];
+    }
     if (allRouteData != null) {
       return allRouteData!;
     }
@@ -325,6 +405,8 @@ abstract class Static {
   }
 
   static Future<List<BusRoute>> _fetchAllRoutesFromServer() async {
+    if (city == City.taipei) return [];
+
     final String url = "$apiBaseUrl/${city.code}/all_routes";
     log("Fetching all routes from API: $url");
     try {
@@ -367,9 +449,9 @@ abstract class Static {
     return [];
   }
 
-  static Future<List<BusRoute>> _fetchSpecialRoutesFromServer() async {
-    final String url = "$apiBaseUrl/${city.code}/special_routes";
-    log("Fetching special routes from API: $url");
+  static Future<List<BusRoute>> _fetchTaipeiOpRoutesFromServer() async {
+    final String url = "$apiBaseUrl/${city.code}/op_routes";
+    log("Fetching Taipei operational routes from API: $url");
     try {
       final response = await dio.getUri(Uri.parse(url));
       if (response.statusCode == 200 && response.data is List) {
@@ -378,9 +460,9 @@ abstract class Static {
             .toList();
       }
     } on DioException catch (e) {
-      log("DioError fetching special routes: ${e.message}");
-    } catch (e) {
-      log("Unexpected error fetching special routes: $e");
+      log("DioError fetching Taipei operational routes: ${e.message}");
+    } catch (e, stackTrace) {
+      log("Unexpected error fetching Taipei operational routes: $e\nStackTrace: $stackTrace");
     }
     return [];
   }
@@ -562,13 +644,62 @@ abstract class Static {
     return localStorage.getRemarksForCity(city)[driverId];
   }
 
-  static String getDriverText(String driverId) {
-    if (driverId == "0") {
+  static String getDriverText(String? driverId) {
+    if (driverId == null || driverId == "0" || driverId.isEmpty) {
       return "未知駕駛長";
     }
     return hasDriverRemark(driverId)
         ? "$driverId(${getDriverRemark(driverId)})"
         : driverId;
+  }
+
+  static String getBusDirectionName(BusRoute route, int goBack) {
+    if (route.destination.isEmpty && route.departure.isEmpty) {
+      return '未知';
+    }
+
+    if (Static.city == City.taipei) {
+      switch (goBack) {
+        case 0:
+          return route.destination;
+        case 1:
+          return route.departure;
+        default:
+          return '未知';
+      }
+    } else {
+      switch (goBack) {
+        case 1:
+          return route.destination;
+        case 2:
+          return route.departure;
+        default:
+          return '未知';
+      }
+    }
+  }
+
+  static ({String text, Color color}) getDutyStatusInfo(int dutyStatus) {
+    if (Static.city == City.taipei) {
+      switch (dutyStatus) {
+        case 1:
+          return (text: "營運", color: Colors.green.shade700);
+        case 2:
+          return (text: "非營運", color: Colors.orange.shade700);
+        default:
+          return (text: "未知", color: Colors.grey.shade600);
+      }
+    } else {
+      // 桃園、台中的邏輯
+      switch (dutyStatus) {
+        case 0:
+          return (text: "營運", color: Colors.green.shade700);
+        case 1:
+          return (text: "非營運", color: Colors.orange.shade700);
+        default:
+          return (text: "未知", color: Colors.grey.shade600);
+      }
+    }
   }
 
   static Future<List<VehicleDrivingDates>> findVehiclesOnRoute({

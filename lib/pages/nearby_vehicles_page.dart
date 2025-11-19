@@ -1055,11 +1055,21 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                               onPressed: route == null
                                   ? null
                                   : () async {
+                                      final direction =
+                                          Static.getBusDirectionName(
+                                              route, _selectedPoint!.goBack);
+                                      final dutyStatusInfo =
+                                          Static.getDutyStatusInfo(
+                                              _selectedPoint!.dutyStatus);
+                                      String driverInfo = "";
+                                      if (Static.city.hasDriverInfo) {
+                                        driverInfo =
+                                            " | 駕駛長：${Static.getDriverText(_selectedPoint!.driverId)}";
+                                      }
                                       final mapTitle = "$plate | "
                                           "${route.name} | ${route.description} "
-                                          "| 往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'} "
-                                          "| ${_selectedPoint!.dutyStatus == 0 ? "營運" : "非營運"} "
-                                          "| 駕駛長：${Static.getDriverText(_selectedPoint!.driverId)} "
+                                          "| 往 $direction "
+                                          "| ${dutyStatusInfo.text}$driverInfo "
                                           "| ${Static.displayTimeFormat.format(_selectedPoint!.dataTime)}";
                                       await launchUrl(Uri.parse(
                                           "https://www.google.com/maps?q=${_selectedPoint!.lat}"
@@ -1101,24 +1111,25 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                   context: context,
                                   icon: Icons.swap_horiz,
                                   label:
-                                      "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (_selectedPoint!.goBack == 1 ? route.destination : route.departure) : '未知'}"),
-                              MapUtils.buildInfoChip(
-                                context: context,
-                                icon: _selectedPoint!.dutyStatus == 0
-                                    ? Icons.work_outline
-                                    : Icons.work_off_outlined,
-                                label: _selectedPoint!.dutyStatus == 0
-                                    ? "營運"
-                                    : "非營運",
-                                color: _selectedPoint!.dutyStatus == 0
-                                    ? Colors.green
-                                    : Colors.orange,
-                              ),
-                              MapUtils.buildInfoChip(
+                                      "往 ${Static.getBusDirectionName(route, _selectedPoint!.goBack)}"),
+                              () {
+                                final statusInfo = Static.getDutyStatusInfo(
+                                    _selectedPoint!.dutyStatus);
+                                return MapUtils.buildInfoChip(
                                   context: context,
-                                  icon: Icons.person_pin_circle_outlined,
-                                  label:
-                                      "駕駛長：${Static.getDriverText(_selectedPoint!.driverId)}"),
+                                  icon: statusInfo.text == "營運"
+                                      ? Icons.work_outline
+                                      : Icons.work_off_outlined,
+                                  label: statusInfo.text,
+                                  color: statusInfo.color,
+                                );
+                              }(),
+                              if (Static.city.hasDriverInfo)
+                                MapUtils.buildInfoChip(
+                                    context: context,
+                                    icon: Icons.person_pin_circle_outlined,
+                                    label:
+                                        "駕駛長：${Static.getDriverText(_selectedPoint!.driverId)}"),
                               InkWell(
                                 borderRadius: BorderRadius.circular(16.0),
                                 onTap: () {

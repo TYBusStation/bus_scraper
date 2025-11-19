@@ -8,7 +8,7 @@ class TrajectorySegment {
   final String routeId;
   final int goBack;
   final int dutyStatus;
-  final String driverId;
+  final String? driverId;
 
   TrajectorySegment({required this.points})
       : startTime = points.first.dataTime,

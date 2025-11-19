@@ -59,6 +59,14 @@ enum Type {
   DRTS("計程車"),
   @JsonValue("KLRT")
   KLRT("輕軌列車"),
+  @JsonValue("0")
+  NORMAL("直樑"),
+  @JsonValue("1")
+  LF("低底盤"),
+  @JsonValue("2")
+  REHABUS("大復康"),
+  @JsonValue("3")
+  DOG("狗狗友善專車"),
   unknown("未知類型");
 
   final String chinese;

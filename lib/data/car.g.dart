@@ -33,5 +33,9 @@ const _$TypeEnumMap = {
   Type.GEN_M_L_BUS: 'genmlbus',
   Type.DRTS: 'DRTS',
   Type.KLRT: 'KLRT',
+  Type.NORMAL: '0',
+  Type.LF: '1',
+  Type.REHABUS: '2',
+  Type.DOG: '3',
   Type.unknown: 'unknown',
 };

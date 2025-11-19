@@ -6,7 +6,7 @@ import '../static.dart';
 import '../widgets/car_list_item.dart';
 import '../widgets/empty_state_indicator.dart';
 import '../widgets/favorite_provider.dart';
-import 'multi_history_osm_page.dart'; // 確認引用正確的頁面
+import 'multi_history_osm_page.dart';
 import 'multi_live_osm_page.dart';
 
 class FavoritesPage extends StatelessWidget {

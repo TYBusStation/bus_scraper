@@ -1,7 +1,7 @@
-import 'package:bus_scraper/data/bus_route.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../data/bus_route.dart';
 import '../static.dart';
 import '../storage/city.dart';
 import '../widgets/empty_state_indicator.dart';
@@ -19,6 +19,7 @@ class _RoutePageState extends State<RoutePage> {
   bool _showAllRoutes = false;
   bool _isLoading = false;
   late List<BusRoute> _displayedRoutes;
+  final bool _canShowAllRoutes = Static.city != City.taipei;
 
   @override
   void initState() {
@@ -31,22 +32,83 @@ class _RoutePageState extends State<RoutePage> {
 
     setState(() {
       _showAllRoutes = value;
-      _isLoading = true;
     });
 
     if (value) {
-      final allRoutes = await Static.fetchAllRoutes();
-      if (mounted) {
+      if (Static.allRouteData != null) {
         setState(() {
-          _displayedRoutes = allRoutes;
-          _isLoading = false;
+          _displayedRoutes = Static.allRouteData!;
         });
+      } else {
+        setState(() => _isLoading = true);
+        final allRoutes = await Static.fetchAllRoutes();
+        if (mounted) {
+          setState(() {
+            _displayedRoutes = allRoutes;
+            _isLoading = false;
+          });
+        }
       }
     } else {
       setState(() {
         _displayedRoutes = Static.routeData;
-        _isLoading = false;
       });
+    }
+  }
+
+  void _onDynamicWebsitePressed(BuildContext context, BusRoute route) async {
+    if (Static.city == City.taipei) {
+      final nid = route.nid;
+      final pnid = route.pnid;
+
+      final bool hasNid = nid != null && nid.isNotEmpty;
+      final bool hasPnid = pnid != null && pnid.isNotEmpty;
+      final bool areDifferent = hasNid && hasPnid && nid != pnid;
+
+      if (areDifferent) {
+        showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('選擇要開啟的路線網頁'),
+            content: const Text('選擇開啟子路線或主路線網頁'),
+            actions: [
+              TextButton(
+                child: Text("子路線 ($nid)"),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _launchTaipeiUrl(nid);
+                },
+              ),
+              TextButton(
+                child: Text('主路線 ($pnid)'),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _launchTaipeiUrl(pnid);
+                },
+              ),
+            ],
+          ),
+        );
+      } else if (hasNid) {
+        _launchTaipeiUrl(nid);
+      } else if (hasPnid) {
+        _launchTaipeiUrl(pnid);
+      }
+    } else {
+      final url = Uri.parse(Static.city != City.taichung
+          ? "${Static.city.url}/driving-map/${route.id}"
+          : "https://tybusstation.github.io/taichung_bus/");
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url);
+      }
+    }
+  }
+
+  void _launchTaipeiUrl(String routeId) async {
+    final url = Uri.parse(
+        'https://ebus.gov.taipei/Route/StopsOfRoute?routeid=$routeId');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
     }
   }
 
@@ -56,7 +118,7 @@ class _RoutePageState extends State<RoutePage> {
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Column(
         children: [
-          _buildControls(context),
+          if (_canShowAllRoutes) _buildControls(context),
           Expanded(child: _buildContent(context)),
         ],
       ),
@@ -186,14 +248,7 @@ class _RoutePageState extends State<RoutePage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: () async {
-                        final url = Uri.parse(Static.city != City.taichung
-                            ? "${Static.city.url}/driving-map/${route.id}"
-                            : "https://tybusstation.github.io/taichung_bus/");
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url);
-                        }
-                      },
+                      onPressed: () => _onDynamicWebsitePressed(context, route),
                       icon: const Icon(Icons.map_outlined, size: 16),
                       label: const Text('公車動態網'),
                       style: OutlinedButton.styleFrom(

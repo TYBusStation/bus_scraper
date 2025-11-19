@@ -1,3 +1,4 @@
+import 'package:bus_scraper/static.dart';
 import 'package:flutter/material.dart';
 
 import 'cars_page.dart';
@@ -18,9 +19,8 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int selectedIndex = 0;
-  Map<String, String>? _updateNotes;
 
-  final List<NavigationDestination> destinations = const [
+  final List<NavigationDestination> _allDestinations = const [
     NavigationDestination(
       icon: Icon(Icons.info_outline),
       selectedIcon: Icon(Icons.info),
@@ -63,37 +63,67 @@ class _MainPageState extends State<MainPage> {
     ),
   ];
 
+  late List<NavigationDestination> _destinations;
+  late List<Widget Function()> _pageBuilders;
+  late List<String> _appBarTitles;
+
   @override
   void initState() {
     super.initState();
+    _buildDynamicDestinations();
   }
 
-  Widget _buildPageContent(int index) {
-    return switch (index) {
-      0 => const InfoPage(),
-      1 => const RoutePage(),
-      2 => const CarsPage(),
-      3 => const FavoritesPage(),
-      4 => const DriverPlatesPage(),
-      5 => const CompanyPage(),
-      6 => const NearbyVehiclesPage(),
-      7 => const SettingsPage(),
-      _ => throw UnsupportedError('Invalid index: $index'),
-    };
+  void _buildDynamicDestinations() {
+    final List<NavigationDestination> destinations = [];
+    final List<Widget Function()> pageBuilders = [];
+    final List<String> appBarTitles = [];
+
+    destinations.add(_allDestinations[0]);
+    pageBuilders.add(() => const InfoPage());
+    appBarTitles.add("桃園公車站動態追蹤");
+
+    destinations.add(_allDestinations[1]);
+    pageBuilders.add(() => const RoutePage());
+    appBarTitles.add("路線");
+
+    destinations.add(_allDestinations[2]);
+    pageBuilders.add(() => const CarsPage());
+    appBarTitles.add("車輛");
+
+    destinations.add(_allDestinations[3]);
+    pageBuilders.add(() => const FavoritesPage());
+    appBarTitles.add("收藏車輛");
+
+    if (Static.city.hasDriverInfo) {
+      destinations.add(_allDestinations[4]);
+      pageBuilders.add(() => const DriverPlatesPage());
+      appBarTitles.add("駕駛長編號反查");
+    }
+
+    destinations.add(_allDestinations[5]);
+    pageBuilders.add(() => const CompanyPage());
+    appBarTitles.add("監理資料");
+
+    destinations.add(_allDestinations[6]);
+    pageBuilders.add(() => const NearbyVehiclesPage());
+    appBarTitles.add("附近車輛");
+
+    destinations.add(_allDestinations[7]);
+    pageBuilders.add(() => const SettingsPage());
+    appBarTitles.add("設定");
+
+    _destinations = destinations;
+    _pageBuilders = pageBuilders;
+    _appBarTitles = appBarTitles;
   }
 
-  String _getAppBarTitle(int index) {
-    return switch (index) {
-      0 => "桃園公車站動態追蹤",
-      1 => "路線",
-      2 => "車輛",
-      3 => "收藏車輛",
-      4 => "駕駛長編號反查",
-      5 => "監理資料",
-      6 => "附近車輛",
-      7 => "設定",
-      _ => "桃園公車站動態追蹤"
-    };
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _buildDynamicDestinations();
+    if (selectedIndex >= _destinations.length) {
+      selectedIndex = 0;
+    }
   }
 
   @override
@@ -104,18 +134,18 @@ class _MainPageState extends State<MainPage> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(_getAppBarTitle(selectedIndex)),
+            title: Text(_appBarTitles[selectedIndex]),
           ),
           body: isLandscape
               ? _buildLandscapeLayout()
-              : _buildPageContent(selectedIndex),
+              : _pageBuilders[selectedIndex](),
           bottomNavigationBar: isLandscape
               ? null
               : NavigationBar(
                   onDestinationSelected: (index) =>
                       setState(() => selectedIndex = index),
                   selectedIndex: selectedIndex,
-                  destinations: destinations,
+                  destinations: _destinations,
                 ),
         );
       },
@@ -133,7 +163,7 @@ class _MainPageState extends State<MainPage> {
             });
           },
           labelType: NavigationRailLabelType.all,
-          destinations: destinations.map((dest) {
+          destinations: _destinations.map((dest) {
             return NavigationRailDestination(
               icon: dest.icon,
               selectedIcon: dest.selectedIcon,
@@ -143,7 +173,7 @@ class _MainPageState extends State<MainPage> {
         ),
         const VerticalDivider(thickness: 1, width: 1),
         Expanded(
-          child: _buildPageContent(selectedIndex),
+          child: _pageBuilders[selectedIndex](),
         ),
       ],
     );

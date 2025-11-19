@@ -94,10 +94,13 @@ class _HistoryPageState extends State<HistoryPage> {
       final timeDifference =
           currentPoint.dataTime.difference(previousPoint.dataTime);
 
+      bool driverChanged = Static.city.hasDriverInfo &&
+          currentPoint.driverId != previousPoint.driverId;
+
       bool isSegmentEnd = (currentPoint.routeId != previousPoint.routeId ||
           currentPoint.goBack != previousPoint.goBack ||
           currentPoint.dutyStatus != previousPoint.dutyStatus ||
-          currentPoint.driverId != previousPoint.driverId ||
+          driverChanged ||
           timeDifference.inMinutes >= 10);
 
       if (isSegmentEnd) {
@@ -160,13 +163,21 @@ class _HistoryPageState extends State<HistoryPage> {
             .toList();
         final List<BusRoute> fetchedRoutes = await Future.wait(fetchFutures);
 
+        final List<String> availableDrivers = Static.city.hasDriverInfo
+            ? segments
+                .map((s) => s.driverId)
+                .whereType<String>()
+                .toSet()
+                .toList()
+            : [];
+        availableDrivers.sort();
+
         setState(() {
           _allHistoryData = allHistoryData;
           _segments = segments;
           _availableRoutes = fetchedRoutes;
           _availableRoutes.sort((a, b) => Static.compareRoutes(a.name, b.name));
-          _availableDrivers = segments.map((s) => s.driverId).toSet().toList();
-          _availableDrivers.sort();
+          _availableDrivers = availableDrivers;
           _selectedRouteIds = routesToKeep;
           _selectedDriverIds = driversToKeep;
           _applyFilters();
@@ -211,7 +222,8 @@ class _HistoryPageState extends State<HistoryPage> {
       _filteredSegments = _segments.where((segment) {
         final routeMatch = _selectedRouteIds.isEmpty ||
             _selectedRouteIds.contains(segment.routeId);
-        final driverMatch = _selectedDriverIds.isEmpty ||
+        final driverMatch = !Static.city.hasDriverInfo ||
+            _selectedDriverIds.isEmpty ||
             _selectedDriverIds.contains(segment.driverId);
         return routeMatch && driverMatch;
       }).toList();
@@ -391,24 +403,26 @@ class _HistoryPageState extends State<HistoryPage> {
             },
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildMultiSelectFilterChip(
-            icon: Icons.person_pin_circle_outlined,
-            label: '駕駛長',
-            allOptions: {
-              for (var driverId in _availableDrivers)
-                driverId: Static.getDriverText(driverId)
-            },
-            selectedOptions: _selectedDriverIds,
-            onSelectionChanged: (newSelection) {
-              setState(() {
-                _selectedDriverIds = newSelection;
-                _applyFilters();
-              });
-            },
+        if (Static.city.hasDriverInfo) ...[
+          const SizedBox(width: 8),
+          Expanded(
+            child: _buildMultiSelectFilterChip(
+              icon: Icons.person_pin_circle_outlined,
+              label: '駕駛長',
+              allOptions: {
+                for (var driverId in _availableDrivers)
+                  driverId: Static.getDriverText(driverId)
+              },
+              selectedOptions: _selectedDriverIds,
+              onSelectionChanged: (newSelection) {
+                setState(() {
+                  _selectedDriverIds = newSelection;
+                  _applyFilters();
+                });
+              },
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -604,10 +618,7 @@ class _HistoryPageState extends State<HistoryPage> {
     durationStr += '${segment.duration.inSeconds.remainder(60)}秒';
 
     final String driverText = Static.getDriverText(segment.driverId);
-    final String dutyText = segment.dutyStatus == 0 ? "營運" : "非營運";
-    final Color dutyColor = segment.dutyStatus == 0
-        ? Colors.green.shade700
-        : Colors.orange.shade700;
+    final dutyStatusInfo = Static.getDutyStatusInfo(segment.dutyStatus);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4.0),
@@ -637,7 +648,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   avatar: Icon(Icons.swap_horiz,
                       size: 16, color: theme.colorScheme.primary),
                   label: Text(
-                      "往 ${route.destination.isNotEmpty && route.departure.isNotEmpty ? (segment.goBack == 1 ? route.destination : route.departure) : '未知'}",
+                      "往 ${Static.getBusDirectionName(route, segment.goBack)}",
                       style: theme.textTheme.labelSmall),
                   backgroundColor:
                       theme.colorScheme.primaryContainer.withOpacity(0.4),
@@ -652,15 +663,16 @@ class _HistoryPageState extends State<HistoryPage> {
                 Static.displayTimeFormat.format(segment.endTime)),
             _buildSegmentDetailRow(Icons.scatter_plot_outlined, "軌跡點數",
                 "${segment.points.length} 點"),
+            if (Static.city.hasDriverInfo)
+              _buildSegmentDetailRow(
+                  Icons.person_pin_circle_outlined, "駕駛長", driverText),
             _buildSegmentDetailRow(
-                Icons.person_pin_circle_outlined, "駕駛長", driverText),
-            _buildSegmentDetailRow(
-                segment.dutyStatus == 0
+                dutyStatusInfo.text == "營運"
                     ? Icons.work_outline
                     : Icons.work_off_outlined,
                 "狀態",
-                dutyText,
-                valueColor: dutyColor),
+                dutyStatusInfo.text,
+                valueColor: dutyStatusInfo.color),
             const Divider(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,

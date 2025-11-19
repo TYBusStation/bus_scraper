@@ -6,6 +6,8 @@ part 'bus_route.g.dart';
 class BusRoute {
   static final unknown = BusRoute(
     id: "未知",
+    nid: "未知",
+    pnid: "未知",
     name: '未知',
     departure: "未知",
     destination: "未知",
@@ -14,6 +16,10 @@ class BusRoute {
 
   @JsonKey(name: "id")
   final String id;
+  @JsonKey(name: "nid")
+  final String? nid;
+  @JsonKey(name: "pnid")
+  final String? pnid;
   @JsonKey(name: "name")
   final String name;
   @JsonKey(name: "description")
@@ -25,6 +31,8 @@ class BusRoute {
 
   BusRoute({
     required this.id,
+    this.nid,
+    this.pnid,
     required this.name,
     required this.description,
     required this.departure,

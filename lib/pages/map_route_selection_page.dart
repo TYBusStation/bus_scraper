@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/bus_route.dart';
 import '../static.dart';
+import '../storage/city.dart'; // 導入 City enum 以便進行比較
 import '../widgets/searchable_list.dart';
 
 class RouteDirectionSelection {
@@ -101,26 +102,28 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('顯示所有路線', style: textTheme.bodyMedium),
-                const SizedBox(width: 4),
-                Tooltip(
-                  message: _isLoading ? '正在載入所有路線...' : '',
-                  child: Transform.scale(
-                    scale: 0.8,
-                    child: Switch(
-                      value: _showAllRoutes,
-                      onChanged: _isLoading ? null : _onSwitchChanged,
+          // --- 核心修改：只有當城市不是台北時，才顯示這個區塊 ---
+          if (Static.city != City.taipei)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('顯示所有路線', style: textTheme.bodyMedium),
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message: _isLoading ? '正在載入所有路線...' : '',
+                    child: Transform.scale(
+                      scale: 0.8,
+                      child: Switch(
+                        value: _showAllRoutes,
+                        onChanged: _isLoading ? null : _onSwitchChanged,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())

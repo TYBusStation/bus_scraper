@@ -8,6 +8,8 @@ part of 'bus_route.dart';
 
 BusRoute _$BusRouteFromJson(Map<String, dynamic> json) => BusRoute(
       id: json['id'] as String,
+      nid: json['nid'] as String?,
+      pnid: json['pnid'] as String?,
       name: json['name'] as String,
       description: json['description'] as String,
       departure: json['departure'] as String,
@@ -16,6 +18,8 @@ BusRoute _$BusRouteFromJson(Map<String, dynamic> json) => BusRoute(
 
 Map<String, dynamic> _$BusRouteToJson(BusRoute instance) => <String, dynamic>{
       'id': instance.id,
+      'nid': instance.nid,
+      'pnid': instance.pnid,
       'name': instance.name,
       'description': instance.description,
       'departure': instance.departure,
