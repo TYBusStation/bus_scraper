@@ -1,8 +1,9 @@
+import 'package:bus_scraper/utils/api_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/trajectory_segment.dart';
-import '../static.dart';
+import '../utils/formatter_utils.dart';
 import 'history_osm_page.dart';
 
 class SegmentDetailsPage extends StatelessWidget {
@@ -14,7 +15,7 @@ class SegmentDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final route = Static.getRouteByIdSync(segment.routeId);
+    final route = ApiUtils.getRouteByIdSync(segment.routeId);
 
     return Scaffold(
       appBar: AppBar(
@@ -38,7 +39,8 @@ class SegmentDetailsPage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        Static.displayTimeFormat.format(dataPoint.dataTime),
+                        FormatterUtils.displayTimeFormat
+                            .format(dataPoint.dataTime),
                         style: Theme.of(context)
                             .textTheme
                             .titleSmall
@@ -73,7 +75,7 @@ class SegmentDetailsPage extends StatelessWidget {
                             color: Colors.blueAccent,
                             tooltip: '在 Google Map 上查看',
                             onPressed: () async => await launchUrl(Uri.parse(
-                                "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${Uri.encodeComponent('${route.name} | ${route.description} | 往 ${dataPoint.goBack == 1 ? route.destination : route.departure} | ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 駕駛長：${Static.getDriverText(dataPoint.driverId)} | ${Static.displayTimeFormat.format(dataPoint.dataTime)}')} )")),
+                                "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${Uri.encodeComponent('${route.name} | ${route.description} | 往 ${dataPoint.goBack == 1 ? route.destination : route.departure} | ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 駕駛長：${FormatterUtils.getDriverText(dataPoint.driverId)} | ${FormatterUtils.displayTimeFormat.format(dataPoint.dataTime)}')} )")),
                           ),
                         ],
                       )
@@ -114,7 +116,7 @@ class SegmentDetailsPage extends StatelessWidget {
                         context,
                         icon: Icons.person_pin_circle_outlined,
                         label:
-                            "駕駛長：${Static.getDriverText(dataPoint.driverId)}",
+                            "駕駛長：${FormatterUtils.getDriverText(dataPoint.driverId)}",
                       ),
                       _buildInfoChip(
                         context,

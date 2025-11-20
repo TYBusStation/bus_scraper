@@ -7,7 +7,8 @@ import 'package:latlong2/latlong.dart';
 import '../data/bus_point.dart';
 import '../data/car.dart';
 import '../data/trajectory_segment.dart';
-import '../static.dart';
+import '../utils/formatter_utils.dart';
+import '../utils/static.dart';
 import '../widgets/base_map_view.dart';
 import '../widgets/point_marker.dart';
 
@@ -52,8 +53,9 @@ class _MultiHistoryOsmPageState extends State<MultiHistoryOsmPage> {
         final DateTime startTime = endTime
             .subtract(Duration(minutes: Static.localStorage.liveTrackDuration));
 
-        final formattedStartTime = Static.apiTimeFormat.format(startTime);
-        final formattedEndTime = Static.apiTimeFormat.format(endTime);
+        final formattedStartTime =
+            FormatterUtils.apiTimeFormat.format(startTime);
+        final formattedEndTime = FormatterUtils.apiTimeFormat.format(endTime);
 
         final url = Uri.parse(
             "${Static.apiBaseUrl}/${Static.city.code}/bus_data/${car.plate}?start_time=$formattedStartTime&end_time=$formattedEndTime");

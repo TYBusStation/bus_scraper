@@ -1,8 +1,10 @@
+import 'package:bus_scraper/utils/api_utils.dart';
 import 'package:flutter/material.dart';
 
 import '../data/bus_route.dart';
-import '../static.dart';
-import '../storage/city.dart'; // 導入 City enum 以便進行比較
+import '../storage/city.dart';
+import '../utils/formatter_utils.dart';
+import '../utils/static.dart';
 import '../widgets/searchable_list.dart';
 
 class RouteDirectionSelection {
@@ -59,7 +61,7 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
         });
       } else {
         setState(() => _isLoading = true);
-        final allRoutes = await Static.fetchAllRoutes();
+        final allRoutes = await ApiUtils.fetchAllRoutes();
         if (mounted) {
           setState(() {
             _displayedRoutes = allRoutes;
@@ -139,7 +141,7 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
                                 .toUpperCase()
                                 .contains(token)),
                     sortCallback: (a, b) =>
-                        Static.compareRoutes(a.name, b.name),
+                        FormatterUtils.compareRoutes(a.name, b.name),
                     itemBuilder: (context, route) {
                       final selection =
                           _selections[route.id] ?? RouteDirectionSelection();

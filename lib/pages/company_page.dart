@@ -2,9 +2,10 @@ import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../data/company.dart';
-import '../static.dart';
+import '../utils/static.dart';
 import '../widgets/theme_provider.dart';
 
 class SelectionDialog<T> extends StatefulWidget {
@@ -639,6 +640,25 @@ class _CompanyPageState extends State<CompanyPage> {
     }
   }
 
+  Future<void> _openMvdisWebsite() async {
+    if (_selectedCompany == null) return;
+    final seq = _selectedCompany!.code;
+    final url = Uri.parse(
+        'https://www.mvdis.gov.tw/m3-emv-mk3/freeway/query?method=queryCarDetail&seq=$seq');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('無法開啟監理服務網: $url'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildSelectionButton<T>({
     required BuildContext context,
     required ThemeData themeData,
@@ -1068,6 +1088,14 @@ class _CompanyPageState extends State<CompanyPage> {
                     isLoading: _isLoadingCompanies,
                     loadingText: "載入公司...",
                     itemToString: (Company c) => "${c.name} (${c.code})",
+                  ),
+                  // --- 新增監理網按鈕 ---
+                  IconButton(
+                    icon: const Icon(Icons.open_in_new),
+                    tooltip: '開啟監理服務網',
+                    color: themeData.colorScheme.primary,
+                    onPressed:
+                        _selectedCompany == null ? null : _openMvdisWebsite,
                   ),
                   const SizedBox(width: 4),
                   _buildSelectionButton<String>(

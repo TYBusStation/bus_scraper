@@ -1,8 +1,11 @@
+import 'package:bus_scraper/utils/api_utils.dart';
+import 'package:bus_scraper/widgets/ui_utils.dart';
 import 'package:flutter/material.dart';
 
 import '../data/bus_route.dart';
 import '../data/vehicle_history.dart';
-import '../static.dart';
+import '../utils/formatter_utils.dart';
+import '../utils/static.dart';
 import '../widgets/car_list_item.dart';
 import '../widgets/empty_state_indicator.dart';
 import '../widgets/searchable_list.dart';
@@ -52,7 +55,7 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
       _needsRefresh = false;
       final finalEndDate =
           DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
-      _searchFuture = Static.findVehiclesOnRoute(
+      _searchFuture = ApiUtils.findVehiclesOnRoute(
         routeId: widget.route.id,
         startDate: _startDate,
         endDate: finalEndDate,
@@ -97,7 +100,7 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
                   child: _buildDatePicker(
                     label: "起始",
                     value: _startDate,
-                    onPressed: () => Static.selectDateTime(
+                    onPressed: () => UiUtils.selectDateTime(
                       context: context,
                       isStart: true,
                       currentRange:
@@ -120,7 +123,7 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
                   child: _buildDatePicker(
                     label: "結束",
                     value: _endDate,
-                    onPressed: () => Static.selectDateTime(
+                    onPressed: () => UiUtils.selectDateTime(
                       context: context,
                       isStart: false,
                       currentRange:
@@ -159,7 +162,7 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
       required DateTime value,
       required VoidCallback onPressed}) {
     final theme = Theme.of(context);
-    final displayText = Static.displayDateFormat.format(value);
+    final displayText = FormatterUtils.displayDateFormat.format(value);
 
     return InkWell(
       onTap: onPressed,

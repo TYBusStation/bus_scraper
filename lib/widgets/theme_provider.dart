@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../static.dart';
 import '../storage/app_theme.dart';
+import '../utils/static.dart';
 
 class ThemeProvider extends StatefulWidget {
   final Widget Function(BuildContext context, ThemeData themeData) builder;

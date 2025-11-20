@@ -53,5 +53,5 @@ enum City {
     this.exPos,
   );
 
-  static const City defaultCity = taipei;
+  static const City defaultCity = taoyuan;
 }

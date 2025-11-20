@@ -5,7 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../static.dart';
+import '../utils/static.dart';
 import '../widgets/theme_provider.dart';
 
 const String apkDownloadUrl =

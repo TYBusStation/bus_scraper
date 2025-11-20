@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
-import '../static.dart';
+import '../utils/static.dart';
 
 class FavoritesNotifier extends ChangeNotifier implements ReassembleHandler {
   static const String defaultGroupName = '最愛';

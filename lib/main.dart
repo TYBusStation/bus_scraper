@@ -1,6 +1,6 @@
 import 'package:bus_scraper/pages/info_page.dart';
 import 'package:bus_scraper/pages/main_page.dart';
-import 'package:bus_scraper/static.dart';
+import 'package:bus_scraper/utils/static.dart';
 import 'package:bus_scraper/utils/version_check_service.dart';
 import 'package:bus_scraper/utils/web_interop.dart'
     if (dart.library.html) 'package:bus_scraper/utils/web_interop_web.dart'

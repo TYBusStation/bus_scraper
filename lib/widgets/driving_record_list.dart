@@ -2,7 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../data/car.dart';
-import '../static.dart';
+import '../utils/formatter_utils.dart';
+import '../utils/static.dart';
 import 'car_list_item.dart';
 import 'empty_state_indicator.dart';
 import 'searchable_list.dart';
@@ -91,8 +92,8 @@ class _DrivingRecordListState extends State<DrivingRecordList> {
           .add(const Duration(days: 1));
       final queryParameters = {
         paramName: widget.queryValue,
-        'start_time': Static.apiTimeFormat.format(apiStartTime),
-        'end_time': Static.apiTimeFormat.format(apiEndTime),
+        'start_time': FormatterUtils.apiTimeFormat.format(apiStartTime),
+        'end_time': FormatterUtils.apiTimeFormat.format(apiEndTime),
       };
       final response = await Static.dio.get(
         '${Static.apiBaseUrl}$endpoint',

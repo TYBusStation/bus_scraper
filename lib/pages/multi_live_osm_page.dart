@@ -7,8 +7,9 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../data/bus_point.dart';
-import '../static.dart';
+import '../utils/formatter_utils.dart';
 import '../utils/map_utils.dart';
+import '../utils/static.dart';
 import '../widgets/base_map_view.dart';
 import '../widgets/point_marker.dart';
 
@@ -127,8 +128,9 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
           startTime = lastPointTime.add(const Duration(milliseconds: 1));
         }
 
-        final formattedStartTime = Static.apiTimeFormat.format(startTime);
-        final formattedEndTime = Static.apiTimeFormat.format(endTime);
+        final formattedStartTime =
+            FormatterUtils.apiTimeFormat.format(startTime);
+        final formattedEndTime = FormatterUtils.apiTimeFormat.format(endTime);
 
         final url = Uri.parse(
             "${Static.apiBaseUrl}/${Static.city.code}/bus_data/$plate?start_time=$formattedStartTime&end_time=$formattedEndTime");

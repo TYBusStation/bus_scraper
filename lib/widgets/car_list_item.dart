@@ -1,3 +1,4 @@
+import 'package:bus_scraper/utils/api_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
@@ -8,8 +9,9 @@ import '../pages/history_osm_page.dart';
 import '../pages/history_page.dart';
 import '../pages/live_osm_page.dart';
 import '../pages/route_search_page.dart';
-import '../static.dart';
+import '../utils/formatter_utils.dart';
 import '../utils/map_utils.dart';
+import '../utils/static.dart';
 import 'favorite_button.dart';
 
 class CarListItem extends StatelessWidget {
@@ -84,7 +86,7 @@ class CarListItem extends StatelessWidget {
 
                   try {
                     final List<Car> updatedCars =
-                        await Static.fetchCarsByPlates([car.plate]);
+                        await ApiUtils.fetchCarsByPlates([car.plate]);
 
                     if (updatedCars.isEmpty) {
                       if (context.mounted) Navigator.of(context).pop();
@@ -107,9 +109,9 @@ class CarListItem extends StatelessWidget {
                     final DateTime startTime = endTime.subtract(Duration(
                         minutes: Static.localStorage.liveTrackDuration));
                     final String formattedStartTime =
-                        Static.apiTimeFormat.format(startTime);
+                        FormatterUtils.apiTimeFormat.format(startTime);
                     final String formattedEndTime =
-                        Static.apiTimeFormat.format(endTime);
+                        FormatterUtils.apiTimeFormat.format(endTime);
 
                     final url = Uri.parse(
                         "${Static.apiBaseUrl}/${Static.city.code}/bus_data/${car.plate}?start_time=$formattedStartTime&end_time=$formattedEndTime");
@@ -252,7 +254,7 @@ class CarListItem extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          "最後上線：${Static.displayTimeFormat.format(car.lastSeen)}",
+                          "最後上線：${FormatterUtils.displayTimeFormat.format(car.lastSeen)}",
                           style: textTheme.bodySmall,
                         ),
                       ],

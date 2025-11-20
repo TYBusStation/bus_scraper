@@ -1,7 +1,7 @@
 import 'dart:ui';
 
-import 'package:bus_scraper/static.dart';
 import 'package:bus_scraper/storage/city.dart';
+import 'package:bus_scraper/utils/static.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
@@ -307,34 +307,52 @@ class _SettingsPageState extends State<SettingsPage> {
               tilePadding: const EdgeInsets.symmetric(horizontal: 8),
               childrenPadding: const EdgeInsets.symmetric(horizontal: 8),
               children: [
-                SegmentedButton<City>(
-                  segments: City.values.map((city) {
-                    return ButtonSegment<City>(
-                      value: city,
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  alignment: WrapAlignment.center,
+                  children: City.values.map((city) {
+                    final bool isSelected = Static.city == city;
+                    return ChoiceChip(
                       label: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(
-                            width: 48,
-                            height: 48,
+                            width: 96,
+                            height: 96,
                             child: city.icon,
                           ),
                           const SizedBox(width: 8),
                           Text(city.name),
                         ],
                       ),
+                      selected: isSelected,
+                      onSelected: (bool selected) {
+                        if (selected && Static.city != city) {
+                          setState(() {
+                            Static.localStorage.city = city;
+                          });
+                          _showForceRestartDialog(city);
+                        }
+                      },
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12.0, vertical: 8.0),
+                      labelStyle: isSelected
+                          ? TextStyle(
+                              color: theme.colorScheme.onPrimary,
+                              fontWeight: FontWeight.bold)
+                          : null,
+                      backgroundColor: theme.colorScheme.surfaceContainer,
+                      selectedColor: theme.colorScheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28.0),
+                        side: BorderSide(
+                            color: isSelected
+                                ? Colors.transparent
+                                : theme.colorScheme.outline),
+                      ),
                     );
                   }).toList(),
-                  selected: {Static.city},
-                  onSelectionChanged: (Set<City> newSelection) {
-                    final newValue = newSelection.first;
-                    if (newValue != Static.city) {
-                      setState(() {
-                        Static.localStorage.city = newValue;
-                      });
-                      _showForceRestartDialog(newValue);
-                    }
-                  },
                 ),
                 const SizedBox(height: 8),
               ],

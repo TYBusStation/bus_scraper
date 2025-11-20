@@ -1,8 +1,10 @@
+import 'package:bus_scraper/widgets/ui_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../data/vehicle_history.dart';
-import '../static.dart';
+import '../utils/formatter_utils.dart';
+import '../utils/static.dart';
 import '../widgets/empty_state_indicator.dart';
 import 'history_page.dart';
 
@@ -33,8 +35,9 @@ class _DriverSearchPageState extends State<DriverSearchPage> {
         .replace(
       queryParameters: {
         if (startDate != null)
-          'start_time': Static.apiTimeFormat.format(startDate),
-        if (endDate != null) 'end_time': Static.apiTimeFormat.format(endDate),
+          'start_time': FormatterUtils.apiTimeFormat.format(startDate),
+        if (endDate != null)
+          'end_time': FormatterUtils.apiTimeFormat.format(endDate),
       },
     );
     Static.log("Fetching drivers for plate $plate from API: $uri");
@@ -105,7 +108,7 @@ class _DriverSearchPageState extends State<DriverSearchPage> {
                   child: _buildDatePicker(
                     label: "起始",
                     value: _startDate,
-                    onPressed: () => Static.selectDateTime(
+                    onPressed: () => UiUtils.selectDateTime(
                       context: context,
                       isStart: true,
                       currentRange:
@@ -128,7 +131,7 @@ class _DriverSearchPageState extends State<DriverSearchPage> {
                   child: _buildDatePicker(
                     label: "結束",
                     value: _endDate,
-                    onPressed: () => Static.selectDateTime(
+                    onPressed: () => UiUtils.selectDateTime(
                       context: context,
                       isStart: false,
                       currentRange:
@@ -187,7 +190,7 @@ class _DriverSearchPageState extends State<DriverSearchPage> {
                   style: theme.textTheme.labelSmall,
                 ),
                 Text(
-                  Static.displayDateFormat.format(value),
+                  FormatterUtils.displayDateFormat.format(value),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -260,7 +263,7 @@ class _DriverSearchPageState extends State<DriverSearchPage> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              Static.getDriverText(driverInfo.driverId),
+                              FormatterUtils.getDriverText(driverInfo.driverId),
                               style: theme.textTheme.titleLarge
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),

@@ -4,15 +4,7 @@ part 'bus_route.g.dart';
 
 @JsonSerializable()
 class BusRoute {
-  static final unknown = BusRoute(
-    id: "未知",
-    nid: "未知",
-    pnid: "未知",
-    name: '未知',
-    departure: "未知",
-    destination: "未知",
-    description: "未知",
-  );
+  static final unknown = BusRoute.unknownWithId("未知");
 
   @JsonKey(name: "id")
   final String id;
@@ -38,6 +30,16 @@ class BusRoute {
     required this.departure,
     required this.destination,
   });
+
+  factory BusRoute.unknownWithId(String id) => BusRoute(
+        id: id,
+        nid: "未知",
+        pnid: "未知",
+        name: '未知',
+        departure: "未知",
+        destination: "未知",
+        description: "未知",
+      );
 
   factory BusRoute.fromJson(Map<String, dynamic> json) =>
       _$BusRouteFromJson(json);

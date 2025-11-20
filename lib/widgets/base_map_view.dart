@@ -1,3 +1,5 @@
+import 'package:bus_scraper/utils/api_utils.dart';
+import 'package:bus_scraper/utils/formatter_utils.dart';
 import 'package:bus_scraper/widgets/point_marker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,8 +13,8 @@ import '../data/bus_point.dart';
 import '../data/bus_route.dart';
 import '../data/route_detail.dart';
 import '../pages/map_route_selection_page.dart';
-import '../static.dart';
 import '../utils/map_utils.dart';
+import '../utils/static.dart';
 
 class BaseMapView extends StatefulWidget {
   final String appBarTitle;
@@ -78,7 +80,7 @@ class BaseMapViewState extends State<BaseMapView> {
   }
 
   Future<void> _fetchAndSetRouteDetail(String routeId) async {
-    final route = await Static.getRouteById(routeId);
+    final route = await ApiUtils.getRouteById(routeId);
     if (mounted) {
       if (_selectedPoint != null && _selectedPoint!.routeId == routeId) {
         setState(() {
@@ -116,7 +118,10 @@ class BaseMapViewState extends State<BaseMapView> {
         );
         _selectedRoute = null;
         _isFetchingRouteDetail = false;
+
+        // --- 核心修改：在這裡加入清除站牌選中狀態的程式碼 ---
         _selectedStation = null;
+
         _isFetchingRouteDetail = true;
         _fetchAndSetRouteDetail(point.routeId);
       }
@@ -124,19 +129,26 @@ class BaseMapViewState extends State<BaseMapView> {
   }
 
   void _recenterMap() {
-    if (widget.points.isEmpty && _userSelectedPolylines.isEmpty) {
+    if (widget.points.isEmpty &&
+        _userSelectedPolylines.isEmpty &&
+        _userSelectedMarkers.isEmpty) {
       if (_currentLocation != null) {
         _mapController.move(_currentLocation!, MapUtils.defaultZoom);
       }
       return;
     }
+
+    final List<LatLng> allUserSelectedPoints = [
+      ..._userSelectedPolylines.expand((p) => p.points),
+      ..._userSelectedMarkers.map((m) => m.point),
+    ];
+
     LatLngBounds? boundsToFit = widget.bounds;
-    if (_userSelectedPolylines.isNotEmpty) {
-      final allPoints = _userSelectedPolylines.expand((p) => p.points).toList();
-      if (allPoints.isNotEmpty) {
-        boundsToFit = LatLngBounds.fromPoints(allPoints);
-      }
+
+    if (allUserSelectedPoints.isNotEmpty) {
+      boundsToFit = LatLngBounds.fromPoints(allUserSelectedPoints);
     }
+
     if (boundsToFit != null) {
       if (boundsToFit.southWest == boundsToFit.northEast) {
         _mapController.move(boundsToFit.center, MapUtils.defaultZoom);
@@ -248,34 +260,38 @@ class BaseMapViewState extends State<BaseMapView> {
       final routeId = entry.key;
       final selection = entry.value;
       if (!selection.isSelected) continue;
-      final route = await Static.getRouteById(routeId);
+      final route = await ApiUtils.getRouteById(routeId);
       if (route == BusRoute.unknown) {
         Static.log("Skipping route $routeId.");
         continue;
       }
-      final detail = await Static.fetchRoutePathAndStops(routeId);
+      final detail = await ApiUtils.fetchRoutePathAndStops(routeId);
 
-      if (selection.go && detail.goPath.isNotEmpty) {
+      if (selection.go) {
         final color = MapUtils.segmentColorsReverse[
             colorIndex % MapUtils.segmentColorsReverse.length];
         colorIndex++;
-        newPolylines.add(Polyline(
-            points: detail.goPath,
-            color: color.withOpacity(0.7),
-            strokeWidth: 5.0));
+        if (detail.goPath.isNotEmpty) {
+          newPolylines.add(Polyline(
+              points: detail.goPath,
+              color: color.withOpacity(0.7),
+              strokeWidth: 5.0));
+        }
         for (final station in detail.goStations) {
           newMarkers.add(
               _createStationMarker(station, route, color.withOpacity(0.7), 1));
         }
       }
-      if (selection.back && detail.backPath.isNotEmpty) {
+      if (selection.back) {
         final color = MapUtils.segmentColorsReverse[
             colorIndex % MapUtils.segmentColorsReverse.length];
         colorIndex++;
-        newPolylines.add(Polyline(
-            points: detail.backPath,
-            color: color.withOpacity(0.7),
-            strokeWidth: 5.0));
+        if (detail.backPath.isNotEmpty) {
+          newPolylines.add(Polyline(
+              points: detail.backPath,
+              color: color.withOpacity(0.7),
+              strokeWidth: 5.0));
+        }
         for (final station in detail.backStations) {
           newMarkers.add(
               _createStationMarker(station, route, color.withOpacity(0.7), 2));
@@ -823,7 +839,7 @@ class BaseMapViewState extends State<BaseMapView> {
                         child: Row(children: [
                           Expanded(
                               child: Text(
-                                  Static.displayTimeFormat
+                                  FormatterUtils.displayTimeFormat
                                       .format(_selectedPoint!.dataTime),
                                   style: theme.textTheme.titleMedium
                                       ?.copyWith(fontWeight: FontWeight.bold))),
@@ -835,18 +851,18 @@ class BaseMapViewState extends State<BaseMapView> {
                                   ? null
                                   : () async {
                                       final direction =
-                                          Static.getBusDirectionName(
+                                          FormatterUtils.getBusDirectionName(
                                               route, _selectedPoint!.goBack);
                                       final dutyStatusInfo =
-                                          Static.getDutyStatusInfo(
+                                          FormatterUtils.getDutyStatusInfo(
                                               _selectedPoint!.dutyStatus);
                                       String driverInfo = "";
                                       if (Static.city.hasDriverInfo) {
                                         driverInfo =
-                                            " | 駕駛長：${Static.getDriverText(_selectedPoint!.driverId)}";
+                                            " | 駕駛長：${FormatterUtils.getDriverText(_selectedPoint!.driverId)}";
                                       }
                                       final mapTitle =
-                                          "${plate != null ? "$plate | " : ""}${route.name} | ${route.description} | 往 $direction | ${dutyStatusInfo.text}$driverInfo | ${Static.displayTimeFormat.format(_selectedPoint!.dataTime)}";
+                                          "${plate != null ? "$plate | " : ""}${route.name} | ${route.description} | 往 $direction | ${dutyStatusInfo.text}$driverInfo | ${FormatterUtils.displayTimeFormat.format(_selectedPoint!.dataTime)}";
                                       await launchUrl(Uri.parse(
                                           "https://www.google.com/maps?q=${_selectedPoint!.lat}"
                                           ",${_selectedPoint!.lon}($mapTitle)"));
@@ -885,10 +901,10 @@ class BaseMapViewState extends State<BaseMapView> {
                                         context: context,
                                         icon: Icons.swap_horiz,
                                         label:
-                                            "往 ${Static.getBusDirectionName(route, _selectedPoint!.goBack)}"),
+                                            "往 ${FormatterUtils.getBusDirectionName(route, _selectedPoint!.goBack)}"),
                                     () {
                                       final statusInfo =
-                                          Static.getDutyStatusInfo(
+                                          FormatterUtils.getDutyStatusInfo(
                                               _selectedPoint!.dutyStatus);
                                       return MapUtils.buildInfoChip(
                                         context: context,
@@ -905,7 +921,7 @@ class BaseMapViewState extends State<BaseMapView> {
                                           icon:
                                               Icons.person_pin_circle_outlined,
                                           label:
-                                              "駕駛長：${Static.getDriverText(_selectedPoint!.driverId)}"),
+                                              "駕駛長：${FormatterUtils.getDriverText(_selectedPoint!.driverId)}"),
                                     InkWell(
                                         borderRadius:
                                             BorderRadius.circular(16.0),

@@ -1,9 +1,11 @@
+import 'package:bus_scraper/utils/api_utils.dart';
+import 'package:bus_scraper/utils/formatter_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/bus_route.dart';
-import '../static.dart';
 import '../storage/city.dart';
+import '../utils/static.dart';
 import '../widgets/empty_state_indicator.dart';
 import '../widgets/searchable_list.dart';
 import 'route_vehicles_page.dart';
@@ -41,7 +43,7 @@ class _RoutePageState extends State<RoutePage> {
         });
       } else {
         setState(() => _isLoading = true);
-        final allRoutes = await Static.fetchAllRoutes();
+        final allRoutes = await ApiUtils.fetchAllRoutes();
         if (mounted) {
           setState(() {
             _displayedRoutes = allRoutes;
@@ -180,7 +182,7 @@ class _RoutePageState extends State<RoutePage> {
                   route.destination,
                 ].any((str) => str.toUpperCase().contains(token)));
       },
-      sortCallback: (a, b) => Static.compareRoutes(a.name, b.name),
+      sortCallback: (a, b) => FormatterUtils.compareRoutes(a.name, b.name),
       itemBuilder: (context, route) {
         final theme = Theme.of(context);
         final textTheme = theme.textTheme;

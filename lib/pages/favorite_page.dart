@@ -1,8 +1,9 @@
+import 'package:bus_scraper/utils/api_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../data/car.dart';
-import '../static.dart';
+import '../utils/static.dart';
 import '../widgets/car_list_item.dart';
 import '../widgets/empty_state_indicator.dart';
 import '../widgets/favorite_provider.dart';
@@ -126,7 +127,7 @@ class FavoritesPage extends StatelessWidget {
     );
 
     try {
-      final List<Car> updatedCars = await Static.fetchCarsByPlates(plateList);
+      final List<Car> updatedCars = await ApiUtils.fetchCarsByPlates(plateList);
 
       if (context.mounted) Navigator.of(context).pop();
 

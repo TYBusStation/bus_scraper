@@ -1,10 +1,13 @@
 import 'package:bus_scraper/data/bus_route.dart';
+import 'package:bus_scraper/utils/api_utils.dart';
+import 'package:bus_scraper/widgets/ui_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../data/bus_point.dart';
 import '../data/trajectory_segment.dart';
-import '../static.dart';
+import '../utils/formatter_utils.dart';
+import '../utils/static.dart';
 import '../widgets/empty_state_indicator.dart';
 import 'history_osm_page.dart';
 import 'segment_details_page.dart';
@@ -136,8 +139,10 @@ class _HistoryPageState extends State<HistoryPage> {
     });
 
     try {
-      final String formattedStartTime = Static.apiTimeFormat.format(_startTime);
-      final String formattedEndTime = Static.apiTimeFormat.format(_endTime);
+      final String formattedStartTime =
+          FormatterUtils.apiTimeFormat.format(_startTime);
+      final String formattedEndTime =
+          FormatterUtils.apiTimeFormat.format(_endTime);
       final url = Uri.parse(
           "${Static.apiBaseUrl}/${Static.city.code}/bus_data/${widget.plate}?start_time=$formattedStartTime&end_time=$formattedEndTime");
 
@@ -159,7 +164,7 @@ class _HistoryPageState extends State<HistoryPage> {
         final segments = _processDataIntoSegments(allHistoryData);
         final uniqueRouteIds = segments.map((s) => s.routeId).toSet();
         final fetchFutures = uniqueRouteIds
-            .map((id) async => await Static.getRouteById(id))
+            .map((id) async => await ApiUtils.getRouteById(id))
             .toList();
         final List<BusRoute> fetchedRoutes = await Future.wait(fetchFutures);
 
@@ -176,7 +181,8 @@ class _HistoryPageState extends State<HistoryPage> {
           _allHistoryData = allHistoryData;
           _segments = segments;
           _availableRoutes = fetchedRoutes;
-          _availableRoutes.sort((a, b) => Static.compareRoutes(a.name, b.name));
+          _availableRoutes
+              .sort((a, b) => FormatterUtils.compareRoutes(a.name, b.name));
           _availableDrivers = availableDrivers;
           _selectedRouteIds = routesToKeep;
           _selectedDriverIds = driversToKeep;
@@ -263,7 +269,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     context: context,
                     isStart: true,
                     time: _startTime,
-                    onPressed: () => Static.selectDateTime(
+                    onPressed: () => UiUtils.selectDateTime(
                       context: context,
                       isStart: true,
                       currentRange:
@@ -290,7 +296,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     context: context,
                     isStart: false,
                     time: _endTime,
-                    onPressed: () => Static.selectDateTime(
+                    onPressed: () => UiUtils.selectDateTime(
                       context: context,
                       isStart: false,
                       currentRange:
@@ -411,7 +417,7 @@ class _HistoryPageState extends State<HistoryPage> {
               label: '駕駛長',
               allOptions: {
                 for (var driverId in _availableDrivers)
-                  driverId: Static.getDriverText(driverId)
+                  driverId: FormatterUtils.getDriverText(driverId)
               },
               selectedOptions: _selectedDriverIds,
               onSelectionChanged: (newSelection) {
@@ -554,7 +560,7 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
             const SizedBox(height: 1),
             Text(
-              Static.displayTimeFormatNoSec.format(time),
+              FormatterUtils.displayTimeFormatNoSec.format(time),
               style: theme.textTheme.bodyMedium
                   ?.copyWith(fontWeight: FontWeight.w500),
             ),
@@ -606,7 +612,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Widget _buildSegmentCard(TrajectorySegment segment) {
     final theme = Theme.of(context);
-    final route = Static.getRouteByIdSync(segment.routeId);
+    final route = ApiUtils.getRouteByIdSync(segment.routeId);
 
     String durationStr = '';
     if (segment.duration.inHours > 0) {
@@ -617,8 +623,8 @@ class _HistoryPageState extends State<HistoryPage> {
     }
     durationStr += '${segment.duration.inSeconds.remainder(60)}秒';
 
-    final String driverText = Static.getDriverText(segment.driverId);
-    final dutyStatusInfo = Static.getDutyStatusInfo(segment.dutyStatus);
+    final String driverText = FormatterUtils.getDriverText(segment.driverId);
+    final dutyStatusInfo = FormatterUtils.getDutyStatusInfo(segment.dutyStatus);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4.0),
@@ -648,7 +654,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   avatar: Icon(Icons.swap_horiz,
                       size: 16, color: theme.colorScheme.primary),
                   label: Text(
-                      "往 ${Static.getBusDirectionName(route, segment.goBack)}",
+                      "往 ${FormatterUtils.getBusDirectionName(route, segment.goBack)}",
                       style: theme.textTheme.labelSmall),
                   backgroundColor:
                       theme.colorScheme.primaryContainer.withOpacity(0.4),
@@ -658,9 +664,9 @@ class _HistoryPageState extends State<HistoryPage> {
             const Divider(height: 12),
             _buildSegmentDetailRow(Icons.timer_outlined, "持續時間", durationStr),
             _buildSegmentDetailRow(Icons.play_circle_outline, "開始",
-                Static.displayTimeFormat.format(segment.startTime)),
+                FormatterUtils.displayTimeFormat.format(segment.startTime)),
             _buildSegmentDetailRow(Icons.stop_circle_outlined, "結束",
-                Static.displayTimeFormat.format(segment.endTime)),
+                FormatterUtils.displayTimeFormat.format(segment.endTime)),
             _buildSegmentDetailRow(Icons.scatter_plot_outlined, "軌跡點數",
                 "${segment.points.length} 點"),
             if (Static.city.hasDriverInfo)

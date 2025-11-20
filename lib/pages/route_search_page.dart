@@ -1,3 +1,5 @@
+import 'package:bus_scraper/utils/api_utils.dart';
+import 'package:bus_scraper/widgets/ui_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -5,8 +7,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/bus_route.dart';
 import '../data/vehicle_history.dart';
 import '../pages/route_vehicles_page.dart';
-import '../static.dart';
 import '../storage/city.dart';
+import '../utils/formatter_utils.dart';
+import '../utils/static.dart';
 import '../widgets/empty_state_indicator.dart';
 import '../widgets/searchable_list.dart';
 import 'history_page.dart';
@@ -45,8 +48,9 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
         .replace(
       queryParameters: {
         if (startDate != null)
-          'start_time': Static.apiTimeFormat.format(startDate),
-        if (endDate != null) 'end_time': Static.apiTimeFormat.format(endDate),
+          'start_time': FormatterUtils.apiTimeFormat.format(startDate),
+        if (endDate != null)
+          'end_time': FormatterUtils.apiTimeFormat.format(endDate),
       },
     );
     Static.log("Fetching routes for plate $plate from API: $uri");
@@ -78,7 +82,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     }
 
     final processedRoutes = await Future.wait(histories.map((history) async {
-      final routeDetails = await Static.getRouteById(history.routeId);
+      final routeDetails = await ApiUtils.getRouteById(history.routeId);
       return BusRouteWithHistory(route: routeDetails, history: history);
     }));
 
@@ -94,6 +98,62 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
           DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
       _searchFuture = _fetchAndProcessRoutes(_startDate, finalEndDate);
     });
+  }
+
+  void _onDynamicWebsitePressed(BuildContext context, BusRoute route) async {
+    if (Static.city == City.taipei) {
+      final nid = route.nid;
+      final pnid = route.pnid;
+
+      final bool hasNid = nid != null && nid.isNotEmpty;
+      final bool hasPnid = pnid != null && pnid.isNotEmpty;
+      final bool areDifferent = hasNid && hasPnid && nid != pnid;
+
+      if (areDifferent) {
+        showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('選擇要開啟的路線網頁'),
+            content: const Text('選擇開啟子路線或主路線網頁'),
+            actions: [
+              TextButton(
+                child: Text("子路線 ($nid)"),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _launchTaipeiUrl(nid);
+                },
+              ),
+              TextButton(
+                child: Text('主路線 ($pnid)'),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _launchTaipeiUrl(pnid);
+                },
+              ),
+            ],
+          ),
+        );
+      } else if (hasNid) {
+        _launchTaipeiUrl(nid);
+      } else if (hasPnid) {
+        _launchTaipeiUrl(pnid);
+      }
+    } else {
+      final url = Uri.parse(Static.city != City.taichung
+          ? "${Static.city.url}/driving-map/${route.id}"
+          : "https://tybusstation.github.io/taichung_bus/");
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url);
+      }
+    }
+  }
+
+  void _launchTaipeiUrl(String routeId) async {
+    final url = Uri.parse(
+        'https://ebus.gov.taipei/Route/StopsOfRoute?routeid=$routeId');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    }
   }
 
   @override
@@ -132,7 +192,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                   child: _buildDatePicker(
                     label: "起始",
                     value: _startDate,
-                    onPressed: () => Static.selectDateTime(
+                    onPressed: () => UiUtils.selectDateTime(
                       context: context,
                       isStart: true,
                       currentRange:
@@ -155,7 +215,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                   child: _buildDatePicker(
                     label: "結束",
                     value: _endDate,
-                    onPressed: () => Static.selectDateTime(
+                    onPressed: () => UiUtils.selectDateTime(
                       context: context,
                       isStart: false,
                       currentRange:
@@ -214,7 +274,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                   style: theme.textTheme.labelSmall,
                 ),
                 Text(
-                  Static.displayDateFormat.format(value),
+                  FormatterUtils.displayDateFormat.format(value),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -280,7 +340,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                 );
           },
           sortCallback: (a, b) =>
-              Static.compareRoutes(a.route.name, b.route.name),
+              FormatterUtils.compareRoutes(a.route.name, b.route.name),
           itemBuilder: (context, item) {
             final BusRoute route = item.route;
             final VehicleRouteHistory routeInfo = item.history;
@@ -340,14 +400,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         OutlinedButton.icon(
-                          onPressed: () async {
-                            final url = Uri.parse(Static.city != City.taichung
-                                ? "${Static.city.url}/driving-map/${route.id}"
-                                : "https://tybusstation.github.io/taichung_bus/");
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url);
-                            }
-                          },
+                          onPressed: () =>
+                              _onDynamicWebsitePressed(context, route),
                           icon: const Icon(Icons.map_outlined, size: 16),
                           label: const Text('公車動態網'),
                           style: OutlinedButton.styleFrom(

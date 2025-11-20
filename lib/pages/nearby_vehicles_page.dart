@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:bus_scraper/utils/api_utils.dart';
+import 'package:bus_scraper/utils/formatter_utils.dart';
+import 'package:bus_scraper/widgets/ui_utils.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,8 +15,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../data/bus_point.dart';
 import '../data/bus_route.dart';
-import '../static.dart';
 import '../utils/map_utils.dart';
+import '../utils/static.dart';
 import '../widgets/point_marker.dart';
 import 'history_page.dart';
 
@@ -145,8 +148,8 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
         'lat': _searchCenterWhenSearched.latitude.toString(),
         'lon': _searchCenterWhenSearched.longitude.toString(),
         'radius': effectiveRadius.toString(),
-        'start_time': Static.apiTimeFormat.format(_startTime),
-        'end_time': Static.apiTimeFormat.format(_endTime),
+        'start_time': FormatterUtils.apiTimeFormat.format(_startTime),
+        'end_time': FormatterUtils.apiTimeFormat.format(_endTime),
       };
 
       final response = await dio.get(url, queryParameters: queryParameters);
@@ -282,7 +285,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   }
 
   Future<void> _fetchAndSetRouteDetail(String routeId) async {
-    final route = await Static.fetchRouteDetailById(routeId);
+    final route = await ApiUtils.fetchGraphQLRouteDetailById(routeId);
     if (mounted &&
         _selectedPoint != null &&
         _selectedPoint!.routeId == routeId) {
@@ -706,7 +709,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
   Widget _buildTimeButton(
       ThemeData theme, String label, DateTime time, bool isStart,
       {required bool isLandscape}) {
-    final formatter = Static.displayTimeFormatNoSec;
+    final formatter = FormatterUtils.displayTimeFormatNoSec;
 
     final buttonContent = Container(
       decoration: BoxDecoration(
@@ -716,7 +719,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       child: TextButton(
         onPressed: _isSearched
             ? null
-            : () => Static.selectDateTime(
+            : () => UiUtils.selectDateTime(
                   context: context,
                   isStart: isStart,
                   currentRange: DateTimeRange(start: _startTime, end: _endTime),
@@ -1044,7 +1047,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                         children: [
                           Expanded(
                               child: Text(
-                                  Static.displayTimeFormat
+                                  FormatterUtils.displayTimeFormat
                                       .format(_selectedPoint!.dataTime),
                                   style: theme.textTheme.titleMedium
                                       ?.copyWith(fontWeight: FontWeight.bold))),
@@ -1056,21 +1059,21 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                   ? null
                                   : () async {
                                       final direction =
-                                          Static.getBusDirectionName(
+                                          FormatterUtils.getBusDirectionName(
                                               route, _selectedPoint!.goBack);
                                       final dutyStatusInfo =
-                                          Static.getDutyStatusInfo(
+                                          FormatterUtils.getDutyStatusInfo(
                                               _selectedPoint!.dutyStatus);
                                       String driverInfo = "";
                                       if (Static.city.hasDriverInfo) {
                                         driverInfo =
-                                            " | 駕駛長：${Static.getDriverText(_selectedPoint!.driverId)}";
+                                            " | 駕駛長：${FormatterUtils.getDriverText(_selectedPoint!.driverId)}";
                                       }
                                       final mapTitle = "$plate | "
                                           "${route.name} | ${route.description} "
                                           "| 往 $direction "
                                           "| ${dutyStatusInfo.text}$driverInfo "
-                                          "| ${Static.displayTimeFormat.format(_selectedPoint!.dataTime)}";
+                                          "| ${FormatterUtils.displayTimeFormat.format(_selectedPoint!.dataTime)}";
                                       await launchUrl(Uri.parse(
                                           "https://www.google.com/maps?q=${_selectedPoint!.lat}"
                                           ",${_selectedPoint!.lon}($mapTitle)"));
@@ -1111,10 +1114,11 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                   context: context,
                                   icon: Icons.swap_horiz,
                                   label:
-                                      "往 ${Static.getBusDirectionName(route, _selectedPoint!.goBack)}"),
+                                      "往 ${FormatterUtils.getBusDirectionName(route, _selectedPoint!.goBack)}"),
                               () {
-                                final statusInfo = Static.getDutyStatusInfo(
-                                    _selectedPoint!.dutyStatus);
+                                final statusInfo =
+                                    FormatterUtils.getDutyStatusInfo(
+                                        _selectedPoint!.dutyStatus);
                                 return MapUtils.buildInfoChip(
                                   context: context,
                                   icon: statusInfo.text == "營運"
@@ -1129,7 +1133,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                     context: context,
                                     icon: Icons.person_pin_circle_outlined,
                                     label:
-                                        "駕駛長：${Static.getDriverText(_selectedPoint!.driverId)}"),
+                                        "駕駛長：${FormatterUtils.getDriverText(_selectedPoint!.driverId)}"),
                               InkWell(
                                 borderRadius: BorderRadius.circular(16.0),
                                 onTap: () {

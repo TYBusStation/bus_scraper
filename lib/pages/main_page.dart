@@ -1,4 +1,4 @@
-import 'package:bus_scraper/static.dart';
+import 'package:bus_scraper/utils/static.dart';
 import 'package:flutter/material.dart';
 
 import 'cars_page.dart';

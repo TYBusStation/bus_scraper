@@ -1,9 +1,11 @@
+import 'package:bus_scraper/widgets/ui_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../data/car.dart';
 import '../data/vehicle_history.dart';
-import '../static.dart';
+import '../utils/formatter_utils.dart';
+import '../utils/static.dart';
 import '../widgets/car_list_item.dart';
 import '../widgets/empty_state_indicator.dart';
 import '../widgets/searchable_list.dart';
@@ -69,8 +71,9 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
       queryParameters: {
         'driver_id': driverId,
         if (startDate != null)
-          'start_time': Static.apiTimeFormat.format(startDate),
-        if (endDate != null) 'end_time': Static.apiTimeFormat.format(endDate),
+          'start_time': FormatterUtils.apiTimeFormat.format(startDate),
+        if (endDate != null)
+          'end_time': FormatterUtils.apiTimeFormat.format(endDate),
       },
     );
     Static.log("Fetching plates for driver $driverId from API: $uri");
@@ -174,7 +177,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
                   child: _buildDatePicker(
                     label: "起始",
                     value: _startDate,
-                    onPressed: () => Static.selectDateTime(
+                    onPressed: () => UiUtils.selectDateTime(
                       context: context,
                       isStart: true,
                       currentRange:
@@ -197,7 +200,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
                   child: _buildDatePicker(
                     label: "結束",
                     value: _endDate,
-                    onPressed: () => Static.selectDateTime(
+                    onPressed: () => UiUtils.selectDateTime(
                       context: context,
                       isStart: false,
                       currentRange:
@@ -256,7 +259,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
                   style: theme.textTheme.labelSmall,
                 ),
                 Text(
-                  Static.displayDateFormat.format(value),
+                  FormatterUtils.displayDateFormat.format(value),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
