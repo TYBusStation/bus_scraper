@@ -119,7 +119,6 @@ class BaseMapViewState extends State<BaseMapView> {
         _selectedRoute = null;
         _isFetchingRouteDetail = false;
 
-        // --- 核心修改：在這裡加入清除站牌選中狀態的程式碼 ---
         _selectedStation = null;
 
         _isFetchingRouteDetail = true;

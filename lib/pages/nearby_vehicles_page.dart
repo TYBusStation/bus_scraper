@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:bus_scraper/utils/api_utils.dart';
 import 'package:bus_scraper/utils/formatter_utils.dart';
+import 'package:bus_scraper/widgets/car_action_btn.dart';
 import 'package:bus_scraper/widgets/ui_utils.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +19,6 @@ import '../data/bus_route.dart';
 import '../utils/map_utils.dart';
 import '../utils/static.dart';
 import '../widgets/point_marker.dart';
-import 'history_page.dart';
 
 class NearbyVehiclesPage extends StatefulWidget {
   const NearbyVehiclesPage({super.key});
@@ -682,12 +682,12 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                     size: 18,
                     color: _isSearched ? Colors.grey : Colors.grey.shade600),
                 const SizedBox(width: 8),
-                label, // 文字標籤現在在 Row 裡，不會被旋轉
+                label,
               ],
             ),
             Expanded(
               child: RotatedBox(
-                quarterTurns: 3, // 只旋轉 Slider
+                quarterTurns: 3,
                 child: slider,
               ),
             ),
@@ -719,12 +719,10 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       child: TextButton(
         onPressed: _isSearched
             ? null
-            : () => UiUtils.selectDateTime(
+            : () => UiUtils.selectRangeDateTime(
                   context: context,
                   isStart: isStart,
                   currentRange: DateTimeRange(start: _startTime, end: _endTime),
-                  lastSelectableDate:
-                      DateTime.now().add(const Duration(days: 1)),
                   pickTime: true,
                   maxDuration: const Duration(hours: 12),
                   onDateTimeChanged: (range) => setState(() {
@@ -956,27 +954,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                               },
                             ),
                             Expanded(child: Text(value)),
-                            FilledButton.icon(
-                              label: const Text("歷史紀錄"),
-                              onPressed: () {
-                                Navigator.pop(context); // 關閉對話框
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => HistoryPage(
-                                      plate: key,
-                                      initialStartTime: _startTime,
-                                      initialEndTime: _endTime,
-                                    ),
-                                  ),
-                                );
-                              },
-                              style: FilledButton.styleFrom(
-                                  visualDensity: VisualDensity.compact,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12)),
-                              icon: const Icon(Icons.history, size: 20),
-                            ),
+                            CarActionBtn(carPlate: value),
                           ],
                         ),
                       ),

@@ -13,9 +13,14 @@ import '../widgets/base_map_view.dart';
 import '../widgets/point_marker.dart';
 
 class MultiHistoryOsmPage extends StatefulWidget {
+  final String title;
   final List<Car> cars;
 
-  const MultiHistoryOsmPage({super.key, required this.cars});
+  const MultiHistoryOsmPage({
+    super.key,
+    required this.title,
+    required this.cars,
+  });
 
   @override
   State<MultiHistoryOsmPage> createState() => _MultiHistoryOsmPageState();
@@ -255,7 +260,7 @@ class _MultiHistoryOsmPageState extends State<MultiHistoryOsmPage> {
   Widget build(BuildContext context) {
     return BaseMapView(
       key: _baseMapStateKey,
-      appBarTitle: '群組最後軌跡',
+      appBarTitle: widget.title,
       points: _allPoints,
       polylines: _polylines,
       markers: _markers,

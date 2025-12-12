@@ -39,80 +39,88 @@ class _SettingsPageState extends State<SettingsPage> {
     _remarksController.text = csvText;
   }
 
-  String? _formatAndDeduplicateCsvString(String rawText,
-      {bool showAlert = false}) {
+  String _formatAndDeduplicateCsvString(String rawText) {
     final lines = rawText.split('\n');
-    final Map<String, Set<String>> entries = {};
+    final Set<String> uniqueLines = {};
+    final List<List<String>> parsedEntries = [];
+
     for (final line in lines) {
       final trimmedLine = line.trim();
       if (trimmedLine.isEmpty) continue;
+
       final parts = trimmedLine.split(',');
       if (parts.length < 2) continue;
+
       final driverId = parts[0].trim();
       if (driverId.isEmpty) continue;
+
       final remark = parts.sublist(1).join(',').trim();
-      entries.putIfAbsent(driverId, () => {}).add(remark);
-    }
 
-    final duplicatesWithDifferentRemarks = entries.entries
-        .where((e) => e.value.length > 1)
-        .map((e) => '駕駛長編號「${e.key}」存在多個不同的備註：\n- ${e.value.join('\n- ')}')
-        .toList();
+      final standardizedLine = '$driverId,$remark';
 
-    if (duplicatesWithDifferentRemarks.isNotEmpty) {
-      if (showAlert && mounted) {
-        _showDuplicateWarningDialog(duplicatesWithDifferentRemarks);
+      if (!uniqueLines.contains(standardizedLine)) {
+        uniqueLines.add(standardizedLine);
+        parsedEntries.add([driverId, remark]);
       }
-      return null;
     }
 
-    final uniqueEntries = entries.entries.map((e) {
-      return [e.key, e.value.first];
-    }).toList();
+    parsedEntries.sort((a, b) {
+      final idCompare = a[0].compareTo(b[0]);
+      if (idCompare != 0) {
+        return idCompare;
+      }
+      return a[1].compareTo(b[1]);
+    });
 
-    uniqueEntries.sort((a, b) => a[0].compareTo(b[0]));
-    return uniqueEntries.map((e) => '${e[0]},${e[1]}').join('\n');
+    return parsedEntries.map((e) => '${e[0]},${e[1]}').join('\n');
   }
 
   void _formatTextInController() {
-    final formattedText = _formatAndDeduplicateCsvString(
-        _remarksController.text,
-        showAlert: true);
-    if (formattedText != null) {
-      _remarksController.text = formattedText;
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('駕駛長備註已格式化'),
-            backgroundColor: Colors.blue,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
+    final formattedText =
+        _formatAndDeduplicateCsvString(_remarksController.text);
+    _remarksController.text = formattedText;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('駕駛長備註已格式化並排序'),
+          backgroundColor: Colors.blue,
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 
   void _saveRemarks() {
-    final formattedText = _formatAndDeduplicateCsvString(
-        _remarksController.text,
-        showAlert: true);
+    final formattedText =
+        _formatAndDeduplicateCsvString(_remarksController.text);
+    _remarksController.text = formattedText;
 
-    if (formattedText == null) {
+    final lines = formattedText.split('\n');
+    final Map<String, List<String>> idToRemarks = {};
+
+    for (final line in lines) {
+      if (line.isEmpty) continue;
+      final parts = line.split(',');
+      final id = parts[0];
+      final remark = parts.sublist(1).join(',');
+
+      idToRemarks.putIfAbsent(id, () => []).add(remark);
+    }
+
+    final conflicts = idToRemarks.entries
+        .where((e) => e.value.length > 1)
+        .map((e) => '駕駛長編號「${e.key}」存在多個不同的備註：\n- ${e.value.join('\n- ')}')
+        .toList();
+
+    if (conflicts.isNotEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('儲存失敗：請先解決有衝突的重複備註。'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        _showDuplicateWarningDialog(conflicts);
       }
       return;
     }
 
-    _remarksController.text = formattedText;
     final remarksMap = _parseCsvToMap(formattedText);
     Static.localStorage.setRemarksForCity(Static.city, remarksMap);
 
@@ -154,26 +162,31 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.orange),
               SizedBox(width: 8),
-              Text('發現重複備註'),
+              Text('發現重複衝突'),
             ],
           ),
           content: SizedBox(
-            height: 200,
-            child: SingleChildScrollView(
-              child: ListBody(
-                children: [
-                  const Text('以下駕駛長編號擁有多個不同的備註，請手動修正後再儲存：'),
-                  const SizedBox(height: 12),
-                  ...issues
-                      .map((issue) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Text(issue,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                          ))
-                      .toList(),
-                ],
-              ),
+            height: 250,
+            width: double.maxFinite,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '以下駕駛長編號擁有多個不同的備註，請手動修正後再儲存：',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: issues.length,
+                    separatorBuilder: (ctx, index) => const Divider(),
+                    itemBuilder: (ctx, index) {
+                      return Text(issues[index],
+                          style: const TextStyle(fontWeight: FontWeight.bold));
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
           actions: [

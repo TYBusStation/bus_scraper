@@ -183,7 +183,6 @@ class _DrivingRecordListState extends State<DrivingRecordList> {
         itemBuilder: (context, record) {
           return CarListItem(
             car: record.car,
-            showLiveButton: true,
             drivingDates: record.dates,
             driverId: widget.driverIdForListItem,
             routeId: widget.queryType == QueryType.byRoute

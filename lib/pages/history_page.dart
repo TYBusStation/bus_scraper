@@ -269,13 +269,11 @@ class _HistoryPageState extends State<HistoryPage> {
                     context: context,
                     isStart: true,
                     time: _startTime,
-                    onPressed: () => UiUtils.selectDateTime(
+                    onPressed: () => UiUtils.selectRangeDateTime(
                       context: context,
                       isStart: true,
                       currentRange:
                           DateTimeRange(start: _startTime, end: _endTime),
-                      lastSelectableDate:
-                          DateTime.now().add(const Duration(days: 1)),
                       pickTime: true,
                       maxDuration: const Duration(days: 2),
                       onDateTimeChanged: (range) => setState(() {
@@ -296,13 +294,11 @@ class _HistoryPageState extends State<HistoryPage> {
                     context: context,
                     isStart: false,
                     time: _endTime,
-                    onPressed: () => UiUtils.selectDateTime(
+                    onPressed: () => UiUtils.selectRangeDateTime(
                       context: context,
                       isStart: false,
                       currentRange:
                           DateTimeRange(start: _startTime, end: _endTime),
-                      lastSelectableDate:
-                          DateTime.now().add(const Duration(days: 1)),
                       pickTime: true,
                       maxDuration: const Duration(days: 2),
                       onDateTimeChanged: (range) => setState(() {

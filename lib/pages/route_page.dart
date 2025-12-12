@@ -1,3 +1,4 @@
+import 'package:bus_scraper/pages/timetable_page.dart';
 import 'package:bus_scraper/utils/api_utils.dart';
 import 'package:bus_scraper/utils/formatter_utils.dart';
 import 'package:flutter/material.dart';
@@ -259,6 +260,27 @@ class _RoutePageState extends State<RoutePage> {
                         textStyle: theme.textTheme.labelMedium,
                       ),
                     ),
+                    if (Static.city == City.taichung) ...[
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TimetablePage(route: route),
+                            ),
+                          );
+                        },
+                        icon:
+                            const Icon(Icons.calendar_month_outlined, size: 16),
+                        label: const Text('時刻表'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          textStyle: theme.textTheme.labelMedium,
+                        ),
+                      ),
+                    ],
                     const SizedBox(width: 8),
                     FilledButton.icon(
                       onPressed: () {

@@ -1,3 +1,4 @@
+import 'package:bus_scraper/widgets/car_action_btn.dart';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -798,7 +799,7 @@ class _CompanyPageState extends State<CompanyPage> {
                 ?.copyWith(color: placeholderColor)),
       ));
     } else if (data is List) {
-      content = _buildListDisplay(themeData, data);
+      content = _buildListDisplay(themeData, data, selectedDataType);
     } else {
       content = Center(
           child: Padding(
@@ -865,7 +866,8 @@ class _CompanyPageState extends State<CompanyPage> {
     );
   }
 
-  Widget _buildListDisplay(ThemeData themeData, List<dynamic> dataList) {
+  Widget _buildListDisplay(
+      ThemeData themeData, List<dynamic> dataList, String? selectedDataType) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
       itemCount: dataList.length,
@@ -878,7 +880,15 @@ class _CompanyPageState extends State<CompanyPage> {
             color: themeData.colorScheme.surfaceContainerHighest.withAlpha(180),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Text(item, style: const TextStyle(fontSize: 11)),
+              child: Row(
+                children: [
+                  Text(item, style: const TextStyle(fontSize: 11)),
+                  if (selectedDataType == 'cars') ...[
+                    const SizedBox(width: 3),
+                    CarActionBtnMini(carPlate: item),
+                  ]
+                ],
+              ),
             ),
           );
         }
@@ -887,8 +897,8 @@ class _CompanyPageState extends State<CompanyPage> {
     );
   }
 
-  Widget _buildDiffItemCard(
-      ThemeData themeData, Map<String, dynamic> item, String type) {
+  Widget _buildDiffItemCard(ThemeData themeData, Map<String, dynamic> item,
+      String type, String? selectedDataType) {
     final Color cardColor;
     final Color iconColor;
     final Color textColor;
@@ -923,9 +933,17 @@ class _CompanyPageState extends State<CompanyPage> {
             child: Icon(icon, color: iconColor, size: 14),
           ),
           Expanded(
-            child: Text(
-              displayText,
-              style: TextStyle(fontSize: 11, color: textColor),
+            child: Row(
+              children: [
+                Text(
+                  displayText,
+                  style: TextStyle(fontSize: 11, color: textColor),
+                ),
+                if (selectedDataType == 'cars') ...[
+                  const SizedBox(width: 3),
+                  CarActionBtnMini(carPlate: displayText),
+                ],
+              ],
             ),
           ),
         ],
@@ -1001,7 +1019,8 @@ class _CompanyPageState extends State<CompanyPage> {
               style: themeData.textTheme.labelMedium
                   ?.copyWith(color: colorScheme.tertiary)));
           for (var item in added) {
-            diffWidgets.add(_buildDiffItemCard(themeData, item, '新增'));
+            diffWidgets.add(
+                _buildDiffItemCard(themeData, item, '新增', _selectedDataType));
           }
         }
         if (removed.isNotEmpty) {
@@ -1014,7 +1033,8 @@ class _CompanyPageState extends State<CompanyPage> {
                     ?.copyWith(color: colorScheme.error)),
           );
           for (var item in removed) {
-            diffWidgets.add(_buildDiffItemCard(themeData, item, '移除'));
+            diffWidgets.add(
+                _buildDiffItemCard(themeData, item, '移除', _selectedDataType));
           }
         }
         content = ListView(
@@ -1089,7 +1109,6 @@ class _CompanyPageState extends State<CompanyPage> {
                     loadingText: "載入公司...",
                     itemToString: (Company c) => "${c.name} (${c.code})",
                   ),
-                  // --- 新增監理網按鈕 ---
                   IconButton(
                     icon: const Icon(Icons.open_in_new),
                     tooltip: '開啟監理服務網',

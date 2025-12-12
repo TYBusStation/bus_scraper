@@ -1,3 +1,4 @@
+import 'package:bus_scraper/pages/timetable_page.dart';
 import 'package:bus_scraper/utils/api_utils.dart';
 import 'package:bus_scraper/widgets/ui_utils.dart';
 import 'package:dio/dio.dart';
@@ -192,13 +193,11 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                   child: _buildDatePicker(
                     label: "起始",
                     value: _startDate,
-                    onPressed: () => UiUtils.selectDateTime(
+                    onPressed: () => UiUtils.selectRangeDateTime(
                       context: context,
                       isStart: true,
                       currentRange:
                           DateTimeRange(start: _startDate, end: _endDate),
-                      lastSelectableDate:
-                          DateTime.now().add(const Duration(days: 1)),
                       pickTime: false,
                       maxDuration: const Duration(days: 30),
                       onDateTimeChanged: (range) => setState(() {
@@ -215,13 +214,11 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                   child: _buildDatePicker(
                     label: "結束",
                     value: _endDate,
-                    onPressed: () => UiUtils.selectDateTime(
+                    onPressed: () => UiUtils.selectRangeDateTime(
                       context: context,
                       isStart: false,
                       currentRange:
                           DateTimeRange(start: _startDate, end: _endDate),
-                      lastSelectableDate:
-                          DateTime.now().add(const Duration(days: 1)),
                       pickTime: false,
                       maxDuration: const Duration(days: 30),
                       onDateTimeChanged: (range) => setState(() {
@@ -410,6 +407,28 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                             textStyle: theme.textTheme.labelMedium,
                           ),
                         ),
+                        if (Static.city == City.taichung) ...[
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      TimetablePage(route: route),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.calendar_month_outlined,
+                                size: 16),
+                            label: const Text('時刻表'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              textStyle: theme.textTheme.labelMedium,
+                            ),
+                          ),
+                        ],
                         const SizedBox(width: 8),
                         FilledButton.icon(
                           onPressed: () => Navigator.push(

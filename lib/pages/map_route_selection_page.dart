@@ -104,7 +104,6 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
       ),
       body: Column(
         children: [
-          // --- 核心修改：只有當城市不是台北時，才顯示這個區塊 ---
           if (Static.city != City.taipei)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 2.0),

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:bus_scraper/data/car.dart';
 import 'package:bus_scraper/data/route_detail.dart';
 import 'package:bus_scraper/data/vehicle_history.dart';
@@ -58,6 +60,20 @@ abstract class ApiUtils {
   }
   """;
 
+  static const String _graphqlQueryDailyTimeTable = """
+  query QUERY_DAILY_TIMETABLE(\$xno: Int!, \$date: String!) {
+    dailyTimeTable(xno: \$xno, date: \$date) {
+      edges {
+        node {
+          goBack
+          carId
+          scheduleTime
+        }
+      }
+    }
+  }
+  """;
+
   static Future<String> fetchAnnouncement() async {
     final url = "${Static.apiBaseUrl}/announcement";
     try {
@@ -86,8 +102,15 @@ abstract class ApiUtils {
 
   static Future<BusRoute> getRouteById(String routeId) async {
     final route = getRouteByIdSync(routeId);
-    if (route.name != '未知路線') return route;
-    return await fetchGraphQLRouteDetailById(routeId);
+
+    if (route.name == '未知' || route == BusRoute.unknown) {
+      final fetchedRoute = await fetchGraphQLRouteDetailById(routeId);
+      if (fetchedRoute.name != '未知') {
+        return fetchedRoute;
+      }
+    }
+
+    return route;
   }
 
   static Future<BusRoute> fetchGraphQLRouteDetailById(String routeId) async {
@@ -96,20 +119,25 @@ abstract class ApiUtils {
       return BusRoute.unknownWithId(routeId);
     }
     try {
-      final response = await Static.dio.post(
+      final response = await Static.dio.get(
         Static.graphqlUrl,
-        data: {
+        queryParameters: {
           "operationName": "QUERY_ROUTE_DETAIL",
-          "variables": {"routeId": routeIdInt, "lang": "zh"},
+          "variables": jsonEncode({"routeId": routeIdInt, "lang": "zh"}),
           "query": _graphqlQueryRouteDetail,
         },
       );
       if (response.statusCode == 200 &&
           response.data?['data']?['route'] is Map) {
         final newRoute = BusRoute.fromJson(response.data['data']['route']);
-        if (!Static.routeData.any((r) => r.id == newRoute.id)) {
+
+        final index = Static.routeData.indexWhere((r) => r.id == newRoute.id);
+        if (index != -1) {
+          Static.routeData[index] = newRoute;
+        } else {
           Static.routeData.add(newRoute);
         }
+
         return newRoute;
       }
     } catch (e) {
@@ -157,11 +185,11 @@ abstract class ApiUtils {
     final int? routeIdInt = int.tryParse(routeId);
     if (routeIdInt == null) return RouteDetail.unknown;
     try {
-      final response = await Static.dio.post(
+      final response = await Static.dio.get(
         Static.graphqlUrl,
-        data: {
+        queryParameters: {
           "operationName": "QUERY_ROUTE_DETAIL",
-          "variables": {"routeId": routeIdInt, "lang": "zh"},
+          "variables": jsonEncode({"routeId": routeIdInt, "lang": "zh"}),
           "query": _graphqlQueryRoutePathAndStops,
         },
       );
@@ -173,6 +201,31 @@ abstract class ApiUtils {
       Static.log("透過 GraphQL 讀取路線站點 (ID: $routeId) 時發生錯誤: $e");
     }
     return RouteDetail.unknown;
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchTaichungDailyTimeTable({
+    required int routeId,
+    required String date,
+  }) async {
+    try {
+      final response = await Static.dio.get(
+        Static.graphqlUrl,
+        queryParameters: {
+          "operationName": "QUERY_DAILY_TIMETABLE",
+          "variables": jsonEncode({"xno": routeId, "date": date}),
+          "query": _graphqlQueryDailyTimeTable,
+        },
+      );
+      if (response.statusCode == 200 &&
+          response.data?['data']?['dailyTimeTable']?['edges'] is List) {
+        return (response.data['data']['dailyTimeTable']['edges'] as List)
+            .map((e) => e['node'] as Map<String, dynamic>)
+            .toList();
+      }
+    } catch (e) {
+      Static.log("透過 GraphQL 讀取時刻表 (ID: $routeId, Date: $date) 時發生錯誤: $e");
+    }
+    return [];
   }
 
   static Future<List<BusRoute>> fetchAllRoutes() async {
@@ -196,11 +249,11 @@ abstract class ApiUtils {
 
   static Future<List<BusRoute>> fetchGraphQLOpRoutes() async {
     try {
-      final response = await Static.dio.post(
+      final response = await Static.dio.get(
         Static.graphqlUrl,
-        data: {
+        queryParameters: {
           "operationName": "QUERY_ROUTES",
-          "variables": {"lang": "zh"},
+          "variables": jsonEncode({"lang": "zh"}),
           "query": _graphqlQueryRoutes,
         },
       );

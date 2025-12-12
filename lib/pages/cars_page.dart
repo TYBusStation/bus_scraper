@@ -24,7 +24,7 @@ class CarsPage extends StatelessWidget {
                 car.plate.toUpperCase().contains(text.toUpperCase()),
             sortCallback: (a, b) => a.plate.compareTo(b.plate),
             itemBuilder: (context, car) {
-              return CarListItem(car: car, showLiveButton: true);
+              return CarListItem(car: car);
             },
             emptyStateWidget: const EmptyStateIndicator(
               icon: Icons.search_off_rounded,

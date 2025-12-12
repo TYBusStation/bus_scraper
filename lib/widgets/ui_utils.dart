@@ -2,12 +2,37 @@ import 'package:flutter/material.dart';
 
 abstract class UiUtils {
   static final DateTime _firstSelectableDate = DateTime(2025, 6, 8);
+  static final DateTime _lastSelectableDate =
+      DateTime.now().add(const Duration(days: 7));
 
-  static Future<void> selectDateTime({
+  static Future<void> selectDate({
+    required BuildContext context,
+    required DateTime initialDate,
+    required void Function(DateTime newDate) onDateSelected,
+  }) async {
+    final DateTime validInitialDate = initialDate.isAfter(_lastSelectableDate)
+        ? _lastSelectableDate
+        : (initialDate.isBefore(_firstSelectableDate)
+            ? _firstSelectableDate
+            : initialDate);
+
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: validInitialDate,
+      firstDate: _firstSelectableDate,
+      lastDate: _lastSelectableDate,
+      helpText: '選擇日期',
+    );
+
+    if (pickedDate != null && context.mounted) {
+      onDateSelected(pickedDate);
+    }
+  }
+
+  static Future<void> selectRangeDateTime({
     required BuildContext context,
     required bool isStart,
     required DateTimeRange currentRange,
-    required DateTime lastSelectableDate,
     required bool pickTime,
     required Duration maxDuration,
     required void Function(DateTimeRange newRange) onDateTimeChanged,
@@ -17,13 +42,13 @@ abstract class UiUtils {
 
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: initialPickerDate.isAfter(lastSelectableDate)
-          ? lastSelectableDate
+      initialDate: initialPickerDate.isAfter(_lastSelectableDate)
+          ? _lastSelectableDate
           : (initialPickerDate.isBefore(_firstSelectableDate)
               ? _firstSelectableDate
               : initialPickerDate),
       firstDate: _firstSelectableDate,
-      lastDate: lastSelectableDate,
+      lastDate: _lastSelectableDate,
       helpText: isStart ? '選擇開始日期' : '選擇結束日期',
     );
 
@@ -65,8 +90,8 @@ abstract class UiUtils {
       if (newEnd.difference(newStart) > maxDuration) {
         newEnd = newStart.add(maxDuration);
       }
-      if (newEnd.isAfter(lastSelectableDate)) {
-        newEnd = lastSelectableDate;
+      if (newEnd.isAfter(_lastSelectableDate)) {
+        newEnd = _lastSelectableDate;
         if (newStart.isAfter(newEnd)) {
           newStart = newEnd.subtract(const Duration(minutes: 1));
         }

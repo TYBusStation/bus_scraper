@@ -31,9 +31,14 @@ final GlobalKey<BaseMapViewState> _baseMapStateKey =
     GlobalKey<BaseMapViewState>();
 
 class MultiLiveOsmPage extends StatefulWidget {
+  final String title;
   final List<String> plates;
 
-  const MultiLiveOsmPage({super.key, required this.plates});
+  const MultiLiveOsmPage({
+    super.key,
+    required this.title,
+    required this.plates,
+  });
 
   @override
   State<MultiLiveOsmPage> createState() => _MultiLiveOsmPageState();
@@ -383,7 +388,7 @@ class _MultiLiveOsmPageState extends State<MultiLiveOsmPage>
   AppBar _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
     return AppBar(
-      title: const Text('收藏車輛動態'),
+      title: Text(widget.title),
       actions: [
         if (_lastFetchTime != null && !_isLoading)
           AnimatedBuilder(

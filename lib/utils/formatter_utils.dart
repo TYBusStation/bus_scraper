@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 abstract class FormatterUtils {
   static final DateFormat apiTimeFormat = DateFormat("yyyy-MM-dd'T'HH-mm-ss");
+  static final DateFormat apiDateFormat = DateFormat("yyyy-MM-dd");
   static final DateFormat displayTimeFormatNoSec =
       DateFormat('yyyy-MM-dd HH:mm');
   static final DateFormat displayTimeFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
@@ -82,7 +83,7 @@ abstract class FormatterUtils {
       'baseStr': baseStr,
       'suffixAlpha': suffixAlpha,
       'suffixNumeric': suffixNumeric,
-      'suffixSpecial': suffixSpecial, // 新增
+      'suffixSpecial': suffixSpecial,
       'suffixParenthesis': suffixParenthesis,
     };
   }
@@ -93,7 +94,7 @@ abstract class FormatterUtils {
     var pb = _parseRoute(b);
 
     int typeOrder(String type) {
-      if (type == 'SPECIAL_PREFIX') return 0; // 數字+中文最高優先級
+      if (type == 'SPECIAL_PREFIX') return 0;
       if (type == 'NUMERIC') return 1;
       if (type == 'ALPHA') return 2;
       if (type == 'T') return 3;

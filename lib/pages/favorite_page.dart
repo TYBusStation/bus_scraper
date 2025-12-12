@@ -117,7 +117,7 @@ class FavoritesPage extends StatelessWidget {
   }
 
   Future<void> _showLastPosition(
-      BuildContext context, List<String> plateList) async {
+      BuildContext context, String groupName, List<String> plateList) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -143,7 +143,8 @@ class FavoritesPage extends StatelessWidget {
         if (context.mounted) {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => MultiHistoryOsmPage(cars: updatedCars),
+              builder: (context) => MultiHistoryOsmPage(
+                  title: "$groupName 最後軌跡", cars: updatedCars),
             ),
           );
         }
@@ -281,8 +282,8 @@ class FavoritesPage extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) =>
-                              MultiLiveOsmPage(plates: plateList),
+                          builder: (context) => MultiLiveOsmPage(
+                              title: "$groupName 即時動態", plates: plateList),
                         ),
                       );
                     },
@@ -294,7 +295,8 @@ class FavoritesPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   FilledButton.icon(
-                    onPressed: () => _showLastPosition(context, plateList),
+                    onPressed: () =>
+                        _showLastPosition(context, groupName, plateList),
                     label: const Text('群組最後軌跡'),
                     icon: const Icon(Icons.history_toggle_off),
                     style: FilledButton.styleFrom(
@@ -309,7 +311,7 @@ class FavoritesPage extends StatelessWidget {
               (c) => c.plate == car.plate,
               orElse: () => car,
             );
-            return CarListItem(car: carFromStatic, showLiveButton: true);
+            return CarListItem(car: carFromStatic);
           }).toList(),
           if (carList.isEmpty)
             const Padding(

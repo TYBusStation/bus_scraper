@@ -177,13 +177,11 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
                   child: _buildDatePicker(
                     label: "起始",
                     value: _startDate,
-                    onPressed: () => UiUtils.selectDateTime(
+                    onPressed: () => UiUtils.selectRangeDateTime(
                       context: context,
                       isStart: true,
                       currentRange:
                           DateTimeRange(start: _startDate, end: _endDate),
-                      lastSelectableDate:
-                          DateTime.now().add(const Duration(days: 1)),
                       pickTime: false,
                       maxDuration: const Duration(days: 30),
                       onDateTimeChanged: (range) => setState(() {
@@ -200,13 +198,11 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
                   child: _buildDatePicker(
                     label: "結束",
                     value: _endDate,
-                    onPressed: () => UiUtils.selectDateTime(
+                    onPressed: () => UiUtils.selectRangeDateTime(
                       context: context,
                       isStart: false,
                       currentRange:
                           DateTimeRange(start: _startDate, end: _endDate),
-                      lastSelectableDate:
-                          DateTime.now().add(const Duration(days: 1)),
                       pickTime: false,
                       maxDuration: const Duration(days: 30),
                       onDateTimeChanged: (range) => setState(() {
@@ -325,7 +321,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
 
             return CarListItem(
               car: car,
-              showLiveButton: true,
               drivingDates: record.dates,
               driverId: _driverIdController.text,
               margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
