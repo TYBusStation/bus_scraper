@@ -1,7 +1,6 @@
 import 'package:bus_scraper/pages/timetable_page.dart';
 import 'package:bus_scraper/utils/api_utils.dart';
 import 'package:bus_scraper/widgets/ui_utils.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -46,26 +45,18 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   }) async {
     final uri = Uri.parse(
             "${Static.apiBaseUrl}/${Static.city.code}/tools/find_vehicle_routes/$plate")
-        .replace(
-      queryParameters: {
-        if (startDate != null)
-          'start_time': FormatterUtils.apiTimeFormat.format(startDate),
-        if (endDate != null)
-          'end_time': FormatterUtils.apiTimeFormat.format(endDate),
-      },
-    );
-    Static.log("Fetching routes for plate $plate from API: $uri");
-    try {
-      final response = await Static.dio.getUri(uri);
-      if (response.statusCode == 200 && response.data is List) {
-        return (response.data as List)
-            .map((json) => VehicleRouteHistory.fromJson(json))
-            .toList();
-      }
-    } on DioException catch (e) {
-      Static.log("DioError fetching routes for plate $plate: ${e.message}");
-    } catch (e) {
-      Static.log("Unexpected error fetching routes for plate $plate: $e");
+        .replace(queryParameters: {
+      if (startDate != null)
+        'start_time': FormatterUtils.apiTimeFormat.format(startDate),
+      if (endDate != null)
+        'end_time': FormatterUtils.apiTimeFormat.format(endDate),
+    });
+
+    final response = await Static.dio.getUri(uri);
+    if (response.statusCode == 200 && response.data is List) {
+      return (response.data as List)
+          .map((json) => VehicleRouteHistory.fromJson(json))
+          .toList();
     }
     return [];
   }
@@ -306,35 +297,37 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
         if (snapshot.hasError) {
           return EmptyStateIndicator(
               icon: Icons.error_outline_rounded,
-              title: '查詢失敗',
-              subtitle: snapshot.error.toString());
+              title: "查詢失敗",
+              subtitle: FormatterUtils.getErrorMessage(snapshot.error));
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const EmptyStateIndicator(
-              icon: Icons.alt_route_rounded,
-              title: '查無資料',
-              subtitle: '在此日期區間內找不到任何行駛路線記錄');
+            icon: Icons.sentiment_dissatisfied_outlined,
+            title: "查無結果",
+            subtitle: "找不到符合條件的路線紀錄。",
+          );
         }
 
         final List<BusRouteWithHistory> allItems = snapshot.data!;
 
         return SearchableList<BusRouteWithHistory>(
           allItems: allItems,
-          searchHintText: "搜尋路線名稱、描述或編號",
+          searchHintText: "搜尋路線、描述或編號 (支援 Regex)",
           filterCondition: (item, text) {
-            return text
-                .toUpperCase()
-                .split(" ")
-                .where((token) => token.isNotEmpty)
-                .every(
-                  (token) => [
-                    item.route.id,
-                    item.route.name,
-                    item.route.description,
-                    item.route.departure,
-                    item.route.destination,
-                  ].any((str) => str.toUpperCase().contains(token)),
-                );
+            // 合併路線所有文字資訊作為搜尋對象
+            final r = item.route;
+            final content =
+                '${r.id} ${r.name} ${r.description} ${r.departure} ${r.destination}';
+
+            final tokens =
+                text.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
+            return tokens.every((token) {
+              try {
+                return RegExp(token, caseSensitive: false).hasMatch(content);
+              } catch (_) {
+                return content.toUpperCase().contains(token.toUpperCase());
+              }
+            });
           },
           sortCallback: (a, b) =>
               FormatterUtils.compareRoutes(a.route.name, b.route.name),

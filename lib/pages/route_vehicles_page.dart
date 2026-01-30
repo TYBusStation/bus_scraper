@@ -3,6 +3,7 @@ import 'package:bus_scraper/widgets/ui_utils.dart';
 import 'package:flutter/material.dart';
 
 import '../data/bus_route.dart';
+import '../data/car.dart';
 import '../data/vehicle_history.dart';
 import '../utils/formatter_utils.dart';
 import '../utils/static.dart';
@@ -215,29 +216,48 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
         if (snapshot.hasError) {
           return EmptyStateIndicator(
               icon: Icons.error_outline_rounded,
-              title: '查詢失敗',
-              subtitle: snapshot.error.toString());
+              title: "查詢失敗",
+              subtitle: FormatterUtils.getErrorMessage(snapshot.error));
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const EmptyStateIndicator(
-              icon: Icons.no_transfer_rounded,
-              title: '查無資料',
-              subtitle: '在此日期區間內找不到任何車輛記錄');
+            icon: Icons.sentiment_dissatisfied_outlined,
+            title: "查無結果",
+            subtitle: "找不到符合條件的車輛紀錄。",
+          );
         }
 
         final records = snapshot.data!;
         return SearchableList<VehicleDrivingDates>(
           allItems: records,
-          searchHintText: "搜尋車牌（如：${Static.city.exPlate}）",
+          searchHintText: "搜尋車牌 (支援 Regex)",
           filterCondition: (record, text) {
-            return record.plate.toUpperCase().contains(text.toUpperCase());
+            // 目標：record.plate (String)
+            final tokens =
+                text.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
+            return tokens.every((token) {
+              try {
+                return RegExp(token, caseSensitive: false)
+                    .hasMatch(record.plate);
+              } catch (_) {
+                return record.plate.toUpperCase().contains(token.toUpperCase());
+              }
+            });
           },
           sortCallback: (a, b) => a.plate.compareTo(b.plate),
+          emptyStateWidget: const EmptyStateIndicator(
+            icon: Icons.search_off,
+            title: "找不到符合的車輛",
+            subtitle: "請嘗試更改搜尋關鍵字",
+          ),
           itemBuilder: (context, record) {
             final car = Static.carData.firstWhere(
               (c) => c.plate == record.plate,
-              orElse: () =>
-                  Static.carData.firstWhere((c) => c.plate == record.plate),
+              orElse: () => Car(
+                  plate: record.plate,
+                  type: Type.unknown,
+                  lastSeen: DateTime(0, 0, 0),
+                  rawType: ''),
             );
             return CarListItem(
               car: car,
@@ -246,11 +266,6 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
               margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
             );
           },
-          emptyStateWidget: const EmptyStateIndicator(
-            icon: Icons.search_off,
-            title: "找不到符合的車輛",
-            subtitle: "請嘗試更改搜尋關鍵字",
-          ),
         );
       },
     );

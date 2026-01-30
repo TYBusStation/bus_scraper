@@ -2,25 +2,29 @@ import 'dart:ui';
 
 import 'package:bus_scraper/storage/storage.dart';
 
-import '../widgets/favorite_provider.dart';
 import 'app_theme.dart';
 import 'city.dart';
 
 class LocalStorage {
+  // 儲存鍵值
+  static const String _favoriteTreeKey = "favorite_tree";
+  static const String _favoriteGroupsKey = 'favorite_groups_by_city';
+  static const String _veryOldFavoritePlatesKey = 'favorite_plates';
+  static const String defaultGroupName = '最愛';
+
+  // --- 系統設定 ---
+
   AppTheme get appTheme => AppTheme.values.byName(
       StorageHelper.get<String>('app_theme', AppTheme.followSystem.name));
 
   set appTheme(AppTheme value) =>
       StorageHelper.set<String>('app_theme', value.name);
 
-  City get city {
-    return City.values.byName(
-        StorageHelper.get<String>('selected_city', City.defaultCity.code));
-  }
+  City get city => City.values.byName(
+      StorageHelper.get<String>('selected_city', City.defaultCity.code));
 
-  set city(City value) {
-    StorageHelper.set<String>('selected_city', value.code);
-  }
+  set city(City value) =>
+      StorageHelper.set<String>('selected_city', value.code);
 
   Color get accentColor =>
       Color(StorageHelper.get<int>('accent_color', 0xFFD0BCFF));
@@ -28,108 +32,92 @@ class LocalStorage {
   set accentColor(Color? value) =>
       StorageHelper.set<int?>('accent_color', value?.toARGB32());
 
-  static const String _liveTrackDurationKey = 'live_track_duration';
-
   int get liveTrackDuration =>
-      StorageHelper.get<int>(_liveTrackDurationKey, 10);
+      StorageHelper.get<int>('live_track_duration', 10);
 
   set liveTrackDuration(int value) =>
-      StorageHelper.set<int>(_liveTrackDurationKey, value);
+      StorageHelper.set<int>('live_track_duration', value);
 
-  static const String _favoriteGroupsKey = 'favorite_groups_by_city';
-  static const String _favoriteGroupOrderKey = 'favorite_group_order_by_city';
-  static const String _veryOldFavoritePlatesKey = 'favorite_plates';
+  // --- 巢狀收藏地圖 (Nested Map) ---
 
-  Map<String, List<String>> getFavoriteGroupsForCity(City city) {
-    final allCityGroups =
+  /// 獲取巢狀地圖，若無則從舊版扁平格式遷移
+  Map<String, dynamic> getFavoriteMap(City city) {
+    final allTrees =
+        StorageHelper.get<Map<String, dynamic>>(_favoriteTreeKey, {});
+
+    // 1. 檢查是否有新版巢狀資料
+    if (allTrees.containsKey(city.code)) {
+      return _makeMutable(allTrees[city.code]);
+    }
+
+    // 2. 遷移邏輯：從舊版格式遷移
+    final allOldGroups =
         StorageHelper.get<Map<String, dynamic>>(_favoriteGroupsKey, {});
-    bool needsSave = false;
+    Map<String, dynamic> migratedData = {};
 
-    final veryOldFavorites =
+    if (allOldGroups.containsKey(city.code)) {
+      // 遷移舊版群組 (Map<String, List>)
+      migratedData = _makeMutable(allOldGroups[city.code]);
+    }
+
+    // 3. 處理極舊版車牌清單 (List) 並合併進「最愛」群組
+    final veryOldPlates =
         StorageHelper.get<List<dynamic>?>(_veryOldFavoritePlatesKey);
-    if (veryOldFavorites != null && veryOldFavorites.isNotEmpty) {
-      final typedPlateList = veryOldFavorites.cast<String>();
+    if (veryOldPlates != null && veryOldPlates.isNotEmpty) {
+      final List<String> plateList = List<String>.from(veryOldPlates);
+      final List<String> currentFavorite =
+          List<String>.from(migratedData[defaultGroupName] ?? []);
 
-      for (final targetCity in City.values) {
-        final cityCode = targetCity.code;
-        final cityGroups = allCityGroups[cityCode] != null
-            ? Map<String, dynamic>.from(allCityGroups[cityCode])
-            : <String, dynamic>{};
+      migratedData[defaultGroupName] =
+          (Set<String>.from(currentFavorite)..addAll(plateList)).toList();
 
-        final defaultGroupPlates = Set<String>.from(
-            cityGroups[FavoritesNotifier.defaultGroupName] ?? []);
-        defaultGroupPlates.addAll(typedPlateList);
-        cityGroups[FavoritesNotifier.defaultGroupName] =
-            defaultGroupPlates.toList();
-
-        allCityGroups[cityCode] = cityGroups;
-      }
-
-      needsSave = true;
+      // 清除極舊版資料標記
       StorageHelper.set<List<dynamic>?>(_veryOldFavoritePlatesKey, null);
     }
 
-    if (needsSave) {
-      StorageHelper.set<Map<String, dynamic>>(
-          _favoriteGroupsKey, allCityGroups);
+    if (migratedData.isNotEmpty) {
+      setFavoriteMap(city, migratedData); // 存入新格式
+      return migratedData;
     }
 
-    final currentCityGroups = allCityGroups[city.code];
-    if (currentCityGroups == null) {
-      return {FavoritesNotifier.defaultGroupName: []};
-    }
-
-    final typedCityGroups = Map<String, List<String>>.from(
-      (currentCityGroups as Map).map(
-        (key, value) =>
-            MapEntry(key as String, List<String>.from(value as List)),
-      ),
-    );
-
-    if (!typedCityGroups.containsKey(FavoritesNotifier.defaultGroupName)) {
-      typedCityGroups[FavoritesNotifier.defaultGroupName] = [];
-    }
-
-    return typedCityGroups;
+    return {};
   }
 
-  void setFavoriteGroupsForCity(City city, Map<String, List<String>> groups) {
-    final allCityGroups =
-        StorageHelper.get<Map<String, dynamic>>(_favoriteGroupsKey, {});
-    final mutableAllGroups = Map<String, dynamic>.from(allCityGroups);
-    mutableAllGroups[city.code] = groups;
+  void setFavoriteMap(City city, Map<String, dynamic> data) {
+    final allTrees =
+        StorageHelper.get<Map<String, dynamic>>(_favoriteTreeKey, {});
+    final mutableAll = Map<String, dynamic>.from(allTrees);
+    mutableAll[city.code] = data;
+    StorageHelper.set<Map<String, dynamic>>(_favoriteTreeKey, mutableAll);
+  }
+
+  /// 遞歸確保所有層級皆為可變的 Growable List/Map
+  dynamic _makeMutable(dynamic input) {
+    if (input is Map) {
+      return input.map((k, v) => MapEntry(k.toString(), _makeMutable(v)));
+    } else if (input is List) {
+      return input.map((e) => _makeMutable(e)).toList();
+    }
+    return input;
+  }
+
+  // --- 駕駛長備註 ---
+
+  Map<String, String> getRemarksForCity(City city) {
+    final data =
+        StorageHelper.get<Map<String, dynamic>>('driver_remarks_by_city', {});
+    return data.containsKey(city.code)
+        ? Map<String, String>.from(data[city.code])
+        : {};
+  }
+
+  void setRemarksForCity(City city, Map<String, String> cityRemarks) {
+    final data =
+        StorageHelper.get<Map<String, dynamic>>('driver_remarks_by_city', {});
+    final allRemarks = Map<String, dynamic>.from(data);
+    allRemarks[city.code] = cityRemarks;
     StorageHelper.set<Map<String, dynamic>>(
-        _favoriteGroupsKey, mutableAllGroups);
-  }
-
-  List<String> getFavoriteGroupOrderForCity(City city) {
-    final allCityOrders =
-        StorageHelper.get<Map<String, dynamic>>(_favoriteGroupOrderKey, {});
-    final currentCityOrder = allCityOrders[city.code];
-    if (currentCityOrder is List) {
-      return List<String>.from(currentCityOrder);
-    }
-    return [];
-  }
-
-  void setFavoriteGroupOrderForCity(City city, List<String> order) {
-    final allCityOrders =
-        StorageHelper.get<Map<String, dynamic>>(_favoriteGroupOrderKey, {});
-    final mutableAllOrders = Map<String, dynamic>.from(allCityOrders);
-    mutableAllOrders[city.code] = order;
-    StorageHelper.set<Map<String, dynamic>>(
-        _favoriteGroupOrderKey, mutableAllOrders);
-  }
-
-  List<String> get favoritePlates {
-    final groups = getFavoriteGroupsForCity(city);
-    return groups[FavoritesNotifier.defaultGroupName] ?? [];
-  }
-
-  set favoritePlates(List<String> plates) {
-    final groups = getFavoriteGroupsForCity(city);
-    groups[FavoritesNotifier.defaultGroupName] = plates;
-    setFavoriteGroupsForCity(city, groups);
+        'driver_remarks_by_city', allRemarks);
   }
 
   String? get lastShownVersion =>
@@ -137,26 +125,4 @@ class LocalStorage {
 
   set lastShownVersion(String? value) =>
       StorageHelper.set<String?>('last_shown_version', value);
-
-  Map<String, String> getRemarksForCity(City city) {
-    final data =
-        StorageHelper.get<Map<String, dynamic>>('driver_remarks_by_city', {});
-    if (data.containsKey(city.code)) {
-      return Map<String, String>.from(data[city.code]);
-    }
-    return {};
-  }
-
-  void setRemarksForCity(City city, Map<String, String> cityRemarks) {
-    final data =
-        StorageHelper.get<Map<String, dynamic>>('driver_remarks_by_city', {});
-    Map<String, Map<String, String>> allRemarks = {city.code: cityRemarks};
-    data.forEach((cityCode, remarksObject) {
-      if (cityCode != city.code) {
-        allRemarks[cityCode] = Map<String, String>.from(remarksObject);
-      }
-    });
-    StorageHelper.set<Map<String, Map<String, String>>>(
-        'driver_remarks_by_city', allRemarks);
-  }
 }

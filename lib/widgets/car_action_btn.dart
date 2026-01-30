@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../data/bus_point.dart';
@@ -39,7 +38,7 @@ void _showActionsDialog(BuildContext context, String carPlate) {
             ListTile(
               dense: true,
               leading: const Icon(Icons.history_rounded),
-              title: const Text('行駛記錄'),
+              title: const Text('歷史軌跡'),
               onTap: () {
                 Navigator.pop(ctx);
                 Navigator.push(
@@ -69,11 +68,9 @@ void _showActionsDialog(BuildContext context, String carPlate) {
                       await ApiUtils.fetchCarsByPlates([carPlate]);
 
                   if (updatedCars.isEmpty) {
-                    if (context.mounted) Navigator.of(context).pop();
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('找不到此車輛的最新狀態。')),
-                      );
+                      Navigator.of(context).pop();
+                      FormatterUtils.showSnackbar(context, '本車從未上線。');
                     }
                     return;
                   }
@@ -85,7 +82,7 @@ void _showActionsDialog(BuildContext context, String carPlate) {
                     Static.carData[index] = updatedCar;
                   }
 
-                  final DateTime endTime = updatedCar.lastSeen;
+                  final DateTime endTime = updatedCar.lastSeen!;
                   final DateTime startTime = endTime.subtract(
                       Duration(minutes: Static.localStorage.liveTrackDuration));
                   final String formattedStartTime =
@@ -123,25 +120,15 @@ void _showActionsDialog(BuildContext context, String carPlate) {
                       }
                     } else {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('找不到此車輛最近的軌跡資料。')),
-                        );
+                        FormatterUtils.showSnackbar(context, '找不到此車輛最近的軌跡資料。');
                       }
                     }
                   }
-                } on DioException catch (e) {
-                  if (context.mounted) Navigator.of(context).pop();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('獲取軌跡失敗: ${e.message}')),
-                    );
-                  }
                 } catch (e) {
-                  if (context.mounted) Navigator.of(context).pop();
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('發生未知錯誤: $e')),
-                    );
+                    Navigator.of(context).pop();
+                    FormatterUtils.showSnackbar(
+                        context, '載入失敗: ${FormatterUtils.getErrorMessage(e)}');
                   }
                 }
               },

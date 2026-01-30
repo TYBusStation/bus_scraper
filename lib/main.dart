@@ -1,5 +1,6 @@
 import 'package:bus_scraper/pages/info_page.dart';
 import 'package:bus_scraper/pages/main_page.dart';
+import 'package:bus_scraper/utils/formatter_utils.dart';
 import 'package:bus_scraper/utils/static.dart';
 import 'package:bus_scraper/utils/version_check_service.dart';
 import 'package:bus_scraper/utils/web_interop.dart'
@@ -92,14 +93,7 @@ class _AppLoaderState extends State<AppLoader> {
     _lastTapTime = now;
     if (_tapCount >= 5) {
       _tapCount = 0;
-      ScaffoldMessenger.of(scaffoldContext).clearSnackBars();
-      ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-        SnackBar(
-          content: const Text('已強制切換 API 伺服器，正在重新載入...'),
-          backgroundColor: Colors.orange.shade700,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      FormatterUtils.showSnackbar(scaffoldContext, '強制切換 API 伺服器中...');
       _forceReload();
     }
   }

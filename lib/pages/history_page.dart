@@ -196,28 +196,10 @@ class _HistoryPageState extends State<HistoryPage> {
           error: "API returned status code ${response.statusCode}",
         );
       }
-    } on DioException catch (e) {
-      if (!mounted) return;
-      String errorMessage;
-      if (e.response != null) {
-        if (e.response!.statusCode == 404) {
-          errorMessage = "沒有找到任何歷史軌跡資料。";
-        } else {
-          final errorDetail = e.response?.data['detail'] ?? '伺服器未提供詳細錯誤訊息';
-          errorMessage =
-              "無法獲取數據 (狀態碼: ${e.response!.statusCode}) - $errorDetail";
-        }
-      } else {
-        errorMessage = "網路請求失敗: ${e.message}";
-      }
-      setState(() {
-        _error = errorMessage;
-        _isLoading = false;
-      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = "發生未知錯誤: $e";
+        _error = FormatterUtils.getErrorMessage(e);
         _isLoading = false;
       });
     }

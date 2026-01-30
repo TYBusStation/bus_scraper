@@ -66,7 +66,7 @@ class CarListItem extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          "最後上線：${FormatterUtils.displayTimeFormat.format(car.lastSeen)}",
+                          "最後上線：${car.lastSeen == null ? "從未上線" : FormatterUtils.displayTimeFormat.format(car.lastSeen!)}",
                           style: textTheme.bodySmall,
                         ),
                       ],

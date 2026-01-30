@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:bus_scraper/storage/city.dart';
+import 'package:bus_scraper/utils/formatter_utils.dart';
 import 'package:bus_scraper/utils/static.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -81,14 +82,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _remarksController.text = formattedText;
 
     if (mounted) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('駕駛長備註已格式化並排序'),
-          backgroundColor: Colors.blue,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      FormatterUtils.showSnackbar(context, '駕駛長備註已格式化並排序', color: Colors.blue);
     }
   }
 
@@ -125,14 +119,7 @@ class _SettingsPageState extends State<SettingsPage> {
     Static.localStorage.setRemarksForCity(Static.city, remarksMap);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('駕駛長備註已保存'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      FormatterUtils.showSnackbar(context, '駕駛長備註已保存', color: Colors.green);
     }
   }
 

@@ -1,5 +1,4 @@
 import 'package:bus_scraper/widgets/ui_utils.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../data/car.dart';
@@ -32,7 +31,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
   late DateTime _endDate;
 
   bool _hasSearched = false;
-
   bool _needsRefresh = false;
   Future<List<PlateDrivingDates>>? _searchFuture;
 
@@ -41,6 +39,10 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     super.initState();
     _driverIdController =
         TextEditingController(text: widget.initialDriverId ?? '');
+
+    // 關鍵：監聽輸入變化，每當使用者打字時即時刷新 UI 以顯示備註
+    _driverIdController.addListener(_onDriverIdChanged);
+
     _startDate = widget.initialStartDate ??
         DateTime.now().subtract(const Duration(days: 7));
     _endDate = widget.initialEndDate ?? DateTime.now();
@@ -56,8 +58,13 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
 
   @override
   void dispose() {
+    _driverIdController.removeListener(_onDriverIdChanged);
     _driverIdController.dispose();
     super.dispose();
+  }
+
+  void _onDriverIdChanged() {
+    if (mounted) setState(() {});
   }
 
   static Future<List<PlateDrivingDates>> findDriverDrivingDates({
@@ -76,18 +83,12 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
           'end_time': FormatterUtils.apiTimeFormat.format(endDate),
       },
     );
-    Static.log("Fetching plates for driver $driverId from API: $uri");
-    try {
-      final response = await Static.dio.getUri(uri);
-      if (response.statusCode == 200 && response.data is List) {
-        return (response.data as List)
-            .map((json) => PlateDrivingDates.fromJson(json))
-            .toList();
-      }
-    } on DioException catch (e) {
-      Static.log("DioError fetching plates for driver $driverId: ${e.message}");
-    } catch (e) {
-      Static.log("Unexpected error fetching plates for driver $driverId: $e");
+
+    final response = await Static.dio.getUri(uri);
+    if (response.statusCode == 200 && response.data is List) {
+      return (response.data as List)
+          .map((json) => PlateDrivingDates.fromJson(json))
+          .toList();
     }
     return [];
   }
@@ -95,10 +96,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
   void _triggerSearch() {
     FocusScope.of(context).unfocus();
     if (_driverIdController.text.isEmpty) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('請先輸入駕駛長編號')),
-      );
+      FormatterUtils.showSnackbar(context, '請先輸入駕駛長編號');
       return;
     }
     setState(() {
@@ -143,6 +141,13 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
   Widget _buildInputCard() {
     final isReadOnly = widget.initialDriverId != null;
     final theme = Theme.of(context);
+
+    // 實時獲取備註邏輯
+    final String currentId = _driverIdController.text.trim();
+    final remarksMap = Static.localStorage.getRemarksForCity(Static.city);
+    final String? remark = currentId.isNotEmpty ? remarksMap[currentId] : null;
+    final bool hasRemark = remark != null && remark.isNotEmpty;
+
     return Card(
       elevation: 1,
       margin: const EdgeInsets.only(top: 8),
@@ -152,7 +157,9 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // 搜尋輸入框
             TextField(
               controller: _driverIdController,
               readOnly: isReadOnly,
@@ -170,7 +177,60 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
               ),
               keyboardType: TextInputType.text,
             ),
-            const SizedBox(height: 8),
+
+            // 實時備註顯示區塊
+            Padding(
+              padding: const EdgeInsets.only(top: 6.0),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  // 有備註時使用 Container 色系，無備註時使用淡淡的底色
+                  color: hasRemark
+                      ? theme.colorScheme.secondaryContainer.withOpacity(0.4)
+                      : theme.colorScheme.surfaceVariant.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: hasRemark
+                        ? theme.colorScheme.secondary.withOpacity(0.1)
+                        : Colors.transparent,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      hasRemark ? Icons.sticky_note_2 : Icons.notes,
+                      size: 16,
+                      color: hasRemark
+                          ? theme.colorScheme.secondary
+                          : theme.colorScheme.outline,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        currentId.isEmpty
+                            ? "請輸入編號以查看備註"
+                            : (hasRemark ? "備註：$remark" : "暫無備註"),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: hasRemark
+                              ? theme.colorScheme.onSecondaryContainer
+                              : theme.colorScheme.outline,
+                          fontWeight:
+                              hasRemark ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                        // 保證不省略文字，自動換行
+                        softWrap: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // 時間選擇區
             Row(
               children: [
                 Expanded(
@@ -292,23 +352,38 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
           return EmptyStateIndicator(
               icon: Icons.error_outline_rounded,
               title: "查詢失敗",
-              subtitle: snapshot.error.toString());
+              subtitle: FormatterUtils.getErrorMessage(snapshot.error));
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const EmptyStateIndicator(
-              icon: Icons.no_transfer_rounded,
-              title: "查無資料",
-              subtitle: "找不到該駕駛在此期間的任何駕駛記錄");
+            icon: Icons.sentiment_dissatisfied_outlined,
+            title: "查無結果",
+            subtitle: "找不到符合條件的車輛紀錄。",
+          );
         }
 
         final records = snapshot.data!;
         return SearchableList<PlateDrivingDates>(
           allItems: records,
-          searchHintText: "搜尋車牌（如：${Static.city.exPlate}）",
+          searchHintText: "搜尋車牌（支援 Regex）",
           filterCondition: (record, text) {
-            return record.plate.toUpperCase().contains(text.toUpperCase());
+            final tokens =
+                text.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
+            return tokens.every((token) {
+              try {
+                return RegExp(token, caseSensitive: false)
+                    .hasMatch(record.plate);
+              } catch (_) {
+                return record.plate.toUpperCase().contains(token.toUpperCase());
+              }
+            });
           },
           sortCallback: (a, b) => a.plate.compareTo(b.plate),
+          emptyStateWidget: const EmptyStateIndicator(
+            icon: Icons.search_off,
+            title: "找不到符合的車輛",
+            subtitle: "請嘗試更改搜尋關鍵字",
+          ),
           itemBuilder: (context, record) {
             final car = Static.carData.firstWhere(
               (c) => c.plate == record.plate,
@@ -326,11 +401,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
               margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
             );
           },
-          emptyStateWidget: const EmptyStateIndicator(
-            icon: Icons.search_off,
-            title: "找不到符合的車輛",
-            subtitle: "請嘗試更改搜尋關鍵字",
-          ),
         );
       },
     );

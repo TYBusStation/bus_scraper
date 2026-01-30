@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../data/car.dart';
@@ -38,19 +37,13 @@ class DrivingRecordList extends StatefulWidget {
 }
 
 class _DrivingRecordListState extends State<DrivingRecordList> {
-  bool _isLoading = true;
-  String? _errorMessage;
-  List<DrivingRecord> _allRecords = [];
+  Future<List<DrivingRecord>>? _recordsFuture;
 
   @override
   void initState() {
     super.initState();
     if (widget.queryValue.isNotEmpty) {
-      _fetchDrivingRecords();
-    } else {
-      setState(() {
-        _isLoading = false;
-      });
+      _recordsFuture = _fetchDrivingRecords();
     }
   }
 
@@ -60,89 +53,53 @@ class _DrivingRecordListState extends State<DrivingRecordList> {
     if (widget.queryValue != oldWidget.queryValue ||
         widget.startDate != oldWidget.startDate ||
         widget.endDate != oldWidget.endDate) {
-      if (widget.queryValue.isNotEmpty) {
-        _fetchDrivingRecords();
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = null;
-          _allRecords = [];
-        });
-      }
+      setState(() {
+        _recordsFuture =
+            widget.queryValue.isNotEmpty ? _fetchDrivingRecords() : null;
+      });
     }
   }
 
-  Future<void> _fetchDrivingRecords() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _allRecords = [];
-    });
+  Future<List<DrivingRecord>> _fetchDrivingRecords() async {
+    final String endpoint = widget.queryType == QueryType.byDriver
+        ? '/${Static.city.code}/tools/find_driver_dates'
+        : '/${Static.city.code}/tools/find_route_vehicles';
 
-    try {
-      final String endpoint = widget.queryType == QueryType.byDriver
-          ? '/${Static.city.code}/tools/find_driver_dates'
-          : '/${Static.city.code}/tools/find_route_vehicles';
-      final String paramName =
-          widget.queryType == QueryType.byDriver ? 'driver_id' : 'route_id';
-      final apiStartTime = DateTime(
-          widget.startDate.year, widget.startDate.month, widget.startDate.day);
-      final apiEndTime = DateTime(
-              widget.endDate.year, widget.endDate.month, widget.endDate.day)
-          .add(const Duration(days: 1));
-      final queryParameters = {
-        paramName: widget.queryValue,
-        'start_time': FormatterUtils.apiTimeFormat.format(apiStartTime),
-        'end_time': FormatterUtils.apiTimeFormat.format(apiEndTime),
-      };
-      final response = await Static.dio.get(
-        '${Static.apiBaseUrl}$endpoint',
-        queryParameters: queryParameters,
-      );
-      final List<dynamic> responseData = response.data;
-      final carMap = {for (var car in Static.carData) car.plate: car};
+    final String paramName =
+        widget.queryType == QueryType.byDriver ? 'driver_id' : 'route_id';
 
-      if (mounted) {
-        setState(() {
-          _allRecords = responseData
-              .map((item) {
-                final String plate = item['plate'];
-                final List<String> dates =
-                    List<String>.from(item['dates'] ?? []);
-                final Car? car = carMap[plate];
-                if (car != null && dates.isNotEmpty) {
-                  return DrivingRecord(car: car, dates: dates);
-                }
-                return null;
-              })
-              .where((record) => record != null)
-              .cast<DrivingRecord>()
-              .toList();
-          _isLoading = false;
-        });
-      }
-    } on DioException catch (e) {
-      if (mounted) {
-        String message;
-        if (e.response != null) {
-          final errorDetail = e.response?.data['detail'] ?? '伺服器未提供詳細錯誤訊息';
-          message = "錯誤 ${e.response?.statusCode}: $errorDetail";
-        } else {
-          message = "網路或連線錯誤，請檢查您的網路連線。";
-        }
-        setState(() {
-          _errorMessage = message;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = "發生未預期的錯誤: $e";
-          _isLoading = false;
-        });
-      }
-    }
+    final apiStartTime = DateTime(
+        widget.startDate.year, widget.startDate.month, widget.startDate.day);
+    final apiEndTime =
+        DateTime(widget.endDate.year, widget.endDate.month, widget.endDate.day)
+            .add(const Duration(days: 1));
+
+    final queryParameters = {
+      paramName: widget.queryValue,
+      'start_time': FormatterUtils.apiTimeFormat.format(apiStartTime),
+      'end_time': FormatterUtils.apiTimeFormat.format(apiEndTime),
+    };
+
+    final response = await Static.dio.get(
+      '${Static.apiBaseUrl}$endpoint',
+      queryParameters: queryParameters,
+    );
+
+    final List<dynamic> responseData = response.data;
+    final carMap = {for (var car in Static.carData) car.plate: car};
+
+    return responseData
+        .map((item) {
+          final String plate = item['plate'];
+          final List<String> dates = List<String>.from(item['dates'] ?? []);
+          final Car? car = carMap[plate];
+          if (car != null && dates.isNotEmpty) {
+            return DrivingRecord(car: car, dates: dates);
+          }
+          return null;
+        })
+        .whereType<DrivingRecord>()
+        .toList();
   }
 
   @override
@@ -154,49 +111,69 @@ class _DrivingRecordListState extends State<DrivingRecordList> {
         subtitle: "請輸入駕駛長編號後點擊查詢按鈕。",
       );
     }
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_errorMessage != null) {
-      return EmptyStateIndicator(
-        icon: Icons.error_outline_rounded,
-        title: "查詢失敗",
-        subtitle: _errorMessage!,
-      );
-    }
-    if (_allRecords.isEmpty) {
-      return const EmptyStateIndicator(
-        icon: Icons.sentiment_dissatisfied_outlined,
-        title: "查無結果",
-        subtitle: "找不到符合條件的車輛紀錄。",
-      );
-    }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: SearchableList<DrivingRecord>(
-        allItems: _allRecords,
-        searchHintText: "篩選車牌（如：${Static.city.exPlate}）",
-        filterCondition: (record, text) =>
-            record.car.plate.toUpperCase().contains(text.toUpperCase()),
-        sortCallback: (a, b) => a.car.plate.compareTo(b.car.plate),
-        itemBuilder: (context, record) {
-          return CarListItem(
-            car: record.car,
-            drivingDates: record.dates,
-            driverId: widget.driverIdForListItem,
-            routeId: widget.queryType == QueryType.byRoute
-                ? widget.queryValue
-                : null,
-            margin: const EdgeInsets.symmetric(vertical: 4),
+    return FutureBuilder<List<DrivingRecord>>(
+      future: _recordsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return EmptyStateIndicator(
+            icon: Icons.error_outline_rounded,
+            title: "查詢失敗",
+            subtitle: FormatterUtils.getErrorMessage(snapshot.error),
           );
-        },
-        emptyStateWidget: const EmptyStateIndicator(
-          icon: Icons.search_off_rounded,
-          title: "無篩選結果",
-          subtitle: "找不到符合篩選條件的車牌。",
-        ),
-      ),
+        }
+
+        final records = snapshot.data ?? [];
+        if (records.isEmpty) {
+          return const EmptyStateIndicator(
+            icon: Icons.sentiment_dissatisfied_outlined,
+            title: "查無結果",
+            subtitle: "找不到符合條件的車輛紀錄。",
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: SearchableList<DrivingRecord>(
+            allItems: records,
+            searchHintText: "篩選車牌 (支援 Regex)",
+            filterCondition: (record, text) {
+              final plate = record.car.plate;
+
+              final tokens =
+                  text.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
+              return tokens.every((token) {
+                try {
+                  return RegExp(token, caseSensitive: false).hasMatch(plate);
+                } catch (_) {
+                  return plate.toUpperCase().contains(token.toUpperCase());
+                }
+              });
+            },
+            sortCallback: (a, b) => a.car.plate.compareTo(b.car.plate),
+            itemBuilder: (context, record) {
+              return CarListItem(
+                car: record.car,
+                drivingDates: record.dates,
+                driverId: widget.driverIdForListItem,
+                routeId: widget.queryType == QueryType.byRoute
+                    ? widget.queryValue
+                    : null,
+                margin: const EdgeInsets.symmetric(vertical: 4),
+              );
+            },
+            emptyStateWidget: const EmptyStateIndicator(
+              icon: Icons.search_off_rounded,
+              title: "無篩選結果",
+              subtitle: "找不到符合篩選條件的車牌。",
+            ),
+          ),
+        );
+      },
     );
   }
 }

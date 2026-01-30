@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 class SearchableList<T> extends StatefulWidget {
   final List<T> allItems;
   final String searchHintText;
+
+  // 修改：這裡的 filterCondition 依然接收 searchText，
+  // 但我們可以在實作時決定要不要用 Regex
   final bool Function(T item, String searchText) filterCondition;
   final Widget Function(BuildContext context, T item) itemBuilder;
   final Widget emptyStateWidget;
@@ -29,6 +32,7 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
       ScrollController(keepScrollOffset: false);
 
   late List<T> filteredItems;
+  bool _isRegexError = false; // 新增：標記目前的 Regex 是否語法錯誤
 
   @override
   void initState() {
@@ -40,7 +44,6 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
   @override
   void didUpdateWidget(covariant SearchableList<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-
     if (widget.allItems != oldWidget.allItems ||
         !listEquals(widget.allItems, oldWidget.allItems)) {
       setState(() {
@@ -67,7 +70,26 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
   }
 
   List<T> _getFilteredAndSortedItems() {
-    final searchText = textEditingController.text;
+    final searchText = textEditingController.text.trim();
+    if (searchText.isEmpty) {
+      _isRegexError = false;
+      return List.from(widget.allItems)..sort(widget.sortCallback);
+    }
+
+    // 修正點：使用 RegExp(r'\s+') 而不是 /\s+/
+    final tokens = searchText.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
+
+    bool hasError = false;
+    for (var token in tokens) {
+      try {
+        RegExp(token); // 測試語法是否合法
+      } catch (_) {
+        hasError = true;
+        break;
+      }
+    }
+    _isRegexError = hasError;
+
     return widget.allItems
         .where((item) => widget.filterCondition(item, searchText))
         .toList()
@@ -102,8 +124,12 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
   }
 
   Widget _buildSearchBar(ThemeData themeData) {
-    final bool isEmpty =
+    // 修改：如果「Regex 語法錯誤」或是「搜尋不到結果」，顯示錯誤顏色
+    final bool isInputInvalid = _isRegexError;
+    final bool noResults =
         filteredItems.isEmpty && textEditingController.text.isNotEmpty;
+    final bool showError = isInputInvalid || noResults;
+
     final Color primaryColor = themeData.colorScheme.primary;
     final Color errorColor = themeData.colorScheme.error;
 
@@ -119,17 +145,17 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
           Icon(
             Icons.search,
             size: 20,
-            color: isEmpty ? errorColor : primaryColor,
+            color: showError ? errorColor : primaryColor,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
               style: TextStyle(
                 fontSize: 14,
-                color: isEmpty ? errorColor : themeData.colorScheme.onSurface,
+                color: showError ? errorColor : themeData.colorScheme.onSurface,
               ),
               cursorColor:
-                  isEmpty ? errorColor : themeData.unselectedWidgetColor,
+                  showError ? errorColor : themeData.unselectedWidgetColor,
               controller: textEditingController,
               decoration: InputDecoration(
                 hintText: widget.searchHintText,
@@ -140,6 +166,9 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
                 enabledBorder: InputBorder.none,
                 errorBorder: InputBorder.none,
                 disabledBorder: InputBorder.none,
+                // 新增：如果語法錯誤，在下方提示（可選）
+                suffixText: _isRegexError ? "Regex 語法錯誤 " : null,
+                suffixStyle: TextStyle(color: errorColor, fontSize: 10),
               ),
             ),
           ),

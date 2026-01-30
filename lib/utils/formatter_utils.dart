@@ -1,6 +1,7 @@
 import 'package:bus_scraper/data/bus_route.dart';
 import 'package:bus_scraper/storage/city.dart';
 import 'package:bus_scraper/utils/static.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -217,5 +218,37 @@ abstract class FormatterUtils {
           return (text: "未知", color: Colors.grey.shade600);
       }
     }
+  }
+
+  static String getErrorMessage(dynamic e) {
+    if (e is DioException) {
+      switch (e.response?.statusCode) {
+        case 404:
+          return "查無資料。";
+        case 503:
+          return "資料庫目前離線中，可於晚間嘗試，或連繫作者。";
+        case 502:
+          return "後端服務連線異常。";
+        case 504:
+          return "連線超時，請檢查網路環境。";
+        default:
+          return "連線失敗 (${e.response?.statusCode ?? '未知錯誤'})";
+      }
+    }
+    return "未預期錯誤：$e";
+  }
+
+  static showSnackbar(BuildContext context, String message,
+      {SnackBarAction? action, Color? color}) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        showCloseIcon: true,
+        duration: const Duration(seconds: 3),
+        action: action,
+        backgroundColor: color ?? Theme.of(context).colorScheme.primary,
+      ),
+    );
   }
 }

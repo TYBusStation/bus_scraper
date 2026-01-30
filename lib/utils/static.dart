@@ -22,6 +22,7 @@ abstract class Static {
   static late final String? versionNotes;
 
   static const String _primaryApiUrl = "https://myster.freeddns.org:25566";
+
   static const String _fallbackApiUrl = "http://192.168.1.249:25567";
   static String _currentApiBaseUrl = _primaryApiUrl;
 

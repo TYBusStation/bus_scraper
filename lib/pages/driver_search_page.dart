@@ -1,5 +1,4 @@
 import 'package:bus_scraper/widgets/ui_utils.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../data/vehicle_history.dart';
@@ -40,18 +39,12 @@ class _DriverSearchPageState extends State<DriverSearchPage> {
           'end_time': FormatterUtils.apiTimeFormat.format(endDate),
       },
     );
-    Static.log("Fetching drivers for plate $plate from API: $uri");
-    try {
-      final response = await Static.dio.getUri(uri);
-      if (response.statusCode == 200 && response.data is List) {
-        return (response.data as List)
-            .map((json) => DriverDateInfo.fromJson(json))
-            .toList();
-      }
-    } on DioException catch (e) {
-      Static.log("DioError fetching drivers for plate $plate: ${e.message}");
-    } catch (e) {
-      Static.log("Unexpected error fetching drivers for plate $plate: $e");
+
+    final response = await Static.dio.getUri(uri);
+    if (response.statusCode == 200 && response.data is List) {
+      return (response.data as List)
+          .map((json) => DriverDateInfo.fromJson(json))
+          .toList();
     }
     return [];
   }
@@ -222,13 +215,14 @@ class _DriverSearchPageState extends State<DriverSearchPage> {
           return EmptyStateIndicator(
               icon: Icons.error_outline_rounded,
               title: '查詢失敗',
-              subtitle: snapshot.error.toString());
+              subtitle: FormatterUtils.getErrorMessage(snapshot.error));
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const EmptyStateIndicator(
-              icon: Icons.person_off_rounded,
-              title: '查無資料',
-              subtitle: '在此日期區間內找不到任何駕駛記錄');
+            icon: Icons.sentiment_dissatisfied_outlined,
+            title: "查無結果",
+            subtitle: "找不到符合條件的駕駛紀錄。",
+          );
         }
 
         final drivers = snapshot.data!;

@@ -169,19 +169,19 @@ class _RoutePageState extends State<RoutePage> {
     return SearchableList<BusRoute>(
       key: ValueKey(_showAllRoutes),
       allItems: _displayedRoutes,
-      searchHintText: "搜尋路線名稱、描述或編號",
+      searchHintText: "搜尋路線、描述或編號 (支援 Regex)",
       filterCondition: (route, text) {
-        return text
-            .toUpperCase()
-            .split(" ")
-            .where((token) => token.isNotEmpty)
-            .every((token) => [
-                  route.id,
-                  route.name,
-                  route.description,
-                  route.departure,
-                  route.destination,
-                ].any((str) => str.toUpperCase().contains(token)));
+        final content =
+            '${route.id} ${route.name} ${route.description} ${route.departure} ${route.destination}';
+
+        final tokens = text.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
+        return tokens.every((token) {
+          try {
+            return RegExp(token, caseSensitive: false).hasMatch(content);
+          } catch (_) {
+            return content.toUpperCase().contains(token.toUpperCase());
+          }
+        });
       },
       sortCallback: (a, b) => FormatterUtils.compareRoutes(a.name, b.name),
       itemBuilder: (context, route) {

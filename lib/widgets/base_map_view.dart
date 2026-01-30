@@ -173,34 +173,19 @@ class BaseMapViewState extends State<BaseMapView> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled && mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('請開啟裝置的定位服務'),
-          showCloseIcon: true,
-          backgroundColor: theme.colorScheme.primary,
-        ));
+        FormatterUtils.showSnackbar(context, '定位服務未啟用');
         return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied && mounted) {
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: const Text('您已拒絕位置權限'),
-            showCloseIcon: true,
-            backgroundColor: theme.colorScheme.primary,
-          ));
+          FormatterUtils.showSnackbar(context, '位置權限被拒絕');
           return;
         }
       }
       if (permission == LocationPermission.deniedForever && mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('位置權限已被永久拒絕，請至應用程式設定中開啟'),
-          showCloseIcon: true,
-          backgroundColor: theme.colorScheme.primary,
-        ));
+        FormatterUtils.showSnackbar(context, '位置權限已被永久拒絕，請至應用程式設定中開啟');
         return;
       }
       final position = await Geolocator.getCurrentPosition(
@@ -211,12 +196,7 @@ class BaseMapViewState extends State<BaseMapView> {
       _mapController.move(newLocation, 17.0);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('無法獲取位置: $e'),
-          showCloseIcon: true,
-          backgroundColor: theme.colorScheme.primary,
-        ));
+        FormatterUtils.showSnackbar(context, '無法獲取位置: $e');
       }
     } finally {
       if (mounted) {
@@ -764,15 +744,8 @@ class BaseMapViewState extends State<BaseMapView> {
                                     Clipboard.setData(
                                         ClipboardData(text: latLonString));
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(SnackBar(
-                                              content:
-                                                  Text('已複製經緯度: $latLonString'),
-                                              duration:
-                                                  const Duration(seconds: 2),
-                                              backgroundColor:
-                                                  theme.colorScheme.primary,
-                                              showCloseIcon: true));
+                                      FormatterUtils.showSnackbar(
+                                          context, '已複製經緯度: $latLonString');
                                     }
                                   },
                                   child: MapUtils.buildInfoChip(
@@ -931,15 +904,8 @@ class BaseMapViewState extends State<BaseMapView> {
                                           Clipboard.setData(ClipboardData(
                                               text: latLonString));
                                           if (mounted) {
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(SnackBar(
-                                                    content: Text(
-                                                        '已複製經緯度：$latLonString'),
-                                                    duration: const Duration(
-                                                        seconds: 2),
-                                                    backgroundColor: theme
-                                                        .colorScheme.primary,
-                                                    showCloseIcon: true));
+                                            FormatterUtils.showSnackbar(context,
+                                                '已複製經緯度: $latLonString');
                                           }
                                         },
                                         child: MapUtils.buildInfoChip(

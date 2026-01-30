@@ -5,6 +5,7 @@ import 'package:bus_scraper/data/route_detail.dart';
 import 'package:bus_scraper/data/vehicle_history.dart';
 import 'package:bus_scraper/storage/city.dart';
 import 'package:bus_scraper/utils/static.dart';
+import 'package:dio/dio.dart';
 
 import '../data/bus_route.dart';
 import 'formatter_utils.dart';
@@ -319,7 +320,10 @@ abstract class ApiUtils {
       try {
         final response = await Static.dio.getUri(Uri.parse(url));
         if (response.statusCode == 200 && response.data != null) {
-          return Car.fromJson(response.data);
+          Car car = Car.fromJson(response.data);
+          Static.carData.removeWhere((car) => car.plate == plate);
+          Static.carData.add(car);
+          return car;
         }
       } catch (e) {
         Static.log("讀取車輛資料 (車牌: $plate) 時發生錯誤: $e");
@@ -353,8 +357,13 @@ abstract class ApiUtils {
             .map((json) => VehicleDrivingDates.fromJson(json))
             .toList();
       }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 503) {
+        Static.log("警告: 歷史伺服器離線，無法查詢過往路線車輛。");
+      }
+      Static.log("查詢路線車輛時發生錯誤: ${e.message}");
     } catch (e) {
-      Static.log("查詢路線車輛 (ID: $routeId) 時發生錯誤: $e");
+      Static.log("發生未知錯誤: $e");
     }
     return [];
   }

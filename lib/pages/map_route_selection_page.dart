@@ -130,15 +130,24 @@ class _MapRouteSelectionPageState extends State<MapRouteSelectionPage> {
                 ? const Center(child: CircularProgressIndicator())
                 : SearchableList<BusRoute>(
                     allItems: _displayedRoutes,
-                    searchHintText: '搜尋路線名稱、描述或編號',
-                    filterCondition: (route, text) => text
-                        .toUpperCase()
-                        .split(" ")
-                        .where((t) => t.isNotEmpty)
-                        .every((token) =>
-                            '${route.name} ${route.description} ${route.id} ${route.departure} ${route.destination}'
-                                .toUpperCase()
-                                .contains(token)),
+                    searchHintText: '搜尋路線、描述或編號 (支援 Regex)',
+                    filterCondition: (route, text) {
+                      final content =
+                          '${route.id} ${route.name} ${route.description} ${route.departure} ${route.destination}';
+
+                      final tokens =
+                          text.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
+                      return tokens.every((token) {
+                        try {
+                          return RegExp(token, caseSensitive: false)
+                              .hasMatch(content);
+                        } catch (_) {
+                          return content
+                              .toUpperCase()
+                              .contains(token.toUpperCase());
+                        }
+                      });
+                    },
                     sortCallback: (a, b) =>
                         FormatterUtils.compareRoutes(a.name, b.name),
                     itemBuilder: (context, route) {

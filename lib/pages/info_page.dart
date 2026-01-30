@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:bus_scraper/utils/formatter_utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -27,13 +28,8 @@ class InfoPage extends StatelessWidget {
     final Uri uri = Uri.parse(apkDownloadUrl);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('無法開啟下載連結: $apkDownloadUrl'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        FormatterUtils.showSnackbar(context, '無法開啟下載連結: $apkDownloadUrl',
+            color: Colors.red);
       }
     }
   }
@@ -116,6 +112,32 @@ class InfoPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.share),
+                  label: const Text('分享此網站'),
+                  onPressed: () => _shareWebsite(context),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    textStyle: const TextStyle(fontSize: 16),
+                    backgroundColor: themeData.colorScheme.primary,
+                    foregroundColor: themeData.colorScheme.onPrimary,
+                  ),
+                ),
+                if (kIsWeb) ...[
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    icon: const FaIcon(FontAwesomeIcons.android, size: 20),
+                    label: const Text('下載 Android 版 (APK)'),
+                    onPressed: () => _downloadApk(context),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      textStyle: const TextStyle(fontSize: 16),
+                      backgroundColor: const Color(0xFF3DDC84),
+                      foregroundColor: Colors.black,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
                 _buildAnnouncementCard(context, themeData),
                 const SizedBox(height: 4),
                 _buildUpdateInfoCard(context, themeData),
@@ -166,32 +188,6 @@ class InfoPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.share),
-                  label: const Text('分享此網站'),
-                  onPressed: () => _shareWebsite(context),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12.0),
-                    textStyle: const TextStyle(fontSize: 16),
-                    backgroundColor: themeData.colorScheme.primary,
-                    foregroundColor: themeData.colorScheme.onPrimary,
-                  ),
-                ),
-                if (kIsWeb) ...[
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    icon: const FaIcon(FontAwesomeIcons.android, size: 20),
-                    label: const Text('下載 Android 版 (APK)'),
-                    onPressed: () => _downloadApk(context),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12.0),
-                      textStyle: const TextStyle(fontSize: 16),
-                      backgroundColor: const Color(0xFF3DDC84),
-                      foregroundColor: Colors.black,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 8),
               ],
             ),
           ),
@@ -211,6 +207,11 @@ class ContactItem {
 
 final List<ContactItem> contactItems = [
   ContactItem(
+    title: "Discord 公車交流群",
+    icon: FontAwesomeIcons.discord,
+    url: "https://tybusstation.github.io/discord",
+  ),
+  ContactItem(
     title: "Linktree",
     icon: FontAwesomeIcons.link,
     url: "https://tybusstation.github.io",
@@ -219,11 +220,6 @@ final List<ContactItem> contactItems = [
     title: "Instagram",
     icon: FontAwesomeIcons.instagram,
     url: "https://www.instagram.com/myster.bus/",
-  ),
-  ContactItem(
-    title: "Discord",
-    icon: FontAwesomeIcons.discord,
-    url: "https://discordapp.com/users/716652855905222736",
   ),
   ContactItem(
     title: "GitHub",

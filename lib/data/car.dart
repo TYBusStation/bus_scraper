@@ -16,19 +16,19 @@ class Car {
   final String rawType;
 
   @JsonKey(name: "last_seen")
-  final DateTime lastSeen;
+  final DateTime? lastSeen;
 
   Car({
     required this.plate,
     required this.type,
-    required this.lastSeen,
+    this.lastSeen,
     required this.rawType,
   });
 
   String get typeDisplayName {
     return '${type.chinese} ($rawType)';
   }
-
+  
   factory Car.fromJson(Map<String, dynamic> json) => _$CarFromJson(json);
 
   Map<String, dynamic> toJson() => _$CarToJson(this);

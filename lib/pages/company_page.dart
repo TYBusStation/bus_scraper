@@ -1,3 +1,4 @@
+import 'package:bus_scraper/utils/formatter_utils.dart';
 import 'package:bus_scraper/widgets/car_action_btn.dart';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
@@ -7,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../data/company.dart';
 import '../utils/static.dart';
+import '../widgets/favorite_button.dart';
 import '../widgets/theme_provider.dart';
 
 class SelectionDialog<T> extends StatefulWidget {
@@ -593,27 +595,15 @@ class _CompanyPageState extends State<CompanyPage> {
     if (_comparisonResult == null ||
         (_comparisonResult!['added']!.isEmpty &&
             _comparisonResult!['removed']!.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('沒有可複製的差異內容。'),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      FormatterUtils.showSnackbar(context, '沒有可複製的差異內容。',
+          color: Theme.of(context).colorScheme.secondary);
       return;
     }
     final comparisonText = _generateComparisonTextForClipboard();
     await Clipboard.setData(ClipboardData(text: comparisonText));
 
     if (mounted) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('比較結果已複製到剪貼簿！'),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      FormatterUtils.showSnackbar(context, '比較結果已複製到剪貼簿！');
     }
   }
 
@@ -631,13 +621,7 @@ class _CompanyPageState extends State<CompanyPage> {
     await Clipboard.setData(ClipboardData(text: url));
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$panelName 的資料連結已複製！'),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      FormatterUtils.showSnackbar(context, '$panelName 的資料連結已複製到剪貼簿！');
     }
   }
 
@@ -650,12 +634,8 @@ class _CompanyPageState extends State<CompanyPage> {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('無法開啟監理服務網: $url'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        FormatterUtils.showSnackbar(context, '無法開啟監理服務網: $url',
+            color: Theme.of(context).colorScheme.error);
       }
     }
   }
@@ -882,6 +862,10 @@ class _CompanyPageState extends State<CompanyPage> {
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               child: Row(
                 children: [
+                  if (selectedDataType == 'cars') ...[
+                    FavoriteBtnMini(plate: item),
+                    const SizedBox(width: 3),
+                  ],
                   Text(item, style: const TextStyle(fontSize: 11)),
                   if (selectedDataType == 'cars') ...[
                     const SizedBox(width: 3),
@@ -935,6 +919,10 @@ class _CompanyPageState extends State<CompanyPage> {
           Expanded(
             child: Row(
               children: [
+                if (selectedDataType == 'cars') ...[
+                  FavoriteBtnMini(plate: displayText),
+                  const SizedBox(width: 3),
+                ],
                 Text(
                   displayText,
                   style: TextStyle(fontSize: 11, color: textColor),

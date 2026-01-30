@@ -178,9 +178,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('搜尋失敗: ${e.toString()}')));
+        FormatterUtils.showSnackbar(context, '搜尋失敗: ${e.toString()}');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -365,8 +363,7 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+        FormatterUtils.showSnackbar(context, '定位失敗: ${e.toString()}');
       }
     } finally {
       if (mounted) setState(() => _isLocating = false);
@@ -1121,15 +1118,8 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                   Clipboard.setData(
                                       ClipboardData(text: latLonString));
                                   if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('已複製經緯度：$latLonString'),
-                                        duration: const Duration(seconds: 2),
-                                        backgroundColor:
-                                            theme.colorScheme.primary,
-                                        showCloseIcon: true,
-                                      ),
-                                    );
+                                    FormatterUtils.showSnackbar(
+                                        context, '已複製經緯度：$latLonString');
                                   }
                                 },
                                 child: MapUtils.buildInfoChip(

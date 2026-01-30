@@ -15,11 +15,15 @@ import '../widgets/point_marker.dart';
 class MultiHistoryOsmPage extends StatefulWidget {
   final String title;
   final List<Car> cars;
+  final DateTime? endTime;
+  final DateTime? startTime;
 
   const MultiHistoryOsmPage({
     super.key,
     required this.title,
     required this.cars,
+    this.endTime,
+    this.startTime,
   });
 
   @override
@@ -54,9 +58,14 @@ class _MultiHistoryOsmPageState extends State<MultiHistoryOsmPage> {
       final List<String> errorPlates = [];
 
       final futures = widget.cars.map((car) async {
-        final DateTime endTime = car.lastSeen;
-        final DateTime startTime = endTime
-            .subtract(Duration(minutes: Static.localStorage.liveTrackDuration));
+        if (car.lastSeen == null) {
+          errorPlates.add(car.plate);
+          return {'plate': car.plate, 'segments': <TrajectorySegment>[]};
+        }
+        final DateTime endTime = widget.endTime ?? car.lastSeen!;
+        final DateTime startTime = widget.startTime ??
+            endTime.subtract(
+                Duration(minutes: Static.localStorage.liveTrackDuration));
 
         final formattedStartTime =
             FormatterUtils.apiTimeFormat.format(startTime);

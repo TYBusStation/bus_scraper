@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../data/trajectory_segment.dart';
 import '../utils/formatter_utils.dart';
+import '../utils/static.dart';
 import 'history_osm_page.dart';
 
 class SegmentDetailsPage extends StatelessWidget {
@@ -70,13 +71,28 @@ class SegmentDetailsPage extends StatelessWidget {
                             },
                           ),
                           IconButton(
-                            iconSize: 20,
-                            icon: const Icon(Icons.map_sharp),
-                            color: Colors.blueAccent,
-                            tooltip: '在 Google Map 上查看',
-                            onPressed: () async => await launchUrl(Uri.parse(
-                                "https://www.google.com/maps?q=${dataPoint.lat},${dataPoint.lon}(${Uri.encodeComponent('${route.name} | ${route.description} | 往 ${dataPoint.goBack == 1 ? route.destination : route.departure} | ${dataPoint.dutyStatus == 0 ? "營運" : "非營運"} | 駕駛長：${FormatterUtils.getDriverText(dataPoint.driverId)} | ${FormatterUtils.displayTimeFormat.format(dataPoint.dataTime)}')} )")),
-                          ),
+                              iconSize: 20,
+                              icon: const Icon(Icons.map_sharp),
+                              color: Colors.blueAccent,
+                              tooltip: '在 Google Map 上查看',
+                              onPressed: () async {
+                                final direction =
+                                    FormatterUtils.getBusDirectionName(
+                                        route, dataPoint.goBack);
+                                final dutyStatusInfo =
+                                    FormatterUtils.getDutyStatusInfo(
+                                        dataPoint.dutyStatus);
+                                String driverInfo = "";
+                                if (Static.city.hasDriverInfo) {
+                                  driverInfo =
+                                      " | 駕駛長：${FormatterUtils.getDriverText(dataPoint.driverId)}";
+                                }
+                                final mapTitle =
+                                    "$plate | ${route.name} | ${route.description} | 往 $direction | ${dutyStatusInfo.text}$driverInfo | ${FormatterUtils.displayTimeFormat.format(dataPoint.dataTime)}";
+                                await launchUrl(Uri.parse(
+                                    "https://www.google.com/maps?q=${dataPoint.lat}"
+                                    ",${dataPoint.lon}($mapTitle)"));
+                              }),
                         ],
                       )
                     ],
