@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:bus_scraper/utils/api_utils.dart';
 import 'package:bus_scraper/utils/formatter_utils.dart';
 import 'package:bus_scraper/widgets/car_action_btn.dart';
+import 'package:bus_scraper/widgets/favorite_button.dart';
 import 'package:bus_scraper/widgets/ui_utils.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -950,7 +951,9 @@ class _NearbyVehiclesPageState extends State<NearbyVehiclesPage> {
                                 });
                               },
                             ),
-                            Expanded(child: Text(value)),
+                            Text(value),
+                            const Spacer(),
+                            FavoriteButton(plate: value),
                             CarActionBtn(carPlate: value),
                           ],
                         ),

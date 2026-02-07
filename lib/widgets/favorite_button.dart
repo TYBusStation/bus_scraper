@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 
 import 'favorite_provider.dart';
 
-/// 遞歸尋找所有包含此車牌的路徑
-/// 例如結果可能是：[['桃園客運', '桃園公車站'], ['中壢客運', '中壢站']]
 void _findPathsWithPlate(dynamic node, String plate, List<String> currentPath,
     List<List<String>> results) {
   if (node is List) {
@@ -21,11 +19,9 @@ void _findPathsWithPlate(dynamic node, String plate, List<String> currentPath,
 
 Future<void> _showManageGroupsDialog(
     BuildContext context, FavoritesNotifier notifier, String plate) async {
-  // 找出目前車牌所在的所有路徑
   final List<List<String>> currentPaths = [];
   _findPathsWithPlate(notifier.data, plate, [], currentPaths);
 
-  // 使用 String 作為 Set 的 Key，方便比對 (將路徑 List 轉為字串)
   final Set<String> selectedPathStrings =
       currentPaths.map((p) => p.join(' > ')).toSet();
 
@@ -49,7 +45,6 @@ Future<void> _showManageGroupsDialog(
                         child: Text("請先在收藏頁面建立群組",
                             style: TextStyle(color: Colors.grey)),
                       ),
-                    // 遞歸構建選單
                     ...notifier.data.entries.map((e) => _buildFolderOption(
                         context,
                         e.key,
@@ -69,13 +64,9 @@ Future<void> _showManageGroupsDialog(
               ),
               FilledButton(
                 onPressed: () {
-                  // 將選中的路徑字串轉回 List<List<String>>
                   final List<List<String>> finalPaths =
                       selectedPathStrings.map((s) => s.split(' > ')).toList();
-
-                  // 呼叫 Notifier 進行更新
                   notifier.updatePlateLocations(plate, finalPaths);
-
                   Navigator.of(context).pop();
                   FormatterUtils.showSnackbar(context, '已更新收藏');
                 },
@@ -89,7 +80,6 @@ Future<void> _showManageGroupsDialog(
   );
 }
 
-/// 遞歸構建對話框內的清單
 Widget _buildFolderOption(
     BuildContext context,
     String key,
@@ -103,7 +93,6 @@ Widget _buildFolderOption(
   final bool isLeaf = value is List;
 
   if (isLeaf) {
-    // 如果是 List (葉子節點)，顯示為可勾選的 Checkbox
     return CheckboxListTile(
       contentPadding: EdgeInsets.only(left: depth * 16.0),
       dense: true,
@@ -121,7 +110,6 @@ Widget _buildFolderOption(
       controlAffinity: ListTileControlAffinity.leading,
     );
   } else if (value is Map) {
-    // 如果是 Map (目錄節點)，顯示標題並遞歸其內容
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

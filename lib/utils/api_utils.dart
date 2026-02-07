@@ -367,4 +367,21 @@ abstract class ApiUtils {
     }
     return [];
   }
+
+  static Future<List<Map<String, dynamic>>> fetchCarTimetable({
+    required String plate,
+    required String date,
+  }) async {
+    final url =
+        "${Static.apiBaseUrl}/${Static.city.code}/timetable?date=$date&plate=$plate";
+    try {
+      final response = await Static.dio.get(url);
+      if (response.statusCode == 200 && response.data is List) {
+        return List<Map<String, dynamic>>.from(response.data);
+      }
+    } catch (e) {
+      Static.log("讀取車輛時刻表 ($plate) 時發生錯誤: $e");
+    }
+    return [];
+  }
 }

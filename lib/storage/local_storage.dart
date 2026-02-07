@@ -6,13 +6,10 @@ import 'app_theme.dart';
 import 'city.dart';
 
 class LocalStorage {
-  // 儲存鍵值
   static const String _favoriteTreeKey = "favorite_tree";
   static const String _favoriteGroupsKey = 'favorite_groups_by_city';
   static const String _veryOldFavoritePlatesKey = 'favorite_plates';
   static const String defaultGroupName = '最愛';
-
-  // --- 系統設定 ---
 
   AppTheme get appTheme => AppTheme.values.byName(
       StorageHelper.get<String>('app_theme', AppTheme.followSystem.name));
@@ -38,29 +35,22 @@ class LocalStorage {
   set liveTrackDuration(int value) =>
       StorageHelper.set<int>('live_track_duration', value);
 
-  // --- 巢狀收藏地圖 (Nested Map) ---
-
-  /// 獲取巢狀地圖，若無則從舊版扁平格式遷移
   Map<String, dynamic> getFavoriteMap(City city) {
     final allTrees =
         StorageHelper.get<Map<String, dynamic>>(_favoriteTreeKey, {});
 
-    // 1. 檢查是否有新版巢狀資料
     if (allTrees.containsKey(city.code)) {
       return _makeMutable(allTrees[city.code]);
     }
 
-    // 2. 遷移邏輯：從舊版格式遷移
     final allOldGroups =
         StorageHelper.get<Map<String, dynamic>>(_favoriteGroupsKey, {});
     Map<String, dynamic> migratedData = {};
 
     if (allOldGroups.containsKey(city.code)) {
-      // 遷移舊版群組 (Map<String, List>)
       migratedData = _makeMutable(allOldGroups[city.code]);
     }
 
-    // 3. 處理極舊版車牌清單 (List) 並合併進「最愛」群組
     final veryOldPlates =
         StorageHelper.get<List<dynamic>?>(_veryOldFavoritePlatesKey);
     if (veryOldPlates != null && veryOldPlates.isNotEmpty) {
@@ -71,12 +61,11 @@ class LocalStorage {
       migratedData[defaultGroupName] =
           (Set<String>.from(currentFavorite)..addAll(plateList)).toList();
 
-      // 清除極舊版資料標記
       StorageHelper.set<List<dynamic>?>(_veryOldFavoritePlatesKey, null);
     }
 
     if (migratedData.isNotEmpty) {
-      setFavoriteMap(city, migratedData); // 存入新格式
+      setFavoriteMap(city, migratedData);
       return migratedData;
     }
 
@@ -91,7 +80,6 @@ class LocalStorage {
     StorageHelper.set<Map<String, dynamic>>(_favoriteTreeKey, mutableAll);
   }
 
-  /// 遞歸確保所有層級皆為可變的 Growable List/Map
   dynamic _makeMutable(dynamic input) {
     if (input is Map) {
       return input.map((k, v) => MapEntry(k.toString(), _makeMutable(v)));
@@ -100,8 +88,6 @@ class LocalStorage {
     }
     return input;
   }
-
-  // --- 駕駛長備註 ---
 
   Map<String, String> getRemarksForCity(City city) {
     final data =

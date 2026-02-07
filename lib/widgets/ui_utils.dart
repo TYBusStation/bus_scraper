@@ -9,18 +9,23 @@ abstract class UiUtils {
     required BuildContext context,
     required DateTime initialDate,
     required void Function(DateTime newDate) onDateSelected,
+    DateTime? firstDate,
+    DateTime? lastDate,
   }) async {
-    final DateTime validInitialDate = initialDate.isAfter(_lastSelectableDate)
-        ? _lastSelectableDate
-        : (initialDate.isBefore(_firstSelectableDate)
-            ? _firstSelectableDate
+    final DateTime effectiveFirstDate = firstDate ?? _firstSelectableDate;
+    final DateTime effectiveLastDate = lastDate ?? _lastSelectableDate;
+
+    final DateTime validInitialDate = initialDate.isAfter(effectiveLastDate)
+        ? effectiveLastDate
+        : (initialDate.isBefore(effectiveFirstDate)
+            ? effectiveFirstDate
             : initialDate);
 
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: validInitialDate,
-      firstDate: _firstSelectableDate,
-      lastDate: _lastSelectableDate,
+      firstDate: effectiveFirstDate,
+      lastDate: effectiveLastDate,
       helpText: '選擇日期',
     );
 

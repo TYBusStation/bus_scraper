@@ -10,11 +10,11 @@ class FavoriteFolder {
 
   FavoriteFolder({
     required this.name,
-    List<String>? plates, // 接收可選的列表
-    List<FavoriteFolder>? subFolders, // 接收可選的列表
-  })  : this.plates = plates ?? [],
-        // 如果是 null，則建立新的可變列表 []
-        this.subFolders = subFolders ?? []; // 如果是 null，則建立新的可變列表 []
+    List<String>? plates,
+    List<FavoriteFolder>? subFolders,
+  })
+      : this.plates = plates ?? [],
+        this.subFolders = subFolders ?? [];
 
   factory FavoriteFolder.fromJson(Map<String, dynamic> json) =>
       _$FavoriteFolderFromJson(json);

@@ -232,7 +232,6 @@ class _RouteVehiclesPageState extends State<RouteVehiclesPage> {
           allItems: records,
           searchHintText: "搜尋車牌 (支援 Regex)",
           filterCondition: (record, text) {
-            // 目標：record.plate (String)
             final tokens =
                 text.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
             return tokens.every((token) {

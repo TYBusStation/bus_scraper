@@ -1,4 +1,4 @@
-import 'package:bus_scraper/pages/timetable_page.dart';
+import 'package:bus_scraper/pages/route_timetable_page.dart';
 import 'package:bus_scraper/utils/api_utils.dart';
 import 'package:bus_scraper/utils/formatter_utils.dart';
 import 'package:flutter/material.dart';
@@ -267,7 +267,8 @@ class _RoutePageState extends State<RoutePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => TimetablePage(route: route),
+                              builder: (context) =>
+                                  RouteTimetablePage(route: route),
                             ),
                           );
                         },

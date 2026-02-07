@@ -4,9 +4,6 @@ import 'package:flutter/material.dart';
 class SearchableList<T> extends StatefulWidget {
   final List<T> allItems;
   final String searchHintText;
-
-  // 修改：這裡的 filterCondition 依然接收 searchText，
-  // 但我們可以在實作時決定要不要用 Regex
   final bool Function(T item, String searchText) filterCondition;
   final Widget Function(BuildContext context, T item) itemBuilder;
   final Widget emptyStateWidget;
@@ -32,7 +29,7 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
       ScrollController(keepScrollOffset: false);
 
   late List<T> filteredItems;
-  bool _isRegexError = false; // 新增：標記目前的 Regex 是否語法錯誤
+  bool _isRegexError = false;
 
   @override
   void initState() {
@@ -76,13 +73,12 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
       return List.from(widget.allItems)..sort(widget.sortCallback);
     }
 
-    // 修正點：使用 RegExp(r'\s+') 而不是 /\s+/
     final tokens = searchText.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
 
     bool hasError = false;
     for (var token in tokens) {
       try {
-        RegExp(token); // 測試語法是否合法
+        RegExp(token);
       } catch (_) {
         hasError = true;
         break;
@@ -124,7 +120,6 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
   }
 
   Widget _buildSearchBar(ThemeData themeData) {
-    // 修改：如果「Regex 語法錯誤」或是「搜尋不到結果」，顯示錯誤顏色
     final bool isInputInvalid = _isRegexError;
     final bool noResults =
         filteredItems.isEmpty && textEditingController.text.isNotEmpty;
@@ -166,7 +161,6 @@ class _SearchableListState<T> extends State<SearchableList<T>> {
                 enabledBorder: InputBorder.none,
                 errorBorder: InputBorder.none,
                 disabledBorder: InputBorder.none,
-                // 新增：如果語法錯誤，在下方提示（可選）
                 suffixText: _isRegexError ? "Regex 語法錯誤 " : null,
                 suffixStyle: TextStyle(color: errorColor, fontSize: 10),
               ),

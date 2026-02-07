@@ -40,7 +40,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     _driverIdController =
         TextEditingController(text: widget.initialDriverId ?? '');
 
-    // 關鍵：監聽輸入變化，每當使用者打字時即時刷新 UI 以顯示備註
     _driverIdController.addListener(_onDriverIdChanged);
 
     _startDate = widget.initialStartDate ??
@@ -73,7 +72,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     DateTime? endDate,
   }) async {
     final uri = Uri.parse(
-            "${Static.apiBaseUrl}/${Static.city.code}/tools/find_driver_dates")
+        "${Static.apiBaseUrl}/${Static.city.code}/tools/find_driver_dates")
         .replace(
       queryParameters: {
         'driver_id': driverId,
@@ -103,7 +102,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
       _hasSearched = true;
       _needsRefresh = false;
       final finalEndDate =
-          DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
+      DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
       _searchFuture = findDriverDrivingDates(
         driverId: _driverIdController.text,
         startDate: _startDate,
@@ -142,7 +141,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     final isReadOnly = widget.initialDriverId != null;
     final theme = Theme.of(context);
 
-    // 實時獲取備註邏輯
     final String currentId = _driverIdController.text.trim();
     final remarksMap = Static.localStorage.getRemarksForCity(Static.city);
     final String? remark = currentId.isNotEmpty ? remarksMap[currentId] : null;
@@ -159,7 +157,6 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 搜尋輸入框
             TextField(
               controller: _driverIdController,
               readOnly: isReadOnly,
@@ -173,19 +170,17 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
                     ? theme.colorScheme.surfaceVariant.withOpacity(0.3)
                     : null,
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               keyboardType: TextInputType.text,
             ),
 
-            // 實時備註顯示區塊
             Padding(
               padding: const EdgeInsets.only(top: 6.0),
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  // 有備註時使用 Container 色系，無備註時使用淡淡的底色
                   color: hasRemark
                       ? theme.colorScheme.secondaryContainer.withOpacity(0.4)
                       : theme.colorScheme.surfaceVariant.withOpacity(0.2),
@@ -217,9 +212,8 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
                               ? theme.colorScheme.onSecondaryContainer
                               : theme.colorScheme.outline,
                           fontWeight:
-                              hasRemark ? FontWeight.w600 : FontWeight.normal,
+                          hasRemark ? FontWeight.w600 : FontWeight.normal,
                         ),
-                        // 保證不省略文字，自動換行
                         softWrap: true,
                       ),
                     ),
@@ -230,27 +224,28 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
 
             const SizedBox(height: 10),
 
-            // 時間選擇區
             Row(
               children: [
                 Expanded(
                   child: _buildDatePicker(
                     label: "起始",
                     value: _startDate,
-                    onPressed: () => UiUtils.selectRangeDateTime(
-                      context: context,
-                      isStart: true,
-                      currentRange:
+                    onPressed: () =>
+                        UiUtils.selectRangeDateTime(
+                          context: context,
+                          isStart: true,
+                          currentRange:
                           DateTimeRange(start: _startDate, end: _endDate),
-                      pickTime: false,
-                      maxDuration: const Duration(days: 30),
-                      onDateTimeChanged: (range) => setState(() {
-                        _startDate = range.start;
-                        _endDate = range.end;
-                        _needsRefresh = true;
-                        _hasSearched = false;
-                      }),
-                    ),
+                          pickTime: false,
+                          maxDuration: const Duration(days: 30),
+                          onDateTimeChanged: (range) =>
+                              setState(() {
+                                _startDate = range.start;
+                                _endDate = range.end;
+                                _needsRefresh = true;
+                                _hasSearched = false;
+                              }),
+                        ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -258,20 +253,22 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
                   child: _buildDatePicker(
                     label: "結束",
                     value: _endDate,
-                    onPressed: () => UiUtils.selectRangeDateTime(
-                      context: context,
-                      isStart: false,
-                      currentRange:
+                    onPressed: () =>
+                        UiUtils.selectRangeDateTime(
+                          context: context,
+                          isStart: false,
+                          currentRange:
                           DateTimeRange(start: _startDate, end: _endDate),
-                      pickTime: false,
-                      maxDuration: const Duration(days: 30),
-                      onDateTimeChanged: (range) => setState(() {
-                        _startDate = range.start;
-                        _endDate = range.end;
-                        _needsRefresh = true;
-                        _hasSearched = false;
-                      }),
-                    ),
+                          pickTime: false,
+                          maxDuration: const Duration(days: 30),
+                          onDateTimeChanged: (range) =>
+                              setState(() {
+                                _startDate = range.start;
+                                _endDate = range.end;
+                                _needsRefresh = true;
+                                _hasSearched = false;
+                              }),
+                        ),
                   ),
                 ),
               ],
@@ -290,10 +287,9 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
     );
   }
 
-  Widget _buildDatePicker(
-      {required String label,
-      required DateTime value,
-      required VoidCallback onPressed}) {
+  Widget _buildDatePicker({required String label,
+    required DateTime value,
+    required VoidCallback onPressed}) {
     final theme = Theme.of(context);
     return InkWell(
       onTap: onPressed,
@@ -332,7 +328,9 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
   Widget _buildPromptArea() {
     final title = _needsRefresh ? "請重新查詢" : "開始查詢";
     final subtitle =
-        _needsRefresh ? "時間已更新，請點擊查詢按鈕" : "輸入駕駛長編號並選擇日期範圍後\n點擊查詢按鈕";
+    _needsRefresh
+        ? "時間已更新，請點擊查詢按鈕"
+        : "輸入駕駛長編號並選擇日期範圍後\n點擊查詢按鈕";
 
     return EmptyStateIndicator(
       icon: Icons.person_search_outlined,
@@ -368,7 +366,7 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
           searchHintText: "搜尋車牌（支援 Regex）",
           filterCondition: (record, text) {
             final tokens =
-                text.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
+            text.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
             return tokens.every((token) {
               try {
                 return RegExp(token, caseSensitive: false)
@@ -386,12 +384,13 @@ class _DriverPlatesPageState extends State<DriverPlatesPage> {
           ),
           itemBuilder: (context, record) {
             final car = Static.carData.firstWhere(
-              (c) => c.plate == record.plate,
-              orElse: () => Car(
-                  plate: record.plate,
-                  type: Type.unknown,
-                  lastSeen: DateTime(0, 0, 0),
-                  rawType: ''),
+                  (c) => c.plate == record.plate,
+              orElse: () =>
+                  Car(
+                      plate: record.plate,
+                      type: Type.unknown,
+                      lastSeen: DateTime(0, 0, 0),
+                      rawType: ''),
             );
 
             return CarListItem(

@@ -1,4 +1,4 @@
-import 'package:bus_scraper/pages/timetable_page.dart';
+import 'package:bus_scraper/pages/route_timetable_page.dart';
 import 'package:bus_scraper/utils/api_utils.dart';
 import 'package:bus_scraper/widgets/ui_utils.dart';
 import 'package:flutter/material.dart';
@@ -314,7 +314,6 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
           allItems: allItems,
           searchHintText: "搜尋路線、描述或編號 (支援 Regex)",
           filterCondition: (item, text) {
-            // 合併路線所有文字資訊作為搜尋對象
             final r = item.route;
             final content =
                 '${r.id} ${r.name} ${r.description} ${r.departure} ${r.destination}';
@@ -408,7 +407,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      TimetablePage(route: route),
+                                      RouteTimetablePage(route: route),
                                 ),
                               );
                             },

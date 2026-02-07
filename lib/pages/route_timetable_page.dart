@@ -1,5 +1,6 @@
 import 'package:bus_scraper/utils/formatter_utils.dart';
 import 'package:bus_scraper/widgets/car_action_btn.dart';
+import 'package:bus_scraper/widgets/favorite_button.dart';
 import 'package:flutter/material.dart';
 
 import '../data/bus_route.dart';
@@ -7,21 +8,31 @@ import '../utils/api_utils.dart';
 import '../widgets/empty_state_indicator.dart';
 import '../widgets/ui_utils.dart';
 
-class TimetablePage extends StatefulWidget {
+class RouteTimetablePage extends StatefulWidget {
   final BusRoute route;
 
-  const TimetablePage({super.key, required this.route});
+  const RouteTimetablePage({super.key, required this.route});
 
   @override
-  State<TimetablePage> createState() => _TimetablePageState();
+  State<RouteTimetablePage> createState() => _RouteTimetablePageState();
 }
 
-class _TimetablePageState extends State<TimetablePage> {
+class _RouteTimetablePageState extends State<RouteTimetablePage> {
   late DateTime _selectedDate;
   bool _isLoading = false;
 
   List<Map<String, dynamic>> _outboundList = [];
   List<Map<String, dynamic>> _inboundList = [];
+
+  bool get _isFutureDate {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selected =
+        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    if (!selected.isAfter(today)) return false;
+    if (selected.difference(today).inDays == 1 && now.hour >= 18) return false;
+    return true;
+  }
 
   @override
   void initState() {
@@ -119,6 +130,45 @@ class _TimetablePageState extends State<TimetablePage> {
                 children: [
                   _buildHeaderInfo(context),
                   _buildDateSelector(context),
+                  if (_isFutureDate)
+                    Container(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12.0, vertical: 4.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12.0, vertical: 8.0),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .errorContainer
+                            .withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .error
+                                .withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 18,
+                              color: Theme.of(context).colorScheme.error),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '未來時刻表在前一日 18:00 前查詢通常不具參考價值。',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onErrorContainer,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: 8),
                   _buildTimetableContent(context),
                 ],
@@ -391,7 +441,13 @@ class _TimetablePageState extends State<TimetablePage> {
                         carPlate.isNotEmpty ? carPlate : '排定班次',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      trailing: CarActionBtn(carPlate: carPlate),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FavoriteButton(plate: carPlate),
+                          CarActionBtn(carPlate: carPlate),
+                        ],
+                      ),
                     ),
                   );
                 },

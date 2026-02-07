@@ -20,7 +20,6 @@ class CarsPage extends StatefulWidget {
 class _CarsPageState extends State<CarsPage> {
   bool _isRefreshing = false;
 
-  /// 執行重整邏輯，重新抓取 API 資料並更新介面
   Future<void> _handleRefresh() async {
     if (_isRefreshing) return;
 
@@ -30,12 +29,10 @@ class _CarsPageState extends State<CarsPage> {
 
     try {
       Static.log("開始手動更新車輛列表與最後上線時間...");
-      // 重新從伺服器獲取最新的車輛資料
       final newData = await ApiUtils.fetchCarData();
 
       if (newData.isNotEmpty) {
         setState(() {
-          // 更新全域靜態資料
           Static.carData = newData;
         });
         if (mounted) {
@@ -58,19 +55,17 @@ class _CarsPageState extends State<CarsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 使用 Scaffold 以放置 FloatingActionButton
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: Consumer<FavoritesNotifier>(
           builder: (context, notifier, child) {
-            // 直接顯示列表，不使用 RefreshIndicator
             return SearchableList<Car>(
               allItems: Static.carData,
               searchHintText: "搜尋車牌（支援 Regex）",
               filterCondition: (item, text) {
                 final String plate = item.plate;
                 final tokens =
-                    text.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
+                text.split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
 
                 return tokens.every((token) {
                   try {
@@ -93,19 +88,18 @@ class _CarsPageState extends State<CarsPage> {
           },
         ),
       ),
-      // 重整按鈕
       floatingActionButton: FloatingActionButton(
         onPressed: _isRefreshing ? null : _handleRefresh,
         tooltip: "更新車輛資料",
         child: _isRefreshing
             ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              )
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 2,
+          ),
+        )
             : const Icon(Icons.refresh),
       ),
     );
