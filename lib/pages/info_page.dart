@@ -199,7 +199,7 @@ class InfoPage extends StatelessWidget {
 
 class ContactItem {
   final String title;
-  final IconData icon;
+  final FaIconData icon;
   final String url;
 
   ContactItem({required this.title, required this.icon, required this.url});
