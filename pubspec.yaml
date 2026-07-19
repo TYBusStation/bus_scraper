@@ -41,7 +41,7 @@ dependencies:
   intl: ^0.20.2
   flutter_json_view: ^1.1.5
   collection: ^1.19.1
-  font_awesome_flutter: ^10.8.0
+  font_awesome_flutter: ^11.0.0
   flutter_map: ^8.1.1
   latlong2: ^0.9.1
   cupertino_icons: ^1.0.6
