@@ -7,7 +7,7 @@ enum City {
     "taoyuan",
     Image(image: AssetImage('assets/taoyuan.png')),
     "https://ebus.tycg.gov.tw/ebus",
-    true,
+    false,
     "KKA-3822",
     "120031",
     LatLng(24.98893444390252, 121.31443803557084),
@@ -17,7 +17,7 @@ enum City {
     "taichung",
     Image(image: AssetImage('assets/taichung.png')),
     "https://citybus.taichung.gov.tw/ebus",
-    true,
+    false,
     "EAL-1277",
     "14308",
     LatLng(24.137331792238204, 120.6869186637282),
@@ -42,16 +42,14 @@ enum City {
   final String exDriver;
   final LatLng exPos;
 
-  const City(
-    this.name,
-    this.code,
-    this.icon,
-    this.url,
-    this.hasDriverInfo,
-    this.exPlate,
-    this.exDriver,
-    this.exPos,
-  );
+  const City(this.name,
+      this.code,
+      this.icon,
+      this.url,
+      this.hasDriverInfo,
+      this.exPlate,
+      this.exDriver,
+      this.exPos,);
 
   static const City defaultCity = taoyuan;
 }

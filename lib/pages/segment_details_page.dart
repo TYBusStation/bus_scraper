@@ -128,12 +128,14 @@ class SegmentDetailsPage extends StatelessWidget {
                             ? Colors.green
                             : Colors.orange,
                       ),
-                      _buildInfoChip(
-                        context,
-                        icon: Icons.person_pin_circle_outlined,
-                        label:
-                            "駕駛長：${FormatterUtils.getDriverText(dataPoint.driverId)}",
-                      ),
+                      if (Static.city.hasDriverInfo) ...[
+                        _buildInfoChip(
+                          context,
+                          icon: Icons.person_pin_circle_outlined,
+                          label:
+                              "駕駛長：${FormatterUtils.getDriverText(dataPoint.driverId)}",
+                        )
+                      ],
                       _buildInfoChip(
                         context,
                         icon: Icons.gps_fixed,
