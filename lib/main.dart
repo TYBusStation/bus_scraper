@@ -33,7 +33,8 @@ class AppLoader extends StatefulWidget {
 }
 
 class _AppLoaderState extends State<AppLoader> {
-  InitializationResult? _initializationResult;
+  bool _isInitialized = false;
+  Map<String, dynamic>? _updateInfo;
   Object? _error;
   int _tapCount = 0;
   DateTime _lastTapTime = DateTime.now();
@@ -49,10 +50,16 @@ class _AppLoaderState extends State<AppLoader> {
 
   Future<void> _startInitialization() async {
     try {
-      final result = await _initializeApp();
+      await Static.init();
+      final versionService = VersionCheckService();
+      Map<String, dynamic>? info;
+      if (await versionService.isUpdateRequired()) {
+        info = await versionService.getLatestVersionInfo();
+      }
       if (mounted) {
         setState(() {
-          _initializationResult = result;
+          _isInitialized = true;
+          _updateInfo = info;
           _error = null;
         });
       }
@@ -65,20 +72,10 @@ class _AppLoaderState extends State<AppLoader> {
     }
   }
 
-  Future<InitializationResult> _initializeApp() async {
-    final versionService = VersionCheckService();
-    if (await versionService.isUpdateRequired()) {
-      final updateInfo = await versionService.getLatestVersionInfo();
-      return InitializationResult(updateRequired: true, updateInfo: updateInfo);
-    } else {
-      await Static.init();
-      return InitializationResult(updateRequired: false);
-    }
-  }
-
   void _forceReload() {
     setState(() {
-      _initializationResult = null;
+      _isInitialized = false;
+      _updateInfo = null;
       _error = null;
     });
     Static.forceSwitchApiAndReInit().then((_) => _startInitialization());
@@ -96,6 +93,12 @@ class _AppLoaderState extends State<AppLoader> {
       FormatterUtils.showSnackbar(scaffoldContext, '強制切換 API 伺服器中...');
       _forceReload();
     }
+  }
+
+  void _skipUpdate() {
+    setState(() {
+      _updateInfo = null;
+    });
   }
 
   @override
@@ -189,53 +192,48 @@ class _AppLoaderState extends State<AppLoader> {
       );
     }
 
-    if (_initializationResult != null) {
-      final result = _initializationResult!;
-      if (result.updateRequired) {
-        return MaterialApp(
-          theme: ThemeData.dark(useMaterial3: true),
-          debugShowCheckedModeBanner: false,
-          home: UpdatePage(updateInfo: result.updateInfo!),
-        );
-      } else {
-        return const App();
-      }
-    }
-
-    return MaterialApp(
-      theme: ThemeData.dark(useMaterial3: true),
-      debugShowCheckedModeBanner: false,
-      home: Builder(
-        builder: (materialAppContext) {
-          return Scaffold(
-            body: GestureDetector(
-              onTap: () => _handleTap(materialAppContext),
-              behavior: HitTestBehavior.opaque,
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 20),
-                    Text(
-                      '資料載入中，請稍候...',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ],
+    if (!_isInitialized) {
+      return MaterialApp(
+        theme: ThemeData.dark(useMaterial3: true),
+        debugShowCheckedModeBanner: false,
+        home: Builder(
+          builder: (materialAppContext) {
+            return Scaffold(
+              body: GestureDetector(
+                onTap: () => _handleTap(materialAppContext),
+                behavior: HitTestBehavior.opaque,
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 20),
+                      Text(
+                        '資料載入中，請稍候...',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        ),
+      );
+    }
+
+    return App(
+      updateInfo: _updateInfo,
+      onSkipUpdate: _skipUpdate,
     );
   }
 }
 
 class UpdatePage extends StatefulWidget {
   final Map<String, dynamic> updateInfo;
+  final VoidCallback onSkip;
 
-  const UpdatePage({super.key, required this.updateInfo});
+  const UpdatePage({super.key, required this.updateInfo, required this.onSkip});
 
   @override
   State<UpdatePage> createState() => _UpdatePageState();
@@ -243,7 +241,6 @@ class UpdatePage extends StatefulWidget {
 
 class _UpdatePageState extends State<UpdatePage> {
   bool _isDownloading = false;
-  bool _isInitializingForSkip = false;
   double _progress = 0.0;
   String _statusText = '發現新版本，請立即更新。';
 
@@ -265,29 +262,6 @@ class _UpdatePageState extends State<UpdatePage> {
         _statusText = '更新失敗: $e\n請檢查您的網路連線與儲存空間權限。';
         _isDownloading = false;
       });
-    }
-  }
-
-  Future<void> _skipUpdate() async {
-    setState(() {
-      _isInitializingForSkip = true;
-      _statusText = '正在準備應用程式...';
-    });
-    try {
-      await Static.init();
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const App()),
-          (Route<dynamic> route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _statusText = '準備失敗: $e\n請嘗試重新啟動應用程式。';
-          _isInitializingForSkip = false;
-        });
-      }
     }
   }
 
@@ -326,14 +300,6 @@ class _UpdatePageState extends State<UpdatePage> {
                     Text('${(_progress * 100).toStringAsFixed(1)}%'),
                   ],
                 )
-              else if (_isInitializingForSkip)
-                const Column(
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('正在準備應用程式...'),
-                  ],
-                )
               else
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -348,7 +314,7 @@ class _UpdatePageState extends State<UpdatePage> {
                     ),
                     const SizedBox(height: 12),
                     TextButton(
-                        onPressed: _skipUpdate, child: const Text('略過此版本')),
+                        onPressed: widget.onSkip, child: const Text('略過此版本')),
                   ],
                 ),
             ],
@@ -360,7 +326,10 @@ class _UpdatePageState extends State<UpdatePage> {
 }
 
 class App extends StatelessWidget {
-  const App({super.key});
+  final Map<String, dynamic>? updateInfo;
+  final VoidCallback onSkipUpdate;
+
+  const App({super.key, this.updateInfo, required this.onSkipUpdate});
 
   @override
   Widget build(BuildContext context) {
@@ -375,7 +344,16 @@ class App extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: '桃園公車站動態追蹤',
           theme: themeData,
-          home: const MainPage(),
+          home: Stack(
+            children: [
+              const MainPage(),
+              if (updateInfo != null)
+                UpdatePage(
+                  updateInfo: updateInfo!,
+                  onSkip: onSkipUpdate,
+                ),
+            ],
+          ),
         ),
       ),
     );

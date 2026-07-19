@@ -42,14 +42,16 @@ enum City {
   final String exDriver;
   final LatLng exPos;
 
-  const City(this.name,
-      this.code,
-      this.icon,
-      this.url,
-      this.hasDriverInfo,
-      this.exPlate,
-      this.exDriver,
-      this.exPos,);
+  const City(
+    this.name,
+    this.code,
+    this.icon,
+    this.url,
+    this.hasDriverInfo,
+    this.exPlate,
+    this.exDriver,
+    this.exPos,
+  );
 
   static const City defaultCity = taoyuan;
 }
