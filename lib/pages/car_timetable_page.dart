@@ -102,7 +102,7 @@ class _CarTimetablePageState extends State<CarTimetablePage> {
       }
     } else {
       final url = Uri.parse(Static.city != City.taichung
-          ? "${Static.city.url}/driving-map/${route.id}"
+          ? "${Static.city.url}/ebus/driving-map/${route.id}"
           : "https://tybusstation.github.io/taichung_bus/");
       if (await canLaunchUrl(url)) {
         await launchUrl(url);

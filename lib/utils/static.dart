@@ -22,7 +22,6 @@ abstract class Static {
   static late final String? versionNotes;
 
   static const String _primaryApiUrl = "https://myster.freeddns.org:25566";
-
   static const String _fallbackApiUrl = "http://192.168.1.249:25567";
   static String _currentApiBaseUrl = _primaryApiUrl;
 
@@ -33,10 +32,6 @@ abstract class Static {
     headers: {
       'User-Agent': RandomUserAgents.random(),
       'Content-Type': 'application/json',
-      'Accept':
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-      'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-      'Accept-Encoding': 'gzip, deflate, br',
     },
   ));
 
@@ -53,7 +48,8 @@ abstract class Static {
 
   static City get city => localStorage.city;
 
-  static String get graphqlUrl => "${city.url}/graphql";
+  static String get graphqlUrl =>
+      "${city.url.replaceAll(RegExp(r'/$'), '')}/ebus/graphql";
 
   static void log(String message) {
     print("[${DateTime.now().toIso8601String()}] [Static] $message");
@@ -72,6 +68,7 @@ abstract class Static {
       _currentApiBaseUrl = _primaryApiUrl;
       log("已切換至主要 API: $_currentApiBaseUrl");
     }
+
     routeDetailCache.clear();
     allRouteData = null;
     _initFuture = null;
@@ -82,12 +79,13 @@ abstract class Static {
   static Future<void> _performInit() async {
     final int initId = _currentInitId;
     log("靜態資源初始化開始 (ID: $initId)...");
+
     await StorageHelper.init();
-    log("使用 API: $apiBaseUrl, 城市: ${city.name}");
+    log("目前城市: ${city.name} (${city.code}), API: $apiBaseUrl");
 
     try {
       await dio.getUri(Uri.parse(apiBaseUrl));
-      log("API 伺服器連線成功。");
+      log("後端 API 伺服器連線成功。");
 
       final opRoutesFuture = (city == City.taipei)
           ? ApiUtils.fetchTaipeiOpRoutes()
@@ -110,6 +108,7 @@ abstract class Static {
       specialRouteData = (results[1] as List<BusRoute>?) ?? [];
       carData = (results[2] as List<Car>?) ?? [];
       announcementMarkdown = results[3] as String? ?? '公告載入失敗';
+
       final versionInfo = results[4] as Map<String, String?>;
       currentVersion = versionInfo['version'];
       versionNotes = versionInfo['notes'];
@@ -118,22 +117,23 @@ abstract class Static {
       final seen = <String>{};
       routeData.retainWhere((route) => seen.add(route.id));
 
-      log("靜態資源初始化完成。");
+      log("靜態資源初始化完成 (共 ${routeData.length} 條路線, ${carData.length} 台車輛)。");
     } catch (e, stackTrace) {
       if (initId != _currentInitId) {
         log("忽略來自過期初始化 (ID: $initId) 的錯誤: $e");
         return;
       }
-      log("!!! 嚴重：靜態資源初始化失敗 (ID: $initId) !!!");
-      log("錯誤: $e");
-      log("堆疊追蹤: $stackTrace");
+      log("!!! 靜態資源初始化失敗 (ID: $initId) !!!");
+      log("錯誤詳情: $e");
+
       opRouteData = [];
       specialRouteData = [];
       routeData = [];
       carData = [];
-      announcementMarkdown = '公告載入失敗：\n$e';
-      currentVersion = '未知版本';
-      versionNotes = '更新日誌載入失敗。';
+      announcementMarkdown = '載入失敗，請檢查網路連線後重新啟動應用程式。\n錯誤碼: $e';
+      currentVersion = '未知';
+      versionNotes = '無法從伺服器獲取更新日誌。';
+
       rethrow;
     }
   }
@@ -143,15 +143,17 @@ abstract class Static {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersionStr =
           '${packageInfo.version}+${packageInfo.buildNumber}';
+
       final jsonString = await rootBundle.loadString('assets/versions.json');
       final decodedJson = jsonDecode(jsonString) as Map<String, dynamic>;
+
       return {
         'version': currentVersionStr,
         'notes': decodedJson[currentVersionStr]?.toString(),
       };
     } catch (e) {
-      log("讀取版本資訊時發生錯誤: $e");
-      return {'version': '未知版本', 'notes': '更新日誌載入失敗: $e'};
+      log("讀取版本資訊失敗: $e");
+      return {'version': '版本讀取失敗', 'notes': '無法讀取 versions.json'};
     }
   }
 }
