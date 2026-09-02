@@ -70,35 +70,6 @@ abstract class ApiUtils {
     }
   }
 
-  static Future<List<BusRoute>> fetchGraphQLOpRoutes() async {
-    if (Static.city == City.taipei) return fetchTaipeiOpRoutes();
-
-    final String apiBase = Static.city.url.replaceAll(RegExp(r'/$'), '');
-    final String targetUrl = "$apiBase/cms/api/route/";
-
-    try {
-      final response = await Static.dio.get(
-        targetUrl,
-        options: Options(headers: _getHeaders(Static.city.code)),
-      );
-
-      if (response.statusCode == 200 && response.data is List) {
-        return (response.data as List).map((item) {
-          return BusRoute(
-            id: item['Id']?.toString() ?? '',
-            name: item['NameZh'] ?? '',
-            description: item['ddesc'] ?? '',
-            departure: item['DepartureZh'] ?? '',
-            destination: item['DestinationZh'] ?? '',
-          );
-        }).toList();
-      }
-    } catch (e) {
-      Static.log("透過 REST 讀取營運路線失敗: $e");
-    }
-    return [];
-  }
-
   static Future<RouteDetail> _fetchGraphQLRoutePathAndStops(
       {required String routeId}) async {
     final String apiBase = Static.city.url.replaceAll(RegExp(r'/$'), '');
@@ -153,29 +124,6 @@ abstract class ApiUtils {
   }
 
   static Future<BusRoute> fetchGraphQLRouteDetailById(String routeId) async {
-    final int? routeIdInt = int.tryParse(routeId);
-    if (routeIdInt == null || Static.city == City.taipei) {
-      return BusRoute.unknownWithId(routeId);
-    }
-
-    final response = await _postGraphQL(
-      "QUERY_ROUTE_DETAIL",
-      {"routeId": routeIdInt, "lang": "zh"},
-      _queryRouteDetail,
-    );
-
-    if (response?.statusCode == 200 &&
-        response?.data?['data']?['route'] is Map) {
-      final newRoute = BusRoute.fromJson(response!.data['data']['route']);
-
-      final index = Static.routeData.indexWhere((r) => r.id == newRoute.id);
-      if (index != -1) {
-        Static.routeData[index] = newRoute;
-      } else {
-        Static.routeData.add(newRoute);
-      }
-      return newRoute;
-    }
     return BusRoute.unknownWithId(routeId);
   }
 
@@ -238,15 +186,14 @@ abstract class ApiUtils {
     }
 
     RouteDetail routeDetail;
-    if (Static.city == City.taipei) {
-      final route = getRouteByIdSync(routeId);
-      if (route.name == '未知路線' || route.nid == null || route.nid!.isEmpty) {
-        return RouteDetail.unknown;
-      }
-      routeDetail = await _fetchTaipeiRoutePathAndStops(nid: route.nid!);
-    } else {
-      routeDetail = await _fetchGraphQLRoutePathAndStops(routeId: routeId);
+    final route = getRouteByIdSync(routeId);
+    if (route.name == '未知路線' ||
+        (Static.city == City.taipei &&
+            (route.nid == null || route.nid!.isEmpty))) {
+      return RouteDetail.unknown;
     }
+    routeDetail = await _fetchRoutePathAndStops(
+        nid: Static.city == City.taipei ? route.nid! : routeId);
 
     if (routeDetail != RouteDetail.unknown) {
       Static.routeDetailCache[routeId] = routeDetail;
@@ -254,7 +201,7 @@ abstract class ApiUtils {
     return routeDetail;
   }
 
-  static Future<RouteDetail> _fetchTaipeiRoutePathAndStops(
+  static Future<RouteDetail> _fetchRoutePathAndStops(
       {required String nid}) async {
     final url = "${Static.apiBaseUrl}/${Static.city.code}/route_info/$nid";
     try {
@@ -289,7 +236,7 @@ abstract class ApiUtils {
     return [];
   }
 
-  static Future<List<BusRoute>> fetchTaipeiOpRoutes() async {
+  static Future<List<BusRoute>> fetchOpRoutes() async {
     final String url = "${Static.apiBaseUrl}/${Static.city.code}/op_routes";
     try {
       final response = await Static.dio

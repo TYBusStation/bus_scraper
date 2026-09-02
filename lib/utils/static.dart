@@ -89,10 +89,7 @@ abstract class Static {
       await dio.getUri(Uri.parse(apiBaseUrl));
       log("API 伺服器連線成功。");
 
-      // 此處呼叫 ApiUtils，ApiUtils 內部會依照新的邏輯執行 REST/POST 抓取
-      final opRoutesFuture = (city == City.taipei)
-          ? ApiUtils.fetchTaipeiOpRoutes()
-          : ApiUtils.fetchGraphQLOpRoutes();
+      final opRoutesFuture = ApiUtils.fetchOpRoutes();
 
       final results = await Future.wait([
         opRoutesFuture,
